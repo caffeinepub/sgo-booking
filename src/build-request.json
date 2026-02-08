@@ -1,98 +1,130 @@
 {
   "kind": "build_request",
-  "title": "Rollback Version 25 regression by restoring Version 24 role-based access (Admin/Hotel/Guest) and panels",
+  "title": "Restore missing Guest/Hotel/Admin panels and fix Admin invite token generation failure (post v26 regression)",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Restore the application behavior to match Version 24 by fixing the Version 25 regression where Admin and Hotel accounts are treated as Guest accounts, causing the Admin Panel (/admin) and Hotel Area (/hotel) to disappear or become inaccessible.",
+      "text": "Restore role detection and authorization behavior so Admin and Hotel accounts are not treated as Guest accounts, and role-gated routes (/admin, /hotel, /guest or /account) render the correct pages for the correct users (matching the last known stable behavior before Version 25/26).",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-user-ini-kenapa",
-          "msg-user-iya-v24"
+          "msg-1"
         ],
         "quotes": [
-          "ini kenapa sekarang malah semua hilang baik di akun admin, akun hotel dan akun tamu. akun admin jadi berubah jadi akun tamu dan hilang panel admin nya., akun hotel berubah jadi akun tamu dan Hotel Area malah ikut hilang juga.",
-          "IYA VERSI 24"
+          "WHY are many missing on guest and hotel accounts... and in admin cannot generate token",
+          "I do not want to know—restore my program like before...",
+          "Check all previous versions...",
+          "KERJAKANSEKRANG OLEH ANDA'"
         ]
       },
       "acceptanceCriteria": [
-        "When logged in with an Admin principal that previously had admin access in Version 24, navigating to /admin shows the Admin Panel UI (not AccessDenied) and the TopNav includes the expected admin navigation.",
-        "When logged in with a Hotel owner principal that previously had hotel access in Version 24, navigating to /hotel shows the Hotel Management dashboard and tabs (Profile, Rooms, Payments, Bookings, Record Stays, Subscription).",
-        "When logged in with a Guest principal, /admin and /hotel remain protected and show an appropriate access denied screen (no privilege escalation).",
-        "No account type (admin/hotel/guest) is unintentionally downgraded to Guest due to frontend caching or backend role checks."
+        "When logged in as an Admin, navigation and route guards allow access to /admin and show Admin panels (including bookings and invite token management).",
+        "When logged in as a Hotel account (activated), navigation and route guards allow access to /hotel and show the full Hotel Area dashboard.",
+        "When logged in as a Guest, navigation and route guards allow access to /guest (and/or /account as configured) and show the Guest Account page with bookings.",
+        "No role/authorization state is reset, lost, or corrupted during deploy/upgrade."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure backend authorization and role detection APIs used by the frontend (e.g., user role and admin checks) return correct results consistent with Version 24, and do not reset or corrupt existing role/authorization state during upgrade/deploy.",
-      "target": "backend",
+      "text": "Restore the missing user-facing panels/menus for each role in the frontend: Guest Account must include “Guest Account” and “My Bookings”; Hotel Account must include “My Bookings”, “Guest Account”, and “Hotel Area”; Admin must include “My Bookings”, and the missing links/panels must be visible again under the same conditions as before the regression.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-ini-kenapa",
-          "msg-user-perbaiki"
+          "msg-1"
         ],
         "quotes": [
-          "akun admin jadi berubah jadi akun tamu dan hilang panel admin nya., akun hotel berubah jadi akun tamu dan Hotel Area malah ikut hilang juga.",
-          "PERBAIKI SEKARANG"
+          "DI AKUN TAMU YANG HILANG FITUR MY BOOKING DAN GEUST ACCOUNT.",
+          "DI AKUN HOTEL YANG HILANG MY BOOKING, GEUST ACCOUNT DAN HOTEL AREA.",
+          "DI AKUN ADMIN YANG HILANG MY BOOKING."
         ]
       },
       "acceptanceCriteria": [
-        "Backend role/admin checks correctly identify Admin principals as admin and Hotel principals as hotel owners as they were in Version 24.",
-        "Upgrading/deploying the backend does not wipe or reinitialize authorization state for existing principals.",
-        "Hotel activation/ownership checks do not block legitimate hotel owners from accessing their hotel profile."
+        "Authenticated Guest users can navigate to their account page and see the Guest Account header and a “My Bookings” section with booking list/empty state.",
+        "Authenticated Hotel users can access the Hotel Area entry point from navigation/menu and reach the Hotel dashboard; hotel bookings (“My Bookings”) are visible and functional there.",
+        "Authenticated Admin users can access an Admin bookings view (“My Bookings”) from the Admin area and see booking data load states and results.",
+        "All user-facing labels/messages added or changed as part of this restoration are in English."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Update the frontend build/version identifier so production clearly reflects the rollback to Version 24 (for verification and support), and ensure user-facing text remains in English.",
-      "target": "frontend",
+      "text": "Fix Admin “Generate Token” so it no longer returns “FAILED” when clicked by restoring/implementing the backend APIs used by the Invite Token UI (createInviteToken and getInviteTokens) and ensuring they succeed for authorized Admin callers, returning a usable token and refreshing the token list.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-user-iya-v24"
+          "msg-1"
         ],
         "quotes": [
-          "IYA VERSI 24"
+          "DI AKUN ADMIN MUNCUL FAILED KETIKA MAU GENERATE TOKEN",
+          "DI AKUN ADMIN DI KLIK BISA TAPI HASILNYA FAILED."
         ]
       },
       "acceptanceCriteria": [
-        "The app exposes a visible or inspectable build identifier indicating Version 24 is running (e.g., via the existing build version constant).",
-        "All user-facing messages related to auth/role/access continue to be English (no regressions to non-English UI strings)."
+        "In the Admin UI, clicking “Generate Token” with a valid Hotel Principal creates a new invite token successfully (success toast shown; no “FAILED”).",
+        "The invite token list refreshes after generation and shows the newly created token with its bound principal and usage info.",
+        "Non-admin callers cannot create invite tokens; the UI shows an appropriate error message (in English).",
+        "Backend main actor exposes the methods expected by the frontend hooks/types for invite token creation and listing, and they work with existing persisted data."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Run and pass the existing regression checks specifically for Authentication & Authorization, Admin Panel access, and Hotel Area access after the Version 24 rollback behavior is restored.",
+      "text": "Ensure bookings (“My Bookings”) functionality is restored and consistent across Guest, Hotel, and Admin views by verifying the backend bookings query API used by the frontend (getBookings with filters) is present and returns correct results based on caller role and filters.",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-user-ini-kenapa",
-          "msg-user-iya-v24"
+          "msg-1"
         ],
         "quotes": [
-          "akun admin jadi berubah jadi akun tamu dan hilang panel admin nya., akun hotel berubah jadi akun tamu dan Hotel Area malah ikut hilang juga.",
-          "IYA VERSI 24"
+          "...missing My Booking on guest/hotel/admin accounts"
         ]
       },
       "acceptanceCriteria": [
-        "All checklist items under 'Authentication & Authorization' in frontend/REGRESSION_CHECKLIST.md pass.",
-        "Admin Panel checklist items (Invite token generation, hotel visibility controls, admin booking visibility) are accessible to Admin users only.",
-        "Hotel Management access works for activated hotel owners and remains inaccessible to guests."
+        "Guest “My Bookings” loads bookings created by the logged-in guest and renders without errors.",
+        "Hotel bookings view loads bookings for the hotel and renders without errors.",
+        "Admin bookings view loads all bookings (or the intended admin-visible set) and renders without errors.",
+        "Booking status, totals, and details dialogs render correctly and do not throw runtime errors."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Run and pass the existing regression checklist to confirm the restored behavior for authentication, authorization, Admin Panel access, Hotel Area access, and booking flows after the fixes are applied.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "...restore my program like before... check all previous versions..."
+        ]
+      },
+      "acceptanceCriteria": [
+        "All items in frontend/REGRESSION_CHECKLIST.md relevant to authentication/authorization/admin/hotel/booking flows pass without newly introduced regressions.",
+        "Any discovered checklist failures are fixed as part of this build request."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; only add backend/migration.mo if a state upgrade is required to preserve existing principals/roles.",
-    "Do not modify files in frontend immutablePaths (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui).",
-    "Use English for any user-facing text."
+    "Backend must remain a single Motoko actor in backend/main.mo; add backend/migration.mo only if state upgrade is required to preserve existing data.",
+    "Do not edit frontend files under frontend/src/components/ui or other paths listed as immutable in SYSTEM_CONTEXT; compose them instead.",
+    "Keep all user-facing text in English."
   ],
   "nonGoals": [
-    "Do not implement or change room photo upload/display behavior as part of this rollback request (focus only on restoring Version 24 role/panel behavior).",
-    "Do not add new features unrelated to fixing the Version 25 authorization/role regression."
+    "Introducing new product features beyond restoring previously available Guest/Hotel/Admin panels and fixing token generation.",
+    "Adding third-party authentication providers (only Internet Identity is supported).",
+    "Adding external databases or non-Internet-Computer backend services."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

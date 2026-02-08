@@ -1,12 +1,16 @@
 # Specification
 
 ## Summary
-**Goal:** Restore Version 24 role-based access behavior so Admin and Hotel accounts are no longer treated as Guests, and the Admin Panel (/admin) and Hotel Area (/hotel) are accessible to the correct roles again.
+**Goal:** Restore the pre-v25/26 role-based Guest/Hotel/Admin experiences (routes, menus, and panels), and fix the Admin invite token generation and bookings views that regressed.
 
 **Planned changes:**
-- Restore frontend role detection and routing/guards so Admin users see the Admin navigation and can access `/admin`, Hotel owners can access `/hotel`, and Guests are denied for both.
-- Fix backend role/authorization checks and any related APIs to return the same Admin/Hotel/Guest results as Version 24 without wiping or reinitializing existing authorization state during deploy/upgrade.
-- Update the frontend build/version identifier to clearly indicate Version 24 is running, and ensure all auth/access user-facing text remains in English.
-- Run and ensure existing regression checks for Authentication & Authorization, Admin Panel access, and Hotel Area access pass after the rollback behavior is restored.
+- Restore role detection and authorization/route-guard behavior so Admin and Hotel accounts are no longer treated as Guests, and /admin, /hotel, and /guest (and/or /account) render the correct role pages.
+- Restore missing role-specific frontend navigation/panels:
+  - Guest: “Guest Account” and “My Bookings”
+  - Hotel: “My Bookings”, “Guest Account”, and “Hotel Area”
+  - Admin: “My Bookings” and Admin panels including invite token management
+- Fix Admin “Generate Token” by restoring/implementing backend APIs used by the Invite Token UI (createInviteToken, getInviteTokens), enforcing Admin-only access, and ensuring the token list refreshes after generation.
+- Verify and restore bookings querying behavior (getBookings with filters) so “My Bookings” works correctly for Guest, Hotel, and Admin views, including details/status rendering without runtime errors.
+- Run and pass the existing regression checklist items related to authentication/authorization/admin/hotel/booking flows and fix any failures found.
 
-**User-visible outcome:** Admins can access the Admin Panel and see admin navigation, Hotel owners can access the Hotel Management area and its tabs, and Guests remain blocked from both areas with an access denied screen—matching Version 24 behavior.
+**User-visible outcome:** After login, Guests, Hotels, and Admins see the correct menus and dashboards for their roles; “My Bookings” is available and loads correctly for each role; Admins can access /admin and successfully generate and view invite tokens without “FAILED”.

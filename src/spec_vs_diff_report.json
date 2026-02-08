@@ -1,93 +1,53 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T22:03:27.249Z",
-  "summary": "Diff restores role-gated routing and navigation for /admin and /hotel, adds an explicit build version label, and reintroduces/expands multiple backend/frontend modules. However, evidence of backend state-preserving upgrade handling and explicit regression-check execution is not present, and several unrelated/new UI and functionality changes (including room photo handling) appear outside the rollback scope.",
+  "generatedAt": "2026-02-08T22:27:51.208Z",
+  "summary": "Diff only updates project_state.json to record the requested work as pending; no frontend/backend implementation changes are present, so none of the BuildRequest requirements are implemented.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "Ensure backend authorization/role detection remains consistent with Version 24 and that upgrading/deploying does not wipe or reinitialize existing authorization state for principals/roles.",
-      "reason": "The diff shows new/updated authorization-related setup (e.g., AccessControl.initState and MixinAuthorization) but does not provide clear evidence (in the truncated summary) of stable storage/migration logic to preserve existing role/authorization state across upgrades, nor explicit confirmation that existing principals’ roles are preserved.",
+      "id": "REQ-1",
+      "requirement": "Restore role detection and authorization so Admin/Hotel are not treated as Guest, and role-gated routes render correct pages without losing state.",
+      "reason": "No application code changes are shown; only project_state.json metadata was modified.",
       "evidence": [
-        "backend/main.mo"
+        "project_state.json"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Restore missing role-based frontend panels/menus (Guest Account/My Bookings, Hotel Area entry point, Admin My Bookings) with English text.",
+      "reason": "No frontend code changes are shown; only project_state.json metadata was modified.",
+      "evidence": [
+        "project_state.json"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Fix Admin Generate Token by restoring backend APIs (createInviteToken, getInviteTokens) with proper admin authorization and usable token/list refresh.",
+      "reason": "No backend Motoko code changes are shown; only project_state.json metadata was modified.",
+      "evidence": [
+        "project_state.json"
       ]
     },
     {
       "id": "REQ-4",
-      "requirement": "Run and pass existing regression checks for Authentication & Authorization, Admin Panel access, and Hotel Area access after rollback.",
-      "reason": "No evidence in the diff summary indicates the regression checklist was run or updated (e.g., no changes shown to frontend/REGRESSION_CHECKLIST.md or test artifacts).",
-      "evidence": []
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "Changes/additions related to room photo upload/display handling inside hotel room management UI.",
-      "reason": "Non-goal explicitly says not to implement or change room photo upload/display behavior as part of this rollback, but the diff shows RoomsPanel using useRoomImageUpload and photo-related UI components.",
+      "requirement": "Restore/verify bookings query API (getBookings with filters) and consistent My Bookings behavior for Guest/Hotel/Admin.",
+      "reason": "No backend/frontend code changes are shown; only project_state.json metadata was modified.",
       "evidence": [
-        "frontend/src/components/hotel/RoomsPanel.tsx"
+        "project_state.json"
       ]
     },
     {
-      "description": "New/expanded profile-completion gating flow that forces a user profile dialog before accessing authenticated areas.",
-      "reason": "Not requested by the rollback requirements (which focus on restoring V24 role/panel behavior). This is additional auth-related UX beyond role regression restoration.",
+      "id": "REQ-5",
+      "requirement": "Run and pass frontend/REGRESSION_CHECKLIST.md relevant items and fix any discovered failures.",
+      "reason": "No evidence of checklist execution or related fixes; only project_state.json metadata was modified.",
       "evidence": [
-        "frontend/src/components/auth/ProfileCompletionGate.tsx",
-        "frontend/src/App.tsx"
-      ]
-    },
-    {
-      "description": "Authentication diagnostics/debug panel UI for role/admin/hotel activation visibility.",
-      "reason": "Not requested by the rollback requirements and may be considered an unrelated new feature.",
-      "evidence": [
-        "frontend/src/components/debug/AuthDiagnosticsPanel.tsx"
-      ]
-    },
-    {
-      "description": "Expanded booking-management UI components (booking details dialog, status badge, booking form) and hotel operational panels (record stay completion).",
-      "reason": "The BuildRequest is narrowly scoped to restoring V24 role-based access and panels; these appear to be broader feature work not directly required to fix the V25 role regression.",
-      "evidence": [
-        "frontend/src/components/booking/BookingDetailsDialog.tsx",
-        "frontend/src/components/booking/BookingForm.tsx",
-        "frontend/src/components/booking/BookingStatusBadge.tsx",
-        "frontend/src/components/hotel/RecordStayPanel.tsx",
-        "frontend/src/components/hotel/HotelBookingsPanel.tsx"
-      ]
-    },
-    {
-      "description": "Addition of extended backend TypeScript types and an expanded frontend actor interface for many backend methods.",
-      "reason": "Not explicitly requested as part of the rollback requirements; appears to be supplementary scaffolding beyond restoring role/panel access.",
-      "evidence": [
-        "frontend/src/types/extended-backend.ts",
-        "frontend/src/hooks/useQueries.ts"
+        "project_state.json"
       ]
     }
   ],
-  "confidence": 0.62,
+  "hallucinated_features": [],
+  "confidence": 0.93,
   "changed_files": [
-    "backend/main.mo",
-    "frontend-file-summaries.txt",
-    "frontend/REGRESSION_CHECKLIST.md",
-    "frontend/src/App.tsx",
-    "frontend/src/buildInfo.ts",
-    "frontend/src/components/admin/HotelVisibilityPanel.tsx",
-    "frontend/src/components/auth/AccessDeniedScreen.tsx",
-    "frontend/src/components/auth/ProfileCompletionGate.tsx",
-    "frontend/src/components/auth/RequireRole.tsx",
-    "frontend/src/components/booking/BookingDetailsDialog.tsx",
-    "frontend/src/components/booking/BookingForm.tsx",
-    "frontend/src/components/booking/BookingStatusBadge.tsx",
-    "frontend/src/components/debug/AuthDiagnosticsPanel.tsx",
-    "frontend/src/components/hotel/HotelBookingsPanel.tsx",
-    "frontend/src/components/hotel/RecordStayPanel.tsx",
-    "frontend/src/components/hotel/RoomsPanel.tsx",
-    "frontend/src/components/hotel/SubscriptionPanel.tsx",
-    "frontend/src/components/layout/AppShell.tsx",
-    "frontend/src/components/nav/TopNav.tsx",
-    "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/HotelAreaPage.tsx",
-    "frontend/src/pages/HotelDetailPage.tsx",
-    "frontend/src/types/extended-backend.ts",
     "project_state.json"
   ]
 }

@@ -1,83 +1,148 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restore Version 24 role-based access UI (Admin/Hotel/Guest) and expose V24 build identifier",
+  "title": "Restore role-gated panels/navigation and fix Admin invite token UI failure (frontend-only)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Restore Version 24 role-based route guarding and navigation visibility so Admin and Hotel accounts are not treated as Guests, and /admin and /hotel behave correctly.",
+      "summary": "Restore stable role detection and role-gated route behavior so Admin/Hotel/Guest users land on the correct areas and are not treated as Guests.",
       "acceptanceCriteria": [
-        "When logged in with an Admin principal that previously had admin access in Version 24, navigating to /admin shows the Admin Panel UI (not AccessDenied) and the TopNav includes the expected admin navigation.",
-        "When logged in with a Hotel owner principal that previously had hotel access in Version 24, navigating to /hotel shows the Hotel Management dashboard and tabs (Profile, Rooms, Payments, Bookings, Record Stays, Subscription).",
-        "When logged in with a Guest principal, /admin and /hotel remain protected and show an appropriate access denied screen (no privilege escalation).",
-        "No account type (admin/hotel/guest) is unintentionally downgraded to Guest due to frontend caching or backend role checks."
+        "When logged in as an Admin, navigation and route guards allow access to /admin and show Admin panels (including bookings and invite token management).",
+        "When logged in as a Hotel account (activated), navigation and route guards allow access to /hotel and show the full Hotel Area dashboard.",
+        "When logged in as a Guest, navigation and route guards allow access to /guest (and/or /account as configured) and show the Guest Account page with bookings.",
+        "No role/authorization state is reset, lost, or corrupted during deploy/upgrade."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Harden role/admin/hotel-activation React Query hooks against stale/cross-session caching by scoping auth-related query keys to the current authenticated principal and disabling role/admin queries when unauthenticated; ensure refetch behavior reliably re-checks role after login/logout transitions (Version 24 behavior)."
+          "description": "Tighten authentication gating for role/admin/hotel-profile queries so they only run for non-anonymous Internet Identity sessions (prevents anonymous/guest state from overriding real roles). Keep principal-scoped caching. Use the authorization component’s frontend guidance for query dependency handling; verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/components/auth/RequireRole.tsx",
           "operation": "modify",
-          "description": "Fix guard logic so Admin bypass does not wait on hotel activation checks, and only performs hotel activation checks when the resolved role is Hotel (UserRole.user) (avoid mistakenly denying Admin/Hotel due to unnecessary hotel-profile loading or rejected queries)."
+          "description": "Harden role checks to avoid transient misclassification: ensure anonymous/unauthenticated sessions do not pass, and ensure hotel activation checks only run when relevant. Continue to surface GuardErrorScreen/AccessDeniedScreen appropriately. Use the authorization component patterns; verify the component's usage instructions before implementing."
         },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Restore last-known-stable role-based routing behavior by wiring a lightweight role-based redirect for /account and /guest (e.g., admin→/admin, activated hotel→/hotel, guest→/guest) while keeping existing routes intact. Ensure /admin and /hotel remain guarded via RequireAuth + RequireRole. Verify TanStack Router wiring remains consistent (no orphan routes). Use core-infrastructure routing conventions; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/AccountStatusPage.tsx",
+          "operation": "modify",
+          "description": "Align any displayed role/admin/hotel activation status logic with the corrected non-anonymous auth detection so Admin/Hotel are not shown as Guest. Ensure all user-facing text remains English. Use the authorization component guidance; verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Restore missing role-specific user-facing panels/menus/links so each role can reach Guest Account, My Bookings, Hotel Area, and Admin bookings as before the regression.",
+      "acceptanceCriteria": [
+        "Authenticated Guest users can navigate to their account page and see the Guest Account header and a “My Bookings” section with booking list/empty state.",
+        "Authenticated Hotel users can access the Hotel Area entry point from navigation/menu and reach the Hotel dashboard; hotel bookings (“My Bookings”) are visible and functional there.",
+        "Authenticated Admin users can access an Admin bookings view (“My Bookings”) from the Admin area and see booking data load states and results.",
+        "All user-facing labels/messages added or changed as part of this restoration are in English."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/components/nav/TopNav.tsx",
           "operation": "modify",
-          "description": "Adjust role-based navigation visibility to match Version 24 expectations: ensure Admin Panel visibility is driven by definitive admin check, and Hotel Area visibility does not regress due to loading/order-of-queries issues; keep Guest users from seeing protected navigation."
+          "description": "Restore role-appropriate navigation items and labels: show “Guest Account” and “My Bookings” for authenticated users; show “Hotel Area” for activated hotel users; show “Admin Panel” plus “My Bookings” access for admins. Ensure visibility conditions rely on non-anonymous authentication + corrected role/admin checks. Compose existing shadcn-ui primitives (Button, etc.) without modifying immutable ui components; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/GuestAccountPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the page clearly exposes “Guest Account” and “My Bookings” as user-facing sections (including empty/loading states) and that labels are English-only. If needed, add a stable section id for “My Bookings” to support nav deep-linking. Compose existing shadcn-ui components; verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/pages/HotelAreaPage.tsx",
           "operation": "modify",
-          "description": "Ensure the Hotel Management dashboard reliably renders for activated hotel owners and does not incorrectly show 'Hotel Profile Not Found' due to transient role/activation query timing; keep user-facing messaging in English."
+          "description": "Ensure the Hotel dashboard provides a clear “My Bookings” entry (existing Bookings tab) and that any missing/activation messaging is English-only and consistent with restored guards. Compose existing shadcn-ui Tabs/Card components; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/auth/AccessDeniedScreen.tsx",
+          "path": "frontend/src/pages/AdminPanelPage.tsx",
           "operation": "modify",
-          "description": "Verify AccessDenied messaging and role labels remain consistent with Version 24 (Admin/Hotel/Guest naming) and remain in English; ensure denial states are appropriate for Guests accessing /admin or /hotel."
+          "description": "Ensure the Admin area clearly exposes a “My Bookings” entry point (bookings section/panel) consistent with restored navigation labeling. Keep all user-facing text in English. Compose existing shadcn-ui components; verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Update the visible/inspectable build identifier to reflect Version 24 rollback and ensure all auth/role/access UI text remains English.",
+      "summary": "Fix Admin “Generate Token” UX so token generation no longer results in a generic “FAILED”, succeeds when backend capabilities are available, and refreshes the token list with clear English errors for unauthorized callers.",
       "acceptanceCriteria": [
-        "The app exposes a visible or inspectable build identifier indicating Version 24 is running (e.g., via the existing build version constant).",
-        "All user-facing messages related to auth/role/access continue to be English (no regressions to non-English UI strings)."
+        "In the Admin UI, clicking “Generate Token” with a valid Hotel Principal creates a new invite token successfully (success toast shown; no “FAILED”).",
+        "The invite token list refreshes after generation and shows the newly created token with its bound principal and usage info.",
+        "Non-admin callers cannot create invite tokens; the UI shows an appropriate error message (in English).",
+        "Backend main actor exposes the methods expected by the frontend hooks/types for invite token creation and listing, and they work with existing persisted data."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/buildInfo.ts",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Update the BUILD_VERSION constant to clearly indicate Version 24 (rollback) so production verification can confirm the correct build."
+          "description": "Make invite token hooks resilient to backend capability drift: implement a compatibility layer that prefers the ExtendedBackendInterface invite-token functions when present, but can fall back to the currently-declared invite-code functions where appropriate. Ensure successful mutations invalidate/refetch the correct query keys so the list refreshes reliably. Ensure all surfaced errors are normalized to clear English messages. Use authorization component error-handling guidance; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/layout/AppShell.tsx",
+          "path": "frontend/src/components/admin/InviteTokensPanel.tsx",
           "operation": "modify",
-          "description": "Surface the BUILD_VERSION in an existing UI location (e.g., footer) to make the Version 24 identifier visible/inspectable without adding new routes or pages; ensure displayed text is English."
+          "description": "Update Admin invite token UI to use the corrected hooks, provide clearer English error states (including unauthorized vs validation vs backend failure), and remove any generic “FAILED” messaging paths. Ensure success triggers list refresh and the newly generated item is visible. Compose existing shadcn-ui components (Card/Table/Alert/etc.) and keep Principal validation; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/types/extended-backend.ts",
+          "operation": "modify",
+          "description": "Align extended invite token typing/notes to the compatibility behavior so the frontend remains type-safe when the backend exposes either invite-token or invite-code capabilities. Do not introduce new user-facing text here. Verify core-infrastructure typing conventions before implementing."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Update and run the frontend regression checks for auth/role gating, Admin Panel access, and Hotel Area access after restoring Version 24 behavior.",
+      "summary": "Restore consistent “My Bookings” behavior across Guest/Hotel/Admin views by fixing frontend query enablement, filters, and rendering safeguards to match role-specific expectations.",
       "acceptanceCriteria": [
-        "All checklist items under 'Authentication & Authorization' in frontend/REGRESSION_CHECKLIST.md pass.",
-        "Admin Panel checklist items (Invite token generation, hotel visibility controls, admin booking visibility) are accessible to Admin users only.",
-        "Hotel Management access works for activated hotel owners and remains inaccessible to guests."
+        "Guest “My Bookings” loads bookings created by the logged-in guest and renders without errors.",
+        "Hotel bookings view loads bookings for the hotel and renders without errors.",
+        "Admin bookings view loads all bookings (or the intended admin-visible set) and renders without errors.",
+        "Booking status, totals, and details dialogs render correctly and do not throw runtime errors."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Improve bookings query stability: add optional query options (e.g., enabled) and normalize query keys for filter objects to prevent cache collisions. Ensure hotel-specific bookings do not fetch until hotelId is known, and guest/admin views remain functional. Verify TanStack Query patterns used by core-infrastructure; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/hotel/HotelBookingsPanel.tsx",
+          "operation": "modify",
+          "description": "Prevent incorrect/empty fetches by only querying hotel bookings when the caller’s hotel profile (hotelId) is available; keep loading/empty states intact and English-only. Compose existing shadcn-ui components; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/admin/AdminBookingsPanel.tsx",
+          "operation": "modify",
+          "description": "Ensure Admin bookings panel handles loading/empty/error states without runtime errors and remains consistent with restored query behavior. Keep all labels English. Compose existing shadcn-ui components; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/GuestAccountPage.tsx",
+          "operation": "modify",
+          "description": "Ensure Guest bookings list rendering remains robust (empty/loading states, details dialog) with the updated bookings query behavior and English-only messaging. Compose existing shadcn-ui components; verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Update and pass the existing regression checklist for restored auth/authorization, Admin/Hotel access, and bookings/invite-token flows.",
+      "acceptanceCriteria": [
+        "All items in frontend/REGRESSION_CHECKLIST.md relevant to authentication/authorization/admin/hotel/booking flows pass without newly introduced regressions.",
+        "Any discovered checklist failures are fixed as part of this build request."
       ],
       "file_operations": [
         {
           "path": "frontend/REGRESSION_CHECKLIST.md",
           "operation": "modify",
-          "description": "Augment the existing checklist with explicit post-rollback (V24) verification steps for role detection, TopNav link visibility, /admin and /hotel guard behavior for Admin/Hotel/Guest, and cache-clearing expectations after logout/login; keep checklist text in English."
+          "description": "Update checklist items to explicitly cover: non-anonymous auth gating for role queries, role-based redirects for /account and /guest, restored nav labels (“Guest Account”, “My Bookings”, “Hotel Area”, “Admin Panel”), Admin token generation success + token list refresh + English unauthorized error, and hotel bookings query enablement. Ensure checklist remains consistent and English-only."
         },
         {
           "path": "frontend/src/components/debug/AuthDiagnosticsPanel.tsx",
           "operation": "modify",
-          "description": "Refine the debug diagnostics wording (English) to align with the restored Version 24 role model (Admin/Hotel/Guest) and make it easier to validate that role/admin/hotel-activation signals match expected access for /admin and /hotel."
+          "description": "Enhance diagnostics (dev-only display) to reflect the corrected non-anonymous authentication state and role/admin/hotel activation checks, aiding checklist verification without changing security behavior. Use authorization component guidance; verify the component's usage instructions before implementing."
         }
       ]
     }

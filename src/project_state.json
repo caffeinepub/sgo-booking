@@ -1,51 +1,61 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Rollback production deployment from Version 25 to Version 24 to restore correct user roles (admin/hotel/guest) and associated panels/areas.",
+  "summary": "Restore the application to the pre-v25/pre-v26 state by recovering missing role-based panels/features (Guest/Hotel/Admin) and fixing Admin token generation failure after Version 26 deployment.",
   "architectural_notes": [
-    "Production must support rollback to last stable release (Version 24) when critical role/permission regressions occur."
+    "Role-based UI/feature availability regressed after Version 26; Guest/Hotel/Admin panels must match behavior from earlier versions."
   ],
   "known_issues": [
-    "Version 25 regression: all accounts (admin/hotel) appear as guest; admin panel and Hotel Area are missing."
+    "Guest account: 'My Booking' and 'Guest Account' features/menus are missing after Version 26.",
+    "Hotel account: 'My Booking', 'Guest Account', and 'Hotel Area' features/menus are missing after Version 26.",
+    "Admin: 'My Booking' is missing after Version 26.",
+    "Admin: Generate Token action is present but returns 'FAILED' when clicked after Version 26."
   ],
   "isFixRequest": true,
-  "existing_features": [
+  "existing_features": [],
+  "new_feature_requests": [
     {
-      "id": "feature-restore-the-application-behavior-to-match-version-24-by-fixing-the-version-25-regression-where-admin-and-hotel-accounts-are-treated-as-guest-accounts-causing-the-admin-panel-admin-and-hotel-area-hotel-to-disappear-or-become-inaccessible",
-      "title": "Restore the application behavior to match Version 24 by fixing the Version 25 regression where Admin and Hotel accounts are treated as Guest accounts, causing the Admin Panel (/admin) and Hotel Area (/hotel) to disappear or become inaccessible.",
+      "id": "AR-1",
+      "summary": "Restore role detection and authorization behavior so Admin and Hotel accounts are not treated as Guest accounts, and role-gated routes (/admin, /hotel, /guest or /account) render the correct pages for the correct users (matching the last known stable behavior before Version 25/26).",
       "reqIds": [
         "REQ-1"
       ],
-      "version": 1
+      "status": "pending"
     },
-    {
-      "id": "feature-update-the-frontend-build-version-identifier-so-production-clearly-reflects-the-rollback-to-version-24-for-verification-and-support-and-ensure-user-facing-text-remains-in-english",
-      "title": "Update the frontend build/version identifier so production clearly reflects the rollback to Version 24 (for verification and support), and ensure user-facing text remains in English.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-run-and-pass-the-existing-regression-checks-specifically-for-authentication-authorization-admin-panel-access-and-hotel-area-access-after-the-version-24-rollback-behavior-is-restored",
-      "title": "Run and pass the existing regression checks specifically for Authentication & Authorization, Admin Panel access, and Hotel Area access after the Version 24 rollback behavior is restored.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    }
-  ],
-  "new_feature_requests": [
     {
       "id": "AR-2",
-      "summary": "Ensure backend authorization and role detection APIs used by the frontend (e.g., user role and admin checks) return correct results consistent with Version 24, and do not reset or corrupt existing role/authorization state during upgrade/deploy.",
+      "summary": "Restore the missing user-facing panels/menus for each role in the frontend: Guest Account must include “Guest Account” and “My Bookings”; Hotel Account must include “My Bookings”, “Guest Account”, and “Hotel Area”; Admin must include “My Bookings”, and the missing links/panels must be visible again under the same conditions as before the regression.",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Fix Admin “Generate Token” so it no longer returns “FAILED” when clicked by restoring/implementing the backend APIs used by the Invite Token UI (createInviteToken and getInviteTokens) and ensuring they succeed for authorized Admin callers, returning a usable token and refreshing the token list.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Ensure bookings (“My Bookings”) functionality is restored and consistent across Guest, Hotel, and Admin views by verifying the backend bookings query API used by the frontend (getBookings with filters) is present and returns correct results based on caller role and filters.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Run and pass the existing regression checklist to confirm the restored behavior for authentication, authorization, Admin Panel access, Hotel Area access, and booking flows after the fixes are applied.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "status": "pending"
     }
   ],
-  "projectName": "Rollback Version 25 regression by restoring Version 24 role-based access (Admin/Hotel/Guest) and panels",
+  "projectName": "Restore missing Guest/Hotel/Admin panels and fix Admin invite token generation failure (post v26 regression)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
