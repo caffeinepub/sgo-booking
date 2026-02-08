@@ -1,0 +1,66 @@
+import React from 'react';
+import { useGetCallerUserRole, useGetCallerHotelProfile, useIsCurrentUserAdmin } from '../../hooks/useQueries';
+import { AccessDeniedScreen } from './AccessDeniedScreen';
+import { GuardErrorScreen } from './GuardErrorScreen';
+import { UserRole } from '../../backend';
+
+interface RequireRoleProps {
+  children: React.ReactNode;
+  allowedRoles: UserRole[];
+}
+
+export function RequireRole({ children, allowedRoles }: RequireRoleProps) {
+  const { data: role, isLoading: roleLoading, error: roleError } = useGetCallerUserRole();
+  const { data: isAdmin, isLoading: adminLoading, error: adminError } = useIsCurrentUserAdmin();
+  
+  // Only fetch hotel profile if this route requires hotel activation (UserRole.user in allowedRoles)
+  const needsHotelCheck = allowedRoles.includes(UserRole.user);
+  const { data: hotelProfile, isLoading: hotelProfileLoading } = useGetCallerHotelProfile({ 
+    enabled: needsHotelCheck 
+  });
+
+  // If role or admin queries failed, show error screen instead of infinite spinner
+  if (roleError || adminError) {
+    return <GuardErrorScreen error={roleError || adminError} />;
+  }
+
+  // Determine which queries we're actually waiting for
+  const relevantLoading = roleLoading || adminLoading || (needsHotelCheck && hotelProfileLoading);
+
+  // Show loading state while checking permissions
+  if (relevantLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin bypass for all routes - explicit check for true
+  if (isAdmin === true) {
+    return <>{children}</>;
+  }
+
+  // Check if user has required role
+  const hasAccess = role && allowedRoles.includes(role);
+  
+  // For hotel-specific routes, also check activation
+  // Hotel profile query now returns null on rejection, so we can safely check it
+  const isHotelActivated = !!hotelProfile;
+  const needsActivation = needsHotelCheck && !isHotelActivated;
+
+  if (!hasAccess || needsActivation) {
+    return (
+      <AccessDeniedScreen
+        currentRole={role}
+        requiredRoles={allowedRoles}
+        isHotelActivated={isHotelActivated}
+      />
+    );
+  }
+
+  return <>{children}</>;
+}

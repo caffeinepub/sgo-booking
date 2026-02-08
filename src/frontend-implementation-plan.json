@@ -1,0 +1,87 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Guest payment/contact info by hotel + admin subscription controls (frontend wiring)",
+  "requirements": [
+    {
+      "id": "REQ-2",
+      "summary": "Allow hotel owners to view/update hotel WhatsApp/email in their profile, and ensure hotel queries provide these fields to the UI.",
+      "acceptanceCriteria": [
+        "Backend HotelData/HotelDataView includes fields for hotel WhatsApp and hotel email (optional fields are acceptable if not provided).",
+        "Hotel owners can view and update these contact fields from the hotel dashboard (profile area).",
+        "Guest-facing hotel data returned from getHotels includes the hotel contact fields so the frontend can render them without hardcoding admin info.",
+        "No admin contact details are shown anywhere in guest booking/payment flows."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/hotel/HotelProfilePanel.tsx",
+          "operation": "modify",
+          "description": "Extend the hotel profile form to include WhatsApp number and email fields, prefilled from the loaded hotel profile contact data, and submit them when saving. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Update the hotel profile update mutation to accept and forward whatsapp/email parameters (nullable) to the backend capability, and ensure relevant queries are invalidated after update. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/HotelDetailPage.tsx",
+          "operation": "modify",
+          "description": "Read and use hotel.contact (whatsapp/email) from the hotel data already loaded via getHotels so guest UI can render hotel-specific contact info without any admin hardcoding. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Show hotel-specific payment methods and hotel WhatsApp/email for guest payment instructions; keep admin activation contact card only for activation/subscription scenarios.",
+      "acceptanceCriteria": [
+        "On the guest-facing hotel detail/booking flow, payment instructions display the hotel’s own WhatsApp number and email (if provided) and the hotel’s paymentMethods list.",
+        "The existing admin-only activation contact card (frontend/src/components/payments/ContactPaymentInstructions.tsx) remains used only for hotel activation/subscription scenarios (e.g., inactive hotel owner subscription page) and is not reused for guest payment instructions.",
+        "If a hotel has no payment methods, the guest UI clearly indicates that the hotel has not provided payment methods yet (without showing admin activation contacts)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
+          "operation": "modify",
+          "description": "Enhance the guest payment info card to optionally render hotel contact details (WhatsApp/email) alongside the payment methods, and adjust the empty-state copy to avoid any admin contact references. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/HotelDetailPage.tsx",
+          "operation": "modify",
+          "description": "Pass the selected hotel’s contact info into the guest payment methods/instructions UI and ensure the guest flow never imports/uses ContactPaymentInstructions. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/payments/ContactPaymentInstructions.tsx",
+          "operation": "modify",
+          "description": "Add an explicit in-code note and/or prop-less usage expectations clarifying this component is for hotel activation/subscription only, to prevent accidental reuse in guest booking/payment views. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Add admin controls for per-hotel Paid/Unpaid/TEST (and reflect status in UI) while keeping guest views aligned with backend visibility rules.",
+      "acceptanceCriteria": [
+        "Backend stores per-hotel subscription status (Paid/Unpaid) and (if required by current UI) a TEST flag.",
+        "Non-admin getHotels only returns hotels that are Active AND Paid AND not TEST.",
+        "Backend createBooking rejects bookings for hotels that are inactive, unpaid, or marked TEST (with clear trap messages).",
+        "Admin UI provides controls to toggle Active/Inactive, mark Paid/Unpaid, and mark/unmark TEST; the hotel list visually reflects these states."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a new mutation hook for updating a hotel’s subscription status via the backend capability, and invalidate hotel queries on success so admin/guest lists refresh. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+          "operation": "modify",
+          "description": "Extend the admin hotel list UI to show subscription status badges (Paid/Unpaid/TEST) and provide controls to set Paid/Unpaid/TEST in addition to the existing Active toggle; keep all user-facing text in English. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/hotel/SubscriptionPanel.tsx",
+          "operation": "modify",
+          "description": "Update the hotel-owner subscription status display to reflect both active state and subscriptionStatus (paid/unpaid/test), and show the admin activation/subscription contact card only in those owner-facing scenarios (not guest flows). Verify the component's usage instructions before implementing."
+        }
+      ]
+    }
+  ]
+}

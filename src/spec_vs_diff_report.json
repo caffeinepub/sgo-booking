@@ -1,0 +1,62 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-08T17:18:29.920Z",
+  "summary": "Diff implements new hotel contact fields and subscription status types, adds owner profile UI for WhatsApp/email, adds guest-facing hotel payment methods/contact UI, and adds an admin hotel visibility/subscription management panel. However, key backend enforcement and pricing-calculation behaviors required by REQ-1 and REQ-4 (and migration defaults required by REQ-5) are not verifiably implemented from the provided truncated backend diffs.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "Backend createBooking must compute and persist totalPrice from stored room.pricePerNight × nights derived from (checkOut - checkIn), reject checkOut <= checkIn with a clear trap message, and set/validate currency from the room so it cannot be spoofed.",
+      "reason": "The diff shows frontend no longer submits totalPrice and backend type definitions include currency/totalPrice, but the backend createBooking implementation and its validation/trap messages are not present in the provided truncated backend/main.mo diff, so these acceptance criteria cannot be confirmed as implemented.",
+      "evidence": [
+        "backend/main.mo (truncated)",
+        "frontend/src/components/booking/BookingForm.tsx"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Expose hotel WhatsApp/email in guest-facing hotel queries (getHotels) used by guests; ensure no admin contact details appear in guest booking/payment flows.",
+      "reason": "Backend types add HotelContact and HotelDataView includes contact, and the guest UI consumes hotel.contact, but the actual backend getHotels response shaping/filtering is not shown in the truncated backend/main.mo diff, so exposure via getHotels cannot be fully verified from the diff summary alone.",
+      "evidence": [
+        "backend/main.mo (truncated)",
+        "frontend/src/pages/HotelDetailPage.tsx",
+        "frontend/src/components/payments/HotelPaymentMethodsList.tsx"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Backend must enforce visibility/booking rules: non-admin getHotels returns only Active AND Paid AND not TEST; createBooking rejects inactive/unpaid/TEST hotels with clear trap messages.",
+      "reason": "Frontend admin controls for Active and subscriptionStatus are added, but backend enforcement in getHotels and createBooking is not visible in the truncated backend/main.mo diff, so required backend filtering and booking rejection cannot be confirmed.",
+      "evidence": [
+        "backend/main.mo (truncated)",
+        "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+        "frontend/src/hooks/useQueries.ts (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "Conditional state migration must populate new hotel contact fields and subscription fields with safe defaults for existing persisted hotels without breaking upgrades.",
+      "reason": "A new backend/migration.mo file is added with new types and a run(...) function, but the actual mapping/defaulting logic is truncated, so it cannot be verified that existing hotels are migrated with safe defaults (e.g., contact=null/empty, subscriptionStatus default, TEST default) and that upgrades won’t trap.",
+      "evidence": [
+        "backend/migration.mo (truncated)",
+        "backend/main.mo (imports Migration and uses `(with migration = Migration.run)`)"
+      ]
+    }
+  ],
+  "hallucinated_features": [],
+  "confidence": 0.62,
+  "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+    "frontend/src/components/booking/BookingForm.tsx",
+    "frontend/src/components/hotel/HotelProfilePanel.tsx",
+    "frontend/src/components/hotel/SubscriptionPanel.tsx",
+    "frontend/src/components/payments/ContactPaymentInstructions.tsx",
+    "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/HotelDetailPage.tsx",
+    "project_state.json"
+  ]
+}

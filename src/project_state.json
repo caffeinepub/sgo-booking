@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Hotel booking platform: fix room pricing based on hotel-posted nightly rate × number of nights; ensure checkout/payment page shows each hotel's own payment methods and contact details; add/admin capability to manage hotel subscription status and activate/deactivate hotel accounts.",
+  "architectural_notes": [
+    "Pricing must derive from per-hotel room listing data and calculate total by length of stay (nights).",
+    "Payment/checkout contact and payment method data must be sourced from the booked hotel profile, not global admin settings.",
+    "Admin subscription management: hotels pay monthly for system rental; unpaid hotels may be deactivated by admin."
+  ],
+  "known_issues": [
+    "Booking price incorrectly becomes Rp 100 instead of using the hotel-posted room price.",
+    "Checkout/payment page shows admin payment/contact info instead of the hotel’s info."
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-extend-hotel-profile-data-to-store-hotel-specific-guest-contact-details-whatsapp-number-and-email-and-expose-them-in-hotel-queries-used-by-guests",
+      "title": "Extend hotel profile data to store hotel-specific guest contact details (WhatsApp number and email) and expose them in hotel queries used by guests.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-guest-booking-payment-ui-to-display-the-selected-hotel-s-payment-methods-and-the-hotel-s-own-whatsapp-email-as-the-payment-contact-information-not-the-admin-activation-contact-card",
+      "title": "Update guest booking/payment UI to display the selected hotel’s payment methods and the hotel’s own WhatsApp/email as the payment contact information (not the admin activation contact card).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-subscription-billing-status-controls-so-admins-can-mark-hotels-as-paid-unpaid-and-optionally-mark-hotels-as-test-and-enforce-visibility-booking-rules-based-on-these-flags",
+      "title": "Add subscription billing status controls so admins can mark hotels as Paid/Unpaid and optionally mark hotels as TEST, and enforce visibility/booking rules based on these flags.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Fix booking price to use hotel-posted room nightly price and compute total = nightly rate × number of nights",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Show hotel-specific payment method, WhatsApp, and email on the guest payment/checkout page (not admin’s)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Admin can manage hotel subscription billing status (Paid/Unpaid) and activate/deactivate hotel accounts based on monthly payment",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Compute and persist booking total price on the backend using the room’s stored nightly rate × number of nights derived from check-in/check-out, and do not trust any client-supplied totalPrice.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Add conditional state migration for existing persisted hotel data to include new hotel contact fields and new subscription fields without breaking existing deployments.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Fix booking total price calculation and show hotel-specific payment/contact info with subscription controls",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

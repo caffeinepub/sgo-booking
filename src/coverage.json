@@ -1,0 +1,98 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-08T17:18:29.923Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 5,
+    "implemented": 3,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Compute and persist booking total price on the backend using the room’s stored nightly rate × number of nights derived from check-in/check-out, and do not trust any client-supplied totalPrice.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Extend hotel profile data to store hotel-specific guest contact details (WhatsApp number and email) and expose them in hotel queries used by guests.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/hotel/HotelProfilePanel.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/HotelDetailPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/hotel/HotelProfilePanel.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/HotelDetailPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Update guest booking/payment UI to display the selected hotel’s payment methods and the hotel’s own WhatsApp/email as the payment contact information (not the admin activation contact card).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
+          "frontend/src/pages/HotelDetailPage.tsx",
+          "frontend/src/components/payments/ContactPaymentInstructions.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
+          "frontend/src/pages/HotelDetailPage.tsx",
+          "frontend/src/components/payments/ContactPaymentInstructions.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add subscription billing status controls so admins can mark hotels as Paid/Unpaid and optionally mark hotels as TEST, and enforce visibility/booking rules based on these flags.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+          "frontend/src/components/hotel/SubscriptionPanel.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+          "frontend/src/components/hotel/SubscriptionPanel.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Add conditional state migration for existing persisted hotel data to include new hotel contact fields and new subscription fields without breaking existing deployments.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+    "frontend/src/components/booking/BookingForm.tsx",
+    "frontend/src/components/hotel/HotelProfilePanel.tsx",
+    "frontend/src/components/hotel/SubscriptionPanel.tsx",
+    "frontend/src/components/payments/ContactPaymentInstructions.tsx",
+    "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/HotelDetailPage.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}
