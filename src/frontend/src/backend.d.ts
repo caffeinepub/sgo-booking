@@ -37,15 +37,6 @@ export interface BookingRequest {
     totalPrice: bigint;
     guests: bigint;
 }
-export interface Room {
-    id: bigint;
-    pricePerNight: bigint;
-    hotelId: Principal;
-    roomNumber: string;
-    currency: string;
-    pictures: Array<string>;
-    roomType: string;
-}
 export interface BookingQueryResult {
     bookings: Array<BookingRequest>;
     totalCount: bigint;
@@ -80,7 +71,7 @@ export interface HotelDataView {
     address: string;
     location: string;
     paymentMethods: Array<PaymentMethod>;
-    rooms: Array<bigint>;
+    rooms: Array<RoomView>;
 }
 export interface InviteToken {
     boundPrincipal?: Principal;
@@ -90,6 +81,15 @@ export interface InviteToken {
     issuedAt: Time;
     issuedBy: Principal;
     maxUses: bigint;
+}
+export interface RoomView {
+    id: bigint;
+    pricePerNight: bigint;
+    hotelId: Principal;
+    roomNumber: string;
+    currency: string;
+    pictures: Array<string>;
+    roomType: string;
 }
 export interface UserProfile {
     name: string;
@@ -131,7 +131,7 @@ export interface backendInterface {
     getHotels(): Promise<Array<HotelDataView>>;
     getInviteCodes(): Promise<Array<InviteCode>>;
     getInviteTokens(): Promise<Array<InviteToken>>;
-    getRooms(filters: RoomQuery): Promise<Array<Room>>;
+    getRooms(filters: RoomQuery): Promise<Array<RoomView>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     makeMeAdmin(): Promise<void>;

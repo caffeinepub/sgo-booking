@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import { Building2, MapPin, ArrowLeft, AlertCircle, MapPinned, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { Building2, MapPin, ArrowLeft, AlertCircle, MapPinned, ExternalLink, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { BookingForm } from '../components/booking/BookingForm';
 import { HotelPaymentMethodsList } from '../components/payments/HotelPaymentMethodsList';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
@@ -17,8 +17,21 @@ export function HotelDetailPage() {
   const { hotelId } = useParams({ from: '/browse/$hotelId' });
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const { data: hotels, isLoading: hotelsLoading } = useGetHotels();
-  const { data: rooms, isLoading: roomsLoading } = useGetRooms({ hotelId: Principal.fromText(hotelId) });
+  const { data: hotels, isLoading: hotelsLoading, error: hotelsError } = useGetHotels();
+  
+  let hotelPrincipal: Principal | null = null;
+  let principalError: string | null = null;
+  
+  try {
+    hotelPrincipal = Principal.fromText(hotelId);
+  } catch (error) {
+    principalError = 'Invalid hotel ID format';
+  }
+  
+  const { data: rooms, isLoading: roomsLoading, error: roomsError } = useGetRooms(
+    { hotelId: hotelPrincipal || undefined },
+    { enabled: !!hotelPrincipal }
+  );
   const { data: userProfile, isLoading: profileLoading, isFetched: profileFetched } = useGetCallerUserProfile();
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
@@ -31,11 +44,44 @@ export function HotelDetailPage() {
   const hotel = hotels?.find((h) => h.id.toString() === hotelId);
   const hotelRooms = rooms?.filter((r) => r.hotelId.toString() === hotelId) || [];
 
+  if (principalError) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Card>
+          <CardHeader>
+            <CardTitle>Invalid Hotel ID</CardTitle>
+            <CardDescription>{principalError}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate({ to: '/browse' })}>Back to Browse Hotels</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (hotelsLoading || roomsLoading) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
-        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <Loader2 className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-muted-foreground">Loading hotel details...</p>
+      </div>
+    );
+  }
+
+  if (hotelsError) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Hotel</AlertTitle>
+          <AlertDescription>
+            {hotelsError instanceof Error ? hotelsError.message : 'Failed to load hotel details. Please try again.'}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate({ to: '/browse' })} className="mt-4">
+          Back to Browse Hotels
+        </Button>
       </div>
     );
   }
@@ -142,7 +188,7 @@ export function HotelDetailPage() {
             </CardHeader>
             <CardContent>
               <BookingForm
-                hotelId={Principal.fromText(hotelId)}
+                hotelId={hotelPrincipal!}
                 room={selectedRoom}
                 onSuccess={() => {
                   setShowBookingForm(false);
@@ -160,7 +206,18 @@ export function HotelDetailPage() {
           <>
             <div>
               <h2 className="text-2xl font-bold mb-4">Available Rooms</h2>
-              {hotelRooms.length === 0 ? (
+              {roomsError ? (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error Loading Rooms</AlertTitle>
+                  <AlertDescription>
+                    {roomsError instanceof Error ? roomsError.message : 'Failed to load rooms. Please try refreshing the page.'}
+                  </AlertDescription>
+                  <Button onClick={() => window.location.reload()} variant="outline" size="sm" className="mt-3">
+                    Refresh Page
+                  </Button>
+                </Alert>
+              ) : hotelRooms.length === 0 ? (
                 <Card>
                   <CardContent className="py-8 text-center text-muted-foreground">
                     <p>No rooms available at this hotel yet.</p>

@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix incorrect booking total prices and ensure guests see hotel-specific payment/contact info, while adding admin subscription controls that govern hotel visibility and booking eligibility.
+**Goal:** Ensure rooms created/updated by hotel accounts persist under the correct hotel and are visible consistently to hotel owners and guests (not just admins).
 
 **Planned changes:**
-- Calculate and persist `booking.totalPrice` on the backend using the stored room nightly rate × number of nights (derived from check-in/check-out), ignoring any client-submitted `totalPrice`, and validate date ranges/currency.
-- Extend hotel profile data to store hotel-specific WhatsApp number and email, allow hotel owners to update these fields, and expose them in guest-facing hotel queries.
-- Update guest booking/payment UI to show the selected hotel’s own contact details and payment methods, and avoid showing the admin activation contact card in guest flows (show a clear “not provided yet” message when missing).
-- Add per-hotel subscription flags (Paid/Unpaid and optional TEST) with admin controls, and enforce rules so only Active+Paid+not TEST hotels are visible to guests and bookable.
-- Add a conditional backend migration to safely add the new hotel contact fields and subscription fields to existing persisted data.
+- Fix backend room create/update to store rooms under the correct hotel principal and ensure room reads use a single source of truth (roomsMap/hotelsMap) without admin-only dependencies.
+- Align backend hotel/room visibility rules so guest hotel discovery and hotel detail room lists correctly show hotels/rooms needed for booking (consistent rules across getHotels/getRooms).
+- Update frontend hotel dashboard and guest hotel detail flows to reliably query rooms using the correct hotelId, show loading states, and refresh room lists after create/update (React Query refetch/invalidation).
+- Add and document a focused regression verification checklist for: hotel room upload (with photos), post-reload persistence, guest browse/detail visibility, and admin consistency; surface save/load errors in English.
 
-**User-visible outcome:** Guests will see correct total prices and the hotel’s own payment/contact details during booking; admins can mark hotels Paid/Unpaid (and TEST) and control whether hotels appear to guests and can be booked.
+**User-visible outcome:** Hotel owners can upload rooms and still see them after reloading in Hotel Area > Rooms, and guests can discover the hotel and view its available rooms on the hotel detail page for booking; admin/hotel/guest views remain consistent.

@@ -6,11 +6,11 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Calendar, Users } from 'lucide-react';
 import { formatMoney } from '../../utils/money';
-import { Room } from '../../backend';
+import { RoomView } from '../../backend';
 
 interface BookingFormProps {
   hotelId: Principal;
-  room: Room;
+  room: RoomView;
   onSuccess: () => void;
   onCancel: () => void;
 }

@@ -8,6 +8,17 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _CaffeineStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _CaffeineStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _CaffeineStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -66,6 +77,15 @@ export const PaymentMethod = IDL.Record({
   'name' : IDL.Text,
   'details' : IDL.Text,
 });
+export const RoomView = IDL.Record({
+  'id' : IDL.Nat,
+  'pricePerNight' : IDL.Nat,
+  'hotelId' : IDL.Principal,
+  'roomNumber' : IDL.Text,
+  'currency' : IDL.Text,
+  'pictures' : IDL.Vec(IDL.Text),
+  'roomType' : IDL.Text,
+});
 export const HotelDataView = IDL.Record({
   'id' : IDL.Principal,
   'active' : IDL.Bool,
@@ -77,7 +97,7 @@ export const HotelDataView = IDL.Record({
   'address' : IDL.Text,
   'location' : IDL.Text,
   'paymentMethods' : IDL.Vec(PaymentMethod),
-  'rooms' : IDL.Vec(IDL.Nat),
+  'rooms' : IDL.Vec(RoomView),
 });
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
@@ -105,17 +125,34 @@ export const RoomQuery = IDL.Record({
   'minPrice' : IDL.Opt(IDL.Nat),
   'roomType' : IDL.Opt(IDL.Text),
 });
-export const Room = IDL.Record({
-  'id' : IDL.Nat,
-  'pricePerNight' : IDL.Nat,
-  'hotelId' : IDL.Principal,
-  'roomNumber' : IDL.Text,
-  'currency' : IDL.Text,
-  'pictures' : IDL.Vec(IDL.Text),
-  'roomType' : IDL.Text,
-});
 
 export const idlService = IDL.Service({
+  '_caffeineStorageBlobIsLive' : IDL.Func(
+      [IDL.Vec(IDL.Nat8)],
+      [IDL.Bool],
+      ['query'],
+    ),
+  '_caffeineStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
+      [],
+    ),
+  '_caffeineStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_CaffeineStorageCreateCertificateResult],
+      [],
+    ),
+  '_caffeineStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_CaffeineStorageRefillInformation)],
+      [_CaffeineStorageRefillResult],
+      [],
+    ),
+  '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'activateHotelOwner' : IDL.Func([IDL.Principal], [], []),
   'addPaymentMethod' : IDL.Func([IDL.Text, IDL.Text], [], []),
@@ -158,7 +195,7 @@ export const idlService = IDL.Service({
   'getHotels' : IDL.Func([], [IDL.Vec(HotelDataView)], ['query']),
   'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
   'getInviteTokens' : IDL.Func([], [IDL.Vec(InviteToken)], ['query']),
-  'getRooms' : IDL.Func([RoomQuery], [IDL.Vec(Room)], ['query']),
+  'getRooms' : IDL.Func([RoomQuery], [IDL.Vec(RoomView)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -201,6 +238,17 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _CaffeineStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _CaffeineStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _CaffeineStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -256,6 +304,15 @@ export const idlFactory = ({ IDL }) => {
     'unpaid' : IDL.Null,
   });
   const PaymentMethod = IDL.Record({ 'name' : IDL.Text, 'details' : IDL.Text });
+  const RoomView = IDL.Record({
+    'id' : IDL.Nat,
+    'pricePerNight' : IDL.Nat,
+    'hotelId' : IDL.Principal,
+    'roomNumber' : IDL.Text,
+    'currency' : IDL.Text,
+    'pictures' : IDL.Vec(IDL.Text),
+    'roomType' : IDL.Text,
+  });
   const HotelDataView = IDL.Record({
     'id' : IDL.Principal,
     'active' : IDL.Bool,
@@ -267,7 +324,7 @@ export const idlFactory = ({ IDL }) => {
     'address' : IDL.Text,
     'location' : IDL.Text,
     'paymentMethods' : IDL.Vec(PaymentMethod),
-    'rooms' : IDL.Vec(IDL.Nat),
+    'rooms' : IDL.Vec(RoomView),
   });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
@@ -295,17 +352,34 @@ export const idlFactory = ({ IDL }) => {
     'minPrice' : IDL.Opt(IDL.Nat),
     'roomType' : IDL.Opt(IDL.Text),
   });
-  const Room = IDL.Record({
-    'id' : IDL.Nat,
-    'pricePerNight' : IDL.Nat,
-    'hotelId' : IDL.Principal,
-    'roomNumber' : IDL.Text,
-    'currency' : IDL.Text,
-    'pictures' : IDL.Vec(IDL.Text),
-    'roomType' : IDL.Text,
-  });
   
   return IDL.Service({
+    '_caffeineStorageBlobIsLive' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Bool],
+        ['query'],
+      ),
+    '_caffeineStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
+        [],
+      ),
+    '_caffeineStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_CaffeineStorageCreateCertificateResult],
+        [],
+      ),
+    '_caffeineStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_CaffeineStorageRefillInformation)],
+        [_CaffeineStorageRefillResult],
+        [],
+      ),
+    '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'activateHotelOwner' : IDL.Func([IDL.Principal], [], []),
     'addPaymentMethod' : IDL.Func([IDL.Text, IDL.Text], [], []),
@@ -348,7 +422,7 @@ export const idlFactory = ({ IDL }) => {
     'getHotels' : IDL.Func([], [IDL.Vec(HotelDataView)], ['query']),
     'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
     'getInviteTokens' : IDL.Func([], [IDL.Vec(InviteToken)], ['query']),
-    'getRooms' : IDL.Func([RoomQuery], [IDL.Vec(Room)], ['query']),
+    'getRooms' : IDL.Func([RoomQuery], [IDL.Vec(RoomView)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],

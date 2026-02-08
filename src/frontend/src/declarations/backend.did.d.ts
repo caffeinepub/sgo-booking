@@ -56,7 +56,7 @@ export interface HotelDataView {
   'address' : string,
   'location' : string,
   'paymentMethods' : Array<PaymentMethod>,
-  'rooms' : Array<bigint>,
+  'rooms' : Array<RoomView>,
 }
 export interface InviteCode {
   'created' : Time,
@@ -79,7 +79,14 @@ export interface RSVP {
   'timestamp' : Time,
   'attending' : boolean,
 }
-export interface Room {
+export interface RoomQuery {
+  'hotelId' : [] | [Principal],
+  'maxPrice' : [] | [bigint],
+  'availableOnly' : [] | [boolean],
+  'minPrice' : [] | [bigint],
+  'roomType' : [] | [string],
+}
+export interface RoomView {
   'id' : bigint,
   'pricePerNight' : bigint,
   'hotelId' : Principal,
@@ -87,13 +94,6 @@ export interface Room {
   'currency' : string,
   'pictures' : Array<string>,
   'roomType' : string,
-}
-export interface RoomQuery {
-  'hotelId' : [] | [Principal],
-  'maxPrice' : [] | [bigint],
-  'availableOnly' : [] | [boolean],
-  'minPrice' : [] | [bigint],
-  'roomType' : [] | [string],
 }
 export type SubscriptionStatus = { 'paid' : null } |
   { 'test' : null } |
@@ -107,7 +107,33 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface _CaffeineStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _CaffeineStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _CaffeineStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface _SERVICE {
+  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
+  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_caffeineStorageCreateCertificate' : ActorMethod<
+    [string],
+    _CaffeineStorageCreateCertificateResult
+  >,
+  '_caffeineStorageRefillCashier' : ActorMethod<
+    [[] | [_CaffeineStorageRefillInformation]],
+    _CaffeineStorageRefillResult
+  >,
+  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'activateHotelOwner' : ActorMethod<[Principal], undefined>,
   'addPaymentMethod' : ActorMethod<[string, string], undefined>,
@@ -135,7 +161,7 @@ export interface _SERVICE {
   'getHotels' : ActorMethod<[], Array<HotelDataView>>,
   'getInviteCodes' : ActorMethod<[], Array<InviteCode>>,
   'getInviteTokens' : ActorMethod<[], Array<InviteToken>>,
-  'getRooms' : ActorMethod<[RoomQuery], Array<Room>>,
+  'getRooms' : ActorMethod<[RoomQuery], Array<RoomView>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'makeMeAdmin' : ActorMethod<[], undefined>,

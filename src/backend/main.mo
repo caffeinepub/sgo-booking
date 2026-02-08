@@ -1,22 +1,23 @@
 import Map "mo:core/Map";
 import Text "mo:core/Text";
 import Float "mo:core/Float";
+import Array "mo:core/Array";
 import List "mo:core/List";
 import Nat "mo:core/Nat";
 import Time "mo:core/Time";
 import Principal "mo:core/Principal";
-import Array "mo:core/Array";
 import Iter "mo:core/Iter";
 import Int "mo:core/Int";
 import Random "mo:core/Random";
 import Runtime "mo:core/Runtime";
+import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import InviteLinksModule "invite-links/invite-links-module";
-import Migration "migration";
 
-(with migration = Migration.run)
 actor {
+  include MixinStorage();
+
   public type BookingStatus = {
     #pendingTransfer;
     #paymentFailed;
@@ -48,7 +49,7 @@ actor {
     address : Text;
     mapLink : Text;
     active : Bool;
-    rooms : [Nat];
+    rooms : [RoomView];
     bookings : [Nat];
     paymentMethods : [PaymentMethod];
     contact : HotelContact;
@@ -59,14 +60,24 @@ actor {
     id : Principal;
     name : Text;
     location : Text;
+    rooms : List.List<Nat>;
     address : Text;
     mapLink : Text;
     active : Bool;
-    rooms : List.List<Nat>;
     bookings : List.List<Nat>;
     paymentMethods : List.List<PaymentMethod>;
     contact : HotelContact;
     subscriptionStatus : SubscriptionStatus;
+  };
+
+  public type RoomView = {
+    id : Nat;
+    hotelId : Principal;
+    roomNumber : Text;
+    roomType : Text;
+    pricePerNight : Nat;
+    currency : Text;
+    pictures : [Text];
   };
 
   public type Room = {
@@ -81,13 +92,13 @@ actor {
 
   public type BookingRequest = {
     id : Nat;
+    status : BookingStatus;
     hotelId : ?Principal;
     roomId : Nat;
     userId : Principal;
     checkIn : Int;
     checkOut : Int;
     totalPrice : Nat;
-    status : BookingStatus;
     guests : Nat;
     timestamp : Int;
     paymentProof : ?Text;
@@ -143,18 +154,16 @@ actor {
     availableOnly : ?Bool;
   };
 
+  let hotelsMap = Map.empty<Principal, HotelData>();
   let roomsMap = Map.empty<Nat, Room>();
   let bookingsMap = Map.empty<Nat, BookingRequest>();
   let userProfiles = Map.empty<Principal, UserProfile>();
-
-  var hotelsMap = Map.empty<Principal, HotelData>();
-  var inviteTokens = Map.empty<Text, InviteToken>();
-  var payments = Map.empty<Nat, Payment>();
-  var directHotelActivations = Map.empty<Principal, Bool>();
+  let inviteTokens = Map.empty<Text, InviteToken>();
+  let payments = Map.empty<Nat, Payment>();
+  let directHotelActivations = Map.empty<Principal, Bool>();
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
-
   let inviteState = InviteLinksModule.initState();
 
   public shared ({ caller }) func makeMeAdmin() : async () {
@@ -226,7 +235,9 @@ actor {
       };
     };
 
-    assert(guests <= 2);
+    if (guests > 2) {
+      Runtime.trap("Booking cannot be created for more than 2 persons (2 beds by default). For 3 or more you need an extra room:) \nHotels must provide discounts or money-back in case booking is not for 2 persons.");
+    };
 
     let totalPrice = calculateTotalPrice(checkIn, checkOut, room.pricePerNight);
     let newBooking : BookingRequest = {
@@ -252,12 +263,10 @@ actor {
     let nanosecondsInDay : Nat = 86_400_000_000_000;
     let staysIfZero = 1;
 
-    if (checkOut <= checkIn) { Runtime.trap("Invalid check-in/check-out times") }
-    else {
+    if (checkOut <= checkIn) { Runtime.trap("Invalid check-in/check-out times") } else {
       let stayLengthNanos = Int.abs((checkOut - checkIn)).toNat();
       let nights =
-        if (stayLengthNanos == 0) { staysIfZero }
-        else {
+        if (stayLengthNanos == 0) { staysIfZero } else {
           (stayLengthNanos + nanosecondsInDay - 1) / nanosecondsInDay;
         };
       pricePerNight * nights;
@@ -538,11 +547,33 @@ actor {
       address = hotel.address;
       mapLink = hotel.mapLink;
       active = hotel.active;
-      rooms = hotel.rooms.toArray();
+      rooms = getRoomViewsForHotel(hotel.id);
       bookings = hotel.bookings.toArray();
       paymentMethods = hotel.paymentMethods.toArray();
       contact = hotel.contact;
       subscriptionStatus = hotel.subscriptionStatus;
+    };
+  };
+
+  func getRoomViewsForHotel(hotelId : Principal) : [RoomView] {
+    let hotelRooms = List.empty<RoomView>();
+    for (room in roomsMap.values()) {
+      if (room.hotelId == hotelId) {
+        hotelRooms.add(toRoomView(room));
+      };
+    };
+    hotelRooms.toArray();
+  };
+
+  func toRoomView(room : Room) : RoomView {
+    {
+      id = room.id;
+      hotelId = room.hotelId;
+      roomNumber = room.roomNumber;
+      roomType = room.roomType;
+      pricePerNight = room.pricePerNight;
+      currency = room.currency;
+      pictures = room.pictures;
     };
   };
 
@@ -676,9 +707,9 @@ actor {
     };
   };
 
-  public query ({ caller }) func getRooms(filters : RoomQuery) : async [Room] {
+  public query ({ caller }) func getRooms(filters : RoomQuery) : async [RoomView] {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    let filteredRooms = List.empty<Room>();
+    let filteredRooms = List.empty<RoomView>();
 
     for (room in roomsMap.values()) {
       let matchesHotel = switch (filters.hotelId) {
@@ -710,7 +741,7 @@ actor {
       };
 
       if (matchesHotel and matchesPrice and matchesType and hotelVisible) {
-        filteredRooms.add(room);
+        filteredRooms.add(toRoomView(room));
       };
     };
     filteredRooms.toArray();
@@ -731,8 +762,10 @@ actor {
       Runtime.trap("Unauthorized: Hotel owner requires activation");
     };
 
+    let newRoomId = roomsMap.size() + 1;
+
     let room : Room = {
-      id = roomsMap.size() + 1;
+      id = newRoomId;
       hotelId = caller;
       roomNumber;
       roomType;
@@ -740,7 +773,7 @@ actor {
       currency;
       pictures;
     };
-    roomsMap.add(room.id, room);
+    roomsMap.add(newRoomId, room);
     room.id;
   };
 
@@ -912,4 +945,3 @@ actor {
     bookingsMap.get(bookingId);
   };
 };
-

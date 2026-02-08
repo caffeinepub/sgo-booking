@@ -6,18 +6,31 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useGetRooms, useCreateRoom, useUpdateRoom } from '../../hooks/useQueries';
-import { Principal } from '@icp-sdk/core/principal';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useGetCallerHotelProfile, useGetRooms, useCreateRoom, useUpdateRoom } from '../../hooks/useQueries';
+import { useRoomImageUpload } from '../../hooks/useRoomImageUpload';
 import { toast } from 'sonner';
-import { Plus, Edit, Image as ImageIcon, X } from 'lucide-react';
-import { SUPPORTED_CURRENCIES, formatMoney } from '../../utils/money';
+import { Plus, Edit, Image as ImageIcon, X, Loader2, AlertCircle } from 'lucide-react';
+import { formatMoney } from '../../utils/money';
+
+const SUPPORTED_CURRENCIES = [
+  { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
+  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
+] as const;
 
 export function RoomsPanel() {
-  const { identity } = useInternetIdentity();
-  const { data: rooms } = useGetRooms({ hotelId: identity?.getPrincipal() as any as Principal });
+  const { data: hotelProfile, isLoading: profileLoading, error: profileError } = useGetCallerHotelProfile();
+  const hotelId = hotelProfile?.id;
+  
+  const { data: rooms, isLoading: roomsLoading, error: roomsError } = useGetRooms(
+    { hotelId: hotelId || undefined },
+    { enabled: !!hotelId }
+  );
   const createRoom = useCreateRoom();
   const updateRoom = useUpdateRoom();
+  const { uploadImagesFromDataUrls, isUploading, uploadProgress } = useRoomImageUpload();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<any>(null);
@@ -25,9 +38,9 @@ export function RoomsPanel() {
   const [roomType, setRoomType] = useState('');
   const [pricePerNight, setPricePerNight] = useState('');
   const [currency, setCurrency] = useState('IDR');
-  const [pictures, setPictures] = useState<string[]>([]);
+  const [pictureDataUrls, setPictureDataUrls] = useState<string[]>([]);
 
-  const myRooms = rooms?.filter((r) => r.hotelId.toString() === identity?.getPrincipal().toString()) || [];
+  const myRooms = rooms?.filter((r) => r.hotelId.toString() === hotelId?.toString()) || [];
 
   const handleOpenDialog = (room?: any) => {
     if (room) {
@@ -36,14 +49,14 @@ export function RoomsPanel() {
       setRoomType(room.roomType);
       setPricePerNight(room.pricePerNight.toString());
       setCurrency(room.currency);
-      setPictures(room.pictures || []);
+      setPictureDataUrls(room.pictures || []);
     } else {
       setEditingRoom(null);
       setRoomNumber('');
       setRoomType('');
       setPricePerNight('');
       setCurrency('IDR');
-      setPictures([]);
+      setPictureDataUrls([]);
     }
     setIsDialogOpen(true);
   };
@@ -56,20 +69,30 @@ export function RoomsPanel() {
       const reader = new FileReader();
       reader.onload = (event) => {
         const dataUrl = event.target?.result as string;
-        setPictures((prev) => [...prev, dataUrl]);
+        setPictureDataUrls((prev) => [...prev, dataUrl]);
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read image file. Please try again.');
       };
       reader.readAsDataURL(file);
     });
   };
 
   const handleRemovePicture = (index: number) => {
-    setPictures((prev) => prev.filter((_, i) => i !== index));
+    setPictureDataUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!roomNumber.trim() || !roomType.trim() || !pricePerNight) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
     try {
+      const pictureUrls = await uploadImagesFromDataUrls(pictureDataUrls);
+
       if (editingRoom) {
         await updateRoom.mutateAsync({
           roomId: editingRoom.id,
@@ -77,7 +100,7 @@ export function RoomsPanel() {
           roomType,
           pricePerNight: BigInt(pricePerNight),
           currency,
-          pictures,
+          pictures: pictureUrls,
         });
         toast.success('Room updated successfully');
       } else {
@@ -86,15 +109,70 @@ export function RoomsPanel() {
           roomType,
           pricePerNight: BigInt(pricePerNight),
           currency,
-          pictures,
+          pictures: pictureUrls,
         });
         toast.success('Room created successfully');
       }
+      
       setIsDialogOpen(false);
+      setEditingRoom(null);
+      setRoomNumber('');
+      setRoomType('');
+      setPricePerNight('');
+      setCurrency('IDR');
+      setPictureDataUrls([]);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save room');
+      console.error('Room save error:', error);
+      toast.error(error.message || 'Failed to save room. Please try again.');
     }
   };
+
+  const isSaving = createRoom.isPending || updateRoom.isPending || isUploading;
+
+  if (profileLoading) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="text-center text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+            <p>Loading hotel profile...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (profileError) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error Loading Hotel Profile</AlertTitle>
+            <AlertDescription>
+              {profileError instanceof Error ? profileError.message : 'Failed to load hotel profile. Please try refreshing the page.'}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!hotelId) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Hotel Profile Required</AlertTitle>
+            <AlertDescription>
+              Please complete your hotel profile setup before managing rooms.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -115,46 +193,56 @@ export function RoomsPanel() {
               <DialogHeader>
                 <DialogTitle>{editingRoom ? 'Edit Room' : 'Add New Room'}</DialogTitle>
                 <DialogDescription>
-                  {editingRoom ? 'Update room details' : 'Create a new room for your hotel'}
+                  {editingRoom ? 'Update room details below' : 'Fill in the details to create a new room'}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="roomNumber">Room Number</Label>
-                  <Input id="roomNumber" value={roomNumber} onChange={(e) => setRoomNumber(e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="roomType">Room Type</Label>
-                  <Input
-                    id="roomType"
-                    value={roomType}
-                    onChange={(e) => setRoomType(e.target.value)}
-                    required
-                    placeholder="e.g., Standard, Suite, Deluxe"
-                  />
-                </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="pricePerNight">Price Per Night</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="roomNumber">Room Number *</Label>
+                    <Input
+                      id="roomNumber"
+                      value={roomNumber}
+                      onChange={(e) => setRoomNumber(e.target.value)}
+                      placeholder="e.g., 101"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="roomType">Room Type *</Label>
+                    <Input
+                      id="roomType"
+                      value={roomType}
+                      onChange={(e) => setRoomType(e.target.value)}
+                      placeholder="e.g., Standard, Deluxe"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pricePerNight">Price per Night *</Label>
                     <Input
                       id="pricePerNight"
                       type="number"
                       value={pricePerNight}
                       onChange={(e) => setPricePerNight(e.target.value)}
+                      placeholder="e.g., 500000"
                       required
                       min="0"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="currency">Currency</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="currency">Currency *</Label>
                     <Select value={currency} onValueChange={setCurrency}>
                       <SelectTrigger id="currency">
-                        <SelectValue placeholder="Select currency" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {SUPPORTED_CURRENCIES.map((curr) => (
-                          <SelectItem key={curr} value={curr}>
-                            {curr}
+                          <SelectItem key={curr.code} value={curr.code}>
+                            {curr.symbol} {curr.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -162,33 +250,23 @@ export function RoomsPanel() {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="pictures" className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4" />
-                    Room Photos
-                  </Label>
+                <div className="space-y-2">
+                  <Label htmlFor="pictures">Room Pictures</Label>
                   <Input
                     id="pictures"
                     type="file"
                     accept="image/*"
                     multiple
                     onChange={handleFileSelect}
-                    className="cursor-pointer"
+                    disabled={isSaving}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Upload multiple photos to showcase your room (JPEG, PNG)
-                  </p>
-                </div>
-
-                {pictures.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Selected Photos ({pictures.length})</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {pictures.map((pic, index) => (
+                  {pictureDataUrls.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {pictureDataUrls.map((url, index) => (
                         <div key={index} className="relative group">
                           <img
-                            src={pic}
-                            alt={`Room ${index + 1}`}
+                            src={url}
+                            alt={`Preview ${index + 1}`}
                             className="w-full h-24 object-cover rounded border"
                           />
                           <Button
@@ -197,66 +275,96 @@ export function RoomsPanel() {
                             size="sm"
                             className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={() => handleRemovePicture(index)}
+                            disabled={isSaving}
                           >
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                  {isUploading && (
+                    <div className="text-sm text-muted-foreground">
+                      Uploading images... {uploadProgress}%
+                    </div>
+                  )}
+                </div>
 
-                <Button type="submit" disabled={createRoom.isPending || updateRoom.isPending} className="w-full">
-                  {createRoom.isPending || updateRoom.isPending
-                    ? 'Saving...'
-                    : editingRoom
-                      ? 'Update Room'
-                      : 'Create Room'}
-                </Button>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSaving} className="gap-2">
+                    {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {editingRoom ? 'Update Room' : 'Create Room'}
+                  </Button>
+                </div>
               </form>
             </DialogContent>
           </Dialog>
         </div>
       </CardHeader>
       <CardContent>
-        {myRooms.length === 0 ? (
+        {roomsLoading ? (
           <div className="text-center py-8 text-muted-foreground">
-            <p>No rooms yet. Add your first room to get started!</p>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+            <p>Loading rooms...</p>
+          </div>
+        ) : roomsError ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error Loading Rooms</AlertTitle>
+            <AlertDescription>
+              {roomsError instanceof Error ? roomsError.message : 'Failed to load rooms. Please try refreshing the page.'}
+            </AlertDescription>
+          </Alert>
+        ) : myRooms.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No rooms yet. Click "Add Room" to create your first room.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Room Number</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Price/Night</TableHead>
-                  <TableHead>Photos</TableHead>
-                  <TableHead>Actions</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Room Number</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Price per Night</TableHead>
+                <TableHead>Photos</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {myRooms.map((room) => (
+                <TableRow key={room.id.toString()}>
+                  <TableCell className="font-medium">{room.roomNumber}</TableCell>
+                  <TableCell>{room.roomType}</TableCell>
+                  <TableCell>{formatMoney(room.pricePerNight, room.currency)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <ImageIcon className="h-4 w-4" />
+                      <span className="text-sm">{room.pictures?.length || 0}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenDialog(room)}
+                      className="gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit
+                    </Button>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myRooms.map((room) => (
-                  <TableRow key={room.id.toString()}>
-                    <TableCell className="font-medium">{room.roomNumber}</TableCell>
-                    <TableCell>{room.roomType}</TableCell>
-                    <TableCell className="font-semibold">{formatMoney(room.pricePerNight, room.currency)}</TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {room.pictures?.length || 0} photo{room.pictures?.length !== 1 ? 's' : ''}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(room)} className="gap-2">
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </CardContent>
     </Card>

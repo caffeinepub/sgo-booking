@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { UserRole, BookingQuery, UserProfile, BookingStatus, SubscriptionStatus } from '../backend';
+import { UserRole, BookingQuery, RoomQuery, UserProfile, BookingStatus, SubscriptionStatus } from '../backend';
 import { Principal } from '@icp-sdk/core/principal';
 
 export function useGetCallerUserRole() {
@@ -139,7 +139,6 @@ export function useGetCallerHotelProfile(options?: { enabled?: boolean }) {
       try {
         return await actor.getCallerHotelProfile();
       } catch (error) {
-        // If backend traps (e.g., unauthorized/not activated), treat as null
         console.log('Hotel profile query rejected, treating as not activated:', error);
         return null;
       }
@@ -149,16 +148,33 @@ export function useGetCallerHotelProfile(options?: { enabled?: boolean }) {
   });
 }
 
-export function useGetRooms(filters: BookingQuery) {
+export function useGetRooms(filters: RoomQuery, options?: { enabled?: boolean }) {
   const { actor, isFetching } = useActor();
+  const enabled = options?.enabled !== undefined ? options.enabled : true;
+
+  const normalizedFilters = {
+    hotelId: filters.hotelId?.toString() || null,
+    minPrice: filters.minPrice?.toString() || null,
+    maxPrice: filters.maxPrice?.toString() || null,
+    roomType: filters.roomType || null,
+    availableOnly: filters.availableOnly || null,
+  };
 
   return useQuery({
-    queryKey: ['rooms', filters],
+    queryKey: ['rooms', normalizedFilters],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getRooms(filters);
+      try {
+        return await actor.getRooms(filters);
+      } catch (error) {
+        console.error('Failed to fetch rooms:', error);
+        throw error;
+      }
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -198,8 +214,8 @@ export function useCreateBooking() {
         params.currency
       );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
   });
 }
@@ -213,8 +229,8 @@ export function useSetPaymentProof() {
       if (!actor) throw new Error('Actor not available');
       return actor.setPaymentProof(params.bookingId, params.paymentProof);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
   });
 }
@@ -228,8 +244,8 @@ export function useUpdateBookingStatus() {
       if (!actor) throw new Error('Actor not available');
       return actor.updateBookingStatus(params.bookingId, params.newStatus);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
   });
 }
@@ -243,8 +259,8 @@ export function useRecordStayCompletion() {
       if (!actor) throw new Error('Actor not available');
       return actor.recordStayCompletion(bookingId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
   });
 }
@@ -272,39 +288,41 @@ export function useUpdateHotelProfile() {
         params.email
       );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
     },
   });
 }
 
-export function useSetHotelActiveStatus() {
+export function useAddPaymentMethod() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: { hotelId: Principal; active: boolean }) => {
+    mutationFn: async (params: { name: string; details: string }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.setHotelActiveStatus(params.hotelId, params.active);
+      return actor.addPaymentMethod(params.name, params.details);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
     },
   });
 }
 
-export function useSetHotelSubscriptionStatus() {
+export function useRemovePaymentMethod() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: { hotelId: Principal; status: SubscriptionStatus }) => {
+    mutationFn: async (index: bigint) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.setHotelSubscriptionStatus(params.hotelId, params.status);
+      return actor.removePaymentMethod(index);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
     },
   });
 }
@@ -330,8 +348,10 @@ export function useCreateRoom() {
         params.pictures
       );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
     },
   });
 }
@@ -359,40 +379,10 @@ export function useUpdateRoom() {
         params.pictures
       );
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rooms'] });
-    },
-  });
-}
-
-export function useAddPaymentMethod() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: { name: string; details: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.addPaymentMethod(params.name, params.details);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
-    },
-  });
-}
-
-export function useRemovePaymentMethod() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (index: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.removePaymentMethod(index);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
     },
   });
 }
@@ -402,7 +392,7 @@ export function useCreateInviteToken() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: { maxUses: bigint; boundPrincipal: Principal }) => {
+    mutationFn: async (params: { maxUses: bigint; boundPrincipal: Principal | null }) => {
       if (!actor) throw new Error('Actor not available');
       return actor.createInviteToken(params.maxUses, params.boundPrincipal);
     },
@@ -418,8 +408,106 @@ export function useGetInviteTokens() {
   return useQuery({
     queryKey: ['inviteTokens'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.getInviteTokens();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSetHotelActiveStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: { hotelId: Principal; active: boolean }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.setHotelActiveStatus(params.hotelId, params.active);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+    },
+  });
+}
+
+export function useSetHotelSubscriptionStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: { hotelId: Principal; status: SubscriptionStatus }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.setHotelSubscriptionStatus(params.hotelId, params.status);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+    },
+  });
+}
+
+export function useActivateHotelOwner() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (hotelId: Principal) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.activateHotelOwner(hotelId);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+    },
+  });
+}
+
+export function useGenerateInviteCode() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.generateInviteCode();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inviteCodes'] });
+    },
+  });
+}
+
+export function useGetInviteCodes() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery({
+    queryKey: ['inviteCodes'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getInviteCodes();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSubmitRSVP() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (params: { name: string; attending: boolean; inviteCode: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.submitRSVP(params.name, params.attending, params.inviteCode);
+    },
+  });
+}
+
+export function useGetAllRSVPs() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery({
+    queryKey: ['rsvps'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getAllRSVPs();
     },
     enabled: !!actor && !isFetching,
   });

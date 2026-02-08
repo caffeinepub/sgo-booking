@@ -1,108 +1,93 @@
 {
   "kind": "build_request",
-  "title": "Fix booking total price calculation and show hotel-specific payment/contact info with subscription controls",
-  "priority": "normal",
+  "title": "Fix room upload persistence and visibility for hotel and guest accounts",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Compute and persist booking total price on the backend using the room’s stored nightly rate × number of nights derived from check-in/check-out, and do not trust any client-supplied totalPrice.",
+      "text": "Fix backend room create/update and room listing behavior so that rooms uploaded by a hotel account are persisted under the correct hotel principal and are retrievable by (a) the same hotel account in the hotel dashboard and (b) guests browsing the hotel detail page (not only admins). Ensure the room read path uses a single source of truth (roomsMap/hotelsMap) and that role-based filtering does not accidentally exclude the hotel owner or guests for the uploaded hotel.",
       "target": "backend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Tinggal harga kamar yang belum benar, Hotel posting harga kamar Rp. 500.000 tapi kenapa masuk ke bookingan harga jadi Ro. 100."
+          "still not showing on hotel account and guest account ... uploaded room data ... appears on admin",
+          "after upload by hotel, it must be saved in hotel dashboard and visible to guests",
+          "bangun sekarang dan jangan saampai ada masalah"
         ]
       },
       "acceptanceCriteria": [
-        "When createBooking is called, the backend loads the Room by roomId and calculates nights from (checkOut - checkIn), then sets BookingRequest.totalPrice = room.pricePerNight * nights.",
-        "If the frontend submits an incorrect totalPrice (e.g., 100), the stored booking.totalPrice still matches the backend calculation.",
-        "Backend rejects bookings where checkOut <= checkIn (no negative/zero-length stays) with a clear trap message.",
-        "BookingRequest.currency is set from the room currency (or validated to match), so stored currency cannot be spoofed by the client."
+        "After creating a room as a hotel owner, reloading the app still shows the room in Hotel Area > Rooms for that same hotel principal.",
+        "As a guest, opening Browse Hotels > Hotel Detail for that hotel shows the uploaded room(s) in the 'Available Rooms' list.",
+        "Admin, hotel owner, and guest views all reflect the same set of rooms for a given hotel (subject only to intentional visibility rules).",
+        "Backend functions involved in creating/updating/listing rooms do not rely on admin-only paths to read room data."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Extend hotel profile data to store hotel-specific guest contact details (WhatsApp number and email) and expose them in hotel queries used by guests.",
-      "target": "both",
+      "text": "Fix backend hotel/room visibility rules so guest-facing hotel discovery and room browsing do not hide hotels/rooms in a way that breaks booking discovery. Align the rules with the required behavior: once a hotel uploads rooms, guests must be able to see that hotel’s rooms for booking in guest views.",
+      "target": "backend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "...termasuk nomor whatsapp dan email nya. Harusnya punya hotel yang tampil.",
-          "Hotel punya mtode pembayaran masing-masing, bukan punya admin."
+          "How will guests book if the hotel info is not there?",
+          "after upload by hotel, it must be saved ... and visible to guests"
         ]
       },
       "acceptanceCriteria": [
-        "Backend HotelData/HotelDataView includes fields for hotel WhatsApp and hotel email (optional fields are acceptable if not provided).",
-        "Hotel owners can view and update these contact fields from the hotel dashboard (profile area).",
-        "Guest-facing hotel data returned from getHotels includes the hotel contact fields so the frontend can render them without hardcoding admin info.",
-        "No admin contact details are shown anywhere in guest booking/payment flows."
+        "A hotel that has uploaded rooms can be discovered and its rooms can be viewed by guests in the browse/detail flow, without requiring admin access.",
+        "Any visibility gating (e.g., active/subscription status) is implemented consistently for both hotel list (getHotels) and room list (getRooms), and does not result in rooms being visible to admin but invisible to hotel owner/guests for the same hotel."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Update guest booking/payment UI to display the selected hotel’s payment methods and the hotel’s own WhatsApp/email as the payment contact information (not the admin activation contact card).",
+      "text": "Ensure frontend hotel dashboard and guest hotel detail views reliably refresh room data after create/update and do not accidentally query rooms with an invalid/anonymous hotelId. Keep all user-facing copy in English.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "...yang muncul malah yang punya admin, termasuk nomor whatsapp dan email nya. Harusnya punya hotel yang tampil."
+          "still not showing on hotel account and guest account",
+          "bangun sekarang"
         ]
       },
       "acceptanceCriteria": [
-        "On the guest-facing hotel detail/booking flow, payment instructions display the hotel’s own WhatsApp number and email (if provided) and the hotel’s paymentMethods list.",
-        "The existing admin-only activation contact card (frontend/src/components/payments/ContactPaymentInstructions.tsx) remains used only for hotel activation/subscription scenarios (e.g., inactive hotel owner subscription page) and is not reused for guest payment instructions.",
-        "If a hotel has no payment methods, the guest UI clearly indicates that the hotel has not provided payment methods yet (without showing admin activation contacts)."
+        "Hotel Area > Rooms shows a loading state, then the correct rooms for the logged-in hotel principal; it does not depend on admin visibility to show rooms.",
+        "After creating/updating a room in RoomsPanel, the rooms list updates without requiring a hard refresh (React Query cache invalidation/refetch works).",
+        "Guest hotel detail page displays rooms for the hotel in the URL, and does not show an empty list if rooms exist in the backend."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Add subscription billing status controls so admins can mark hotels as Paid/Unpaid and optionally mark hotels as TEST, and enforce visibility/booking rules based on these flags.",
+      "text": "Add a focused regression verification pass for the room upload/visibility flow covering hotel owner upload, guest browsing, and post-reload persistence, and document any steps needed to reproduce/verify the fix in the existing regression checklist.",
       "target": "both",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "admin bisa non aktifkan akun hotel nya. Ini saya lihat kan seperti apa untuk admin yang bisa aktifkan atau non aktifkan akun hotel"
+          "don't let there be any problems"
         ]
       },
       "acceptanceCriteria": [
-        "Backend stores per-hotel subscription status (Paid/Unpaid) and (if required by current UI) a TEST flag.",
-        "Non-admin getHotels only returns hotels that are Active AND Paid AND not TEST.",
-        "Backend createBooking rejects bookings for hotels that are inactive, unpaid, or marked TEST (with clear trap messages).",
-        "Admin UI provides controls to toggle Active/Inactive, mark Paid/Unpaid, and mark/unmark TEST; the hotel list visually reflects these states."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Add conditional state migration for existing persisted hotel data to include new hotel contact fields and new subscription fields without breaking existing deployments.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ]
-      },
-      "acceptanceCriteria": [
-        "backend/migration.mo is updated (conditional migration policy) to populate new fields with safe defaults for existing hotels (e.g., empty/none contact fields, Paid=true/false per chosen default, TEST=false).",
-        "After upgrade, existing hotels and bookings remain readable and functional, and admin/hotel dashboards load without traps caused by missing fields."
+        "There is a documented, repeatable set of steps (based on the existing checklist) to verify: hotel creates room with photos, hotel can still see it after reload, guest can see it in Browse/Hotel Detail, and admin view is consistent.",
+        "Any errors encountered during room save or load are surfaced to the UI (English) rather than failing silently."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo.",
-    "Do not edit files under frontend/src/components/ui, frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, or frontend/src/main.tsx (compose instead of modifying immutable paths).",
-    "Use English for any user-facing text in the UI."
+    "Backend must remain a single Motoko actor in backend/main.mo; add backend/migration.mo only if a stable-state schema change requires it.",
+    "Do not edit frontend files under frontend/src/components/ui or other paths listed as immutable in SYSTEM_CONTEXT.",
+    "Use English for all user-facing UI text."
   ],
   "nonGoals": [
-    "Implementing external payment gateways or automatic payment verification.",
-    "Adding third-party authentication providers (only Internet Identity is supported).",
-    "Adding real-time chat or messaging features."
+    "Adding new account types or changing the overall role model beyond what is necessary to fix room visibility.",
+    "Introducing external databases or non-Motoko backend services.",
+    "Implementing real-time updates (e.g., WebSockets)."
   ],
   "imageRequirements": {
     "required": [],
@@ -112,7 +97,7 @@
     "goalsToAdd": [],
     "goalsToRemove": [],
     "preferencesToAdd": [
-      "English UI text"
+      "Prefer English for user-facing text"
     ],
     "preferencesToRemove": [],
     "miscToAdd": [],
