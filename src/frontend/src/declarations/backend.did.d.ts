@@ -161,6 +161,7 @@ export interface _SERVICE {
   'getHotels' : ActorMethod<[], Array<HotelDataView>>,
   'getInviteCodes' : ActorMethod<[], Array<InviteCode>>,
   'getInviteTokens' : ActorMethod<[], Array<InviteToken>>,
+  'getRoom' : ActorMethod<[bigint], [] | [RoomView]>,
   'getRooms' : ActorMethod<[RoomQuery], Array<RoomView>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,

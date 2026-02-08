@@ -6,19 +6,17 @@ interface RoomPhotosSectionProps {
   pictures: string[];
   roomNumber: string;
   onImageClick?: (imageUrl: string) => void;
+  compact?: boolean;
 }
 
-export function RoomPhotosSection({ pictures, roomNumber, onImageClick }: RoomPhotosSectionProps) {
+export function RoomPhotosSection({ pictures, roomNumber, onImageClick, compact = false }: RoomPhotosSectionProps) {
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   
-  // Sanitize and filter valid picture URLs
   const validPictures = pictures.filter((pic) => {
     if (!pic || typeof pic !== 'string') return false;
-    // Check if it's a valid data URL or HTTP URL
     return pic.startsWith('data:image/') || pic.startsWith('http://') || pic.startsWith('https://');
   });
 
-  // Filter out failed images
   const displayablePictures = validPictures.filter((_, index) => !failedImages.has(index));
 
   const handleImageError = (index: number) => {
@@ -33,6 +31,50 @@ export function RoomPhotosSection({ pictures, roomNumber, onImageClick }: RoomPh
           <p className="text-sm text-muted-foreground">No photos available for this room</p>
         </div>
       </Card>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div className="space-y-3">
+        {/* Main Thumbnail */}
+        <div className="relative w-full h-40 overflow-hidden rounded-lg border bg-muted">
+          <img
+            src={displayablePictures[0]}
+            alt={`Room ${roomNumber} - Main`}
+            className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => onImageClick?.(displayablePictures[0])}
+            onError={() => handleImageError(0)}
+          />
+        </div>
+
+        {/* Thumbnail Grid */}
+        {displayablePictures.length > 1 && (
+          <div className="grid grid-cols-4 gap-2">
+            {displayablePictures.slice(1, 5).map((pic, idx) => (
+              <div
+                key={idx + 1}
+                className="relative aspect-square overflow-hidden rounded border bg-muted cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => onImageClick?.(pic)}
+              >
+                <img
+                  src={pic}
+                  alt={`Room ${roomNumber} - ${idx + 2}`}
+                  className="w-full h-full object-cover"
+                  onError={() => handleImageError(idx + 1)}
+                />
+              </div>
+            ))}
+            {displayablePictures.length > 5 && (
+              <div className="relative aspect-square overflow-hidden rounded border bg-muted/50 flex items-center justify-center">
+                <span className="text-sm font-medium text-muted-foreground">
+                  +{displayablePictures.length - 5}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -52,24 +94,24 @@ export function RoomPhotosSection({ pictures, roomNumber, onImageClick }: RoomPh
       {/* Thumbnail Grid */}
       {displayablePictures.length > 1 && (
         <div className="grid grid-cols-4 gap-2">
-          {displayablePictures.slice(1, 5).map((pic, index) => (
+          {displayablePictures.slice(1, 5).map((pic, idx) => (
             <div
-              key={index}
-              className="relative aspect-square overflow-hidden rounded border bg-muted cursor-pointer hover:opacity-80 transition-opacity"
+              key={idx + 1}
+              className="relative aspect-square overflow-hidden rounded border bg-muted cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => onImageClick?.(pic)}
             >
               <img
                 src={pic}
-                alt={`Room ${roomNumber} - ${index + 2}`}
+                alt={`Room ${roomNumber} - ${idx + 2}`}
                 className="w-full h-full object-cover"
-                onError={() => handleImageError(index + 1)}
+                onError={() => handleImageError(idx + 1)}
               />
             </div>
           ))}
           {displayablePictures.length > 5 && (
             <div className="relative aspect-square overflow-hidden rounded border bg-muted/50 flex items-center justify-center">
               <span className="text-sm font-medium text-muted-foreground">
-                +{displayablePictures.length - 5} more
+                +{displayablePictures.length - 5}
               </span>
             </div>
           )}

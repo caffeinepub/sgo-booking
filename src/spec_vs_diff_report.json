@@ -1,68 +1,58 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T20:23:26.785Z",
-  "summary": "Frontend changes add safer room photo rendering (with fallback) and improved error handling around hotel/room queries, plus various routing/app shell updates. Backend diff evidence is truncated and does not show concrete changes to room create/update or retrieval logic needed to guarantee picture persistence/visibility across Admin/Hotel/Guest, so backend requirements cannot be confirmed as implemented from the provided diff summary.",
+  "generatedAt": "2026-02-08T21:11:05.263Z",
+  "summary": "Diff evidence shows partial implementation of guest Browse Hotels room-photo thumbnail selection and placeholder UI, but does not provide sufficient evidence for the backend visibility fix, hotel-owner room photo management UI, role-based permission enforcement across pages, or warm/orange theming across all affected pages.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Fix backend room retrieval so the same room records (including the full `pictures : [Text]` array) are returned consistently for Admin, the owning Hotel account, and Guests.",
-      "reason": "The backend file diff for `backend/main.mo` is truncated and does not include any shown modifications to the room listing/query methods or role-based filtering logic that would ensure consistent room sets and preservation of the `pictures` array across roles.",
+      "requirement": "Fix backend room/room-photo visibility so Hotel owners and Guests can fetch rooms (including the `pictures` array) and see the same room photo data that is currently visible in the Admin UI.",
+      "reason": "backend/main.mo is shown only with type definitions/imports; no room listing/query logic changes are visible in the provided truncated diff summary to confirm `pictures` are returned for guest and hotel-owner flows without adding guest write ops.",
       "evidence": [
-        "backend/main.mo (truncated; no room query/listing logic shown)"
+        "backend/main.mo (truncated)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Fix backend room create/update persistence so when the Hotel account saves a room with `pictures`, the stored room record retains the provided `pictures` list and remains associated with the correct `hotelId` for all subsequent reads (Admin/Hotel/Guest).",
-      "reason": "The diff summary does not show any create/update room method implementation changes in `backend/main.mo` demonstrating persistence of `pictures` and correct `hotelId` association; backend content is truncated before relevant methods.",
+      "requirement": "In the Hotel account (Hotel Area → Rooms), render all previously uploaded room photos for each existing room, and ensure the hotel owner can add and remove photos when creating/editing a room (with thumbnail gallery + ImagePreviewDialog zoom).",
+      "reason": "No diff evidence shows changes to the Hotel Area → Rooms page/component(s) or room create/edit flows; only BrowseHotelsPage is shown. The modified-files list does not include a Hotel Area Rooms file, and the frontend-file-summaries.txt is only a summary document (not code proof).",
       "evidence": [
-        "backend/main.mo (truncated; no room create/update logic shown)"
+        "frontend/src/pages/BrowseHotelsPage.tsx (truncated)",
+        "frontend-file-summaries.txt (truncated)"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Update the Hotel Area Rooms UI to clearly differentiate between empty results vs backend fetch failures/filtered results, including explicit error state with retry; only show empty-state message when query succeeds and returns empty.",
-      "reason": "Although `RoomsPanel.tsx` now reads `roomsError` and `refetchRooms` and imports Alert/Refresh icons, the provided diff snippet is truncated before rendering logic, so it does not conclusively show the required error-vs-empty UI differentiation and retry control behavior.",
+      "requirement": "On the Guest account Browse Hotels page, display room photo thumbnails inside each hotel card and allow click-to-zoom preview via existing ImagePreviewDialog; show 'No photos available' when none.",
+      "reason": "The diff shows thumbnail rendering, representative-photo selection, click handler setting preview state, and a 'No photos available' placeholder, but the provided truncation does not show the ImagePreviewDialog actually being rendered/controlled, nor confirmation that existing navigation ('View Details & Book') remains intact.",
       "evidence": [
-        "frontend/src/components/hotel/RoomsPanel.tsx (truncated; render/empty-state logic not shown)"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "Added backend migration module and wiring (migration run) unrelated to room photo persistence/visibility requirements.",
-      "reason": "BuildRequest did not ask for a migration system or new migration file; this appears to be additional infrastructure beyond the stated requirements (even if potentially harmless).",
-      "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo (with migration = Migration.run)"
+        "frontend/src/pages/BrowseHotelsPage.tsx (truncated)"
       ]
     },
     {
-      "description": "Broad frontend app/router/auth/role-guard refactors and new pages/tab wiring not requested (e.g., route tree changes, role guards, payments tab wiring, locale provider).",
-      "reason": "BuildRequest scope is limited to room photo persistence/visibility and specific UI states for Hotel Rooms and Guest Hotel Detail; these additional navigation/auth/layout/i18n and other feature changes are not requested.",
+      "id": "REQ-4",
+      "requirement": "Enforce role-based room photo UI permissions consistently: hotel owners can add/remove photos in create/edit; guests are view-only and cannot see edit/delete controls on guest pages.",
+      "reason": "No diff evidence shows removal/prevention of guest edit/delete controls across guest pages (Browse Hotels, Hotel Detail) or implementation of hotel-owner-only add/remove controls in create/edit flows. BrowseHotelsPage contains no edit controls, but that alone does not demonstrate the full permission enforcement requirements.",
       "evidence": [
-        "frontend/src/App.tsx",
-        "frontend-file-summaries.txt (multiple unrelated component/page changes: routing, LocaleContext, AppShell, TopNav, RequireRole, HotelAreaPage payments tab wiring)"
+        "frontend/src/pages/BrowseHotelsPage.tsx (truncated)"
       ]
     },
     {
-      "description": "Global styling and build metadata changes not requested.",
-      "reason": "BuildRequest does not mention updating CSS theme system, index.html metadata, or adding a build version constant.",
+      "id": "REQ-5",
+      "requirement": "Apply a consistent warm/orange hospitality theme across Hotel Area Rooms, Browse Hotels, and Hotel Detail; avoid blue/purple as primary; ensure English text.",
+      "reason": "BrowseHotelsPage uses generic shadcn/tailwind tokens (e.g., text-primary, bg-muted) but the diff does not provide evidence of theme changes across all affected pages (Hotel Area Rooms, Hotel Detail) or any concrete palette adjustments. (frontend/index.css theming is mentioned only in frontend-file-summaries.txt, not shown as an actual modified code file in the diff list.)",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/src/index.css, frontend/index.html, frontend/src/buildInfo.ts)"
+        "frontend/src/pages/BrowseHotelsPage.tsx (truncated)",
+        "frontend-file-summaries.txt (truncated)"
       ]
     }
   ],
-  "confidence": 0.62,
+  "hallucinated_features": [],
+  "confidence": 0.56,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/hotel/RoomPhotosSection.tsx",
-    "frontend/src/components/hotel/RoomsPanel.tsx",
-    "frontend/src/pages/HotelDetailPage.tsx",
+    "frontend/src/pages/BrowseHotelsPage.tsx",
     "project_state.json"
   ]
 }

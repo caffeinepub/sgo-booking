@@ -11,12 +11,11 @@ import Int "mo:core/Int";
 import Random "mo:core/Random";
 import Runtime "mo:core/Runtime";
 import MixinStorage "blob-storage/Mixin";
-import Migration "migration";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import InviteLinksModule "invite-links/invite-links-module";
 
-(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -946,4 +945,35 @@ actor {
   func getBooking(bookingId : Nat) : ?BookingRequest {
     bookingsMap.get(bookingId);
   };
+
+  public query ({ caller }) func getRoom(roomId : Nat) : async ?RoomView {
+    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
+
+    switch (roomsMap.get(roomId)) {
+      case (null) { null };
+      case (?room) {
+        // Admin can see all rooms
+        if (isAdmin) {
+          return ?toRoomView(room);
+        };
+
+        // Check if hotel is visible (active and paid/test subscription)
+        switch (hotelsMap.get(room.hotelId)) {
+          case (?hotel) {
+            if (hotel.active and (hotel.subscriptionStatus == #paid or hotel.subscriptionStatus == #test)) {
+              // Hotel is visible, allow all users (including guests) to view
+              ?toRoomView(room);
+            } else if (isHotelOwner(caller, room.hotelId) and AccessControl.hasPermission(accessControlState, caller, #user)) {
+              // Hotel owner can see their own rooms even if hotel is not visible
+              ?toRoomView(room);
+            } else {
+              null;
+            };
+          };
+          case (null) { null };
+        };
+      };
+    };
+  };
 };
+

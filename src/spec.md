@@ -1,12 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Ensure room photos uploaded by Hotel accounts persist correctly and display consistently for Admin, the owning Hotel, and Guests.
+**Goal:** Ensure uploaded room photos are visible to Hotel owners and Guests (as in Admin), with click-to-zoom previews and consistent warm/orange styling.
 
 **Planned changes:**
-- Fix backend room create/update so the `pictures : [Text]` array is persisted exactly as provided and remains associated with the correct `hotelId`.
-- Fix backend room retrieval/listing so Admin, owning Hotel, and Guests receive consistent room records including the full `pictures` array (without role-based stripping or unintended filtering).
-- Update Hotel Area Rooms UI to distinguish between empty results vs fetch/authorization/filter issues, showing an explicit error + retry on failures and only showing “No rooms yet...” when a successful fetch returns an empty list.
-- Ensure the guest-facing Hotel Detail page reliably renders room photos from returned `pictures` values and shows a clear fallback when a room has zero valid/unloadable pictures while keeping booking actions available.
+- Fix backend room/room-photo read visibility so room listings for guests and hotel owners return rooms with a non-empty `pictures` array when photos exist.
+- Hotel Area → Rooms: render all previously uploaded room photos per room (thumbnails), open zoom/preview via the existing `ImagePreviewDialog`, and keep create/edit flows able to add and remove photos.
+- Guest Browse Hotels: show representative room photo thumbnail(s) on each hotel card (similar to Admin presentation), support click-to-zoom via `ImagePreviewDialog`, and show an English “No photos available” placeholder when none exist.
+- Enforce role-based UI: hotel owners can add/remove photos only in room create/edit; guests remain strictly view-only with no edit/delete controls.
+- Apply consistent warm, hospitality-oriented UI theme across Hotel Area Rooms, Browse Hotels, and Hotel Detail (neutral backgrounds + orange accents; avoid blue/purple as primary).
 
-**User-visible outcome:** Hotel owners and guests can reliably see the same room photos that admins see; when photos are missing or a fetch fails, the UI communicates the issue clearly without hiding rooms or showing misleading empty states.
+**User-visible outcome:** Hotel owners can see and manage their room photos in the Hotel Area, and guests can see room photo thumbnails while browsing hotels and open photos in a zoom/preview modal, with a consistent warm/orange look and English UI text.

@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-hotel-area-rooms-ui-to-clearly-differentiate-between-a-genuinely-empty-room-results-and-b-backend-fetch-failures-or-filtered-unauthorized-results-so-hotel-owners-are-not-shown-a-misleading-no-rooms-yet-state-when-the-backend-call-failed-or-returned-unexpected-filtered-results-that-hide-existing-rooms-photos",
-      "featureTitle": "Update the Hotel Area Rooms UI to clearly differentiate between (a) genuinely empty room results and (b) backend fetch failures or filtered/unauthorized results, so Hotel owners are not shown a misleading “No rooms yet” state when the backend call failed or returned unexpected filtered results that hide existing rooms/photos.",
+      "featureId": "feature-on-the-guest-account-browse-hotels-page-display-room-photo-thumbnails-inside-each-hotel-card-similar-to-admin-s-photo-presentation-and-allow-click-to-zoom-preview",
+      "featureTitle": "On the Guest account Browse Hotels page, display room photo thumbnails inside each hotel card (similar to Admin’s photo presentation), and allow click-to-zoom preview.",
       "files": [
-        "frontend/src/components/hotel/RoomsPanel.tsx"
+        "frontend/src/pages/BrowseHotelsPage.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -23,11 +23,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-the-guest-facing-hotel-detail-page-renders-room-photos-reliably-using-the-returned-pictures-strings-and-provide-a-safe-fallback-ui-when-rooms-exist-but-a-room-has-zero-valid-pictures-so-guests-can-still-browse-and-book",
-      "featureTitle": "Ensure the guest-facing Hotel Detail page renders room photos reliably using the returned `pictures` strings, and provide a safe fallback UI when rooms exist but a room has zero valid pictures so guests can still browse and book.",
+      "featureId": "feature-apply-a-consistent-visual-theme-across-the-affected-pages-hotel-area-rooms-browse-hotels-hotel-detail-with-a-warm-hospitality-oriented-style-neutral-backgrounds-orange-accents-keeping-typography-and-spacing-consistent-and-avoiding-blue-purple-as-primary-brand-colors",
+      "featureTitle": "Apply a consistent visual theme across the affected pages (Hotel Area Rooms, Browse Hotels, Hotel Detail) with a warm, hospitality-oriented style (neutral backgrounds + orange accents), keeping typography and spacing consistent and avoiding blue/purple as primary brand colors.",
       "files": [
-        "frontend/src/components/hotel/RoomPhotosSection.tsx",
-        "frontend/src/pages/HotelDetailPage.tsx"
+        "frontend/src/pages/BrowseHotelsPage.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -40,7 +39,7 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-4"
+        "REQ-5"
       ],
       "confidence": "high"
     }

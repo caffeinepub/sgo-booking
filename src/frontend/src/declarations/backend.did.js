@@ -195,6 +195,7 @@ export const idlService = IDL.Service({
   'getHotels' : IDL.Func([], [IDL.Vec(HotelDataView)], ['query']),
   'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
   'getInviteTokens' : IDL.Func([], [IDL.Vec(InviteToken)], ['query']),
+  'getRoom' : IDL.Func([IDL.Nat], [IDL.Opt(RoomView)], ['query']),
   'getRooms' : IDL.Func([RoomQuery], [IDL.Vec(RoomView)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -422,6 +423,7 @@ export const idlFactory = ({ IDL }) => {
     'getHotels' : IDL.Func([], [IDL.Vec(HotelDataView)], ['query']),
     'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
     'getInviteTokens' : IDL.Func([], [IDL.Vec(InviteToken)], ['query']),
+    'getRoom' : IDL.Func([IDL.Nat], [IDL.Opt(RoomView)], ['query']),
     'getRooms' : IDL.Func([RoomQuery], [IDL.Vec(RoomView)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],

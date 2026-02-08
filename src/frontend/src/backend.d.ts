@@ -131,6 +131,7 @@ export interface backendInterface {
     getHotels(): Promise<Array<HotelDataView>>;
     getInviteCodes(): Promise<Array<InviteCode>>;
     getInviteTokens(): Promise<Array<InviteToken>>;
+    getRoom(roomId: bigint): Promise<RoomView | null>;
     getRooms(filters: RoomQuery): Promise<Array<RoomView>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;

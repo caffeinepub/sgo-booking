@@ -1,95 +1,123 @@
 {
   "kind": "build_request",
-  "title": "Fix room photo persistence and visibility for Hotel and Guest accounts",
+  "title": "Show uploaded room photos in Hotel account and Guest Browse Hotels (with zoom)",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix backend room retrieval so the same room records (including the full `pictures : [Text]` array) are returned consistently for Admin, the owning Hotel account, and Guests. Rooms that appear for Admin must not disappear or lose their `pictures` data when viewed by the owning Hotel account or by Guests browsing a hotel.",
+      "text": "Fix backend room/room-photo visibility so Hotel owners and Guests can fetch rooms (including the `pictures` array) and see the same room photo data that is currently visible in the Admin UI.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "we already several deploy but still not showing room photos on guest and hotel account. While in admin it exists.",
-          "Pokok nya apa yang di upload di akun hotel harus sama persis yang tampil di akun admin dan akun tamu"
+          "YA KERJAKAN DAN DI AKUN HOTEL JUGA HARUS TAMPIL SEMUA U=FOTO KAMAR YAMG SUDAH DI UPLOAD,"
         ]
       },
       "acceptanceCriteria": [
-        "Given a hotel with rooms saved with `pictures` populated, calling the existing backend room listing/query method(s) as Admin returns rooms with non-empty `pictures`.",
-        "Calling the same room listing/query method(s) as the owning Hotel principal returns the same rooms and the same `pictures` values (order preserved).",
-        "Calling the same room listing/query method(s) as a Guest principal (with any current visibility/subscription rules applied) returns rooms with the same `pictures` values for hotels/rooms that are visible to Guests.",
-        "No role-based logic silently strips `pictures` or returns an empty room list for the owning Hotel when rooms exist."
+        "Calling the rooms listing query for a given hotel (guest flow) returns each room with its `pictures` array intact (no empty array unless truly no photos).",
+        "Calling the hotel-owner rooms listing (hotel dashboard flow) returns the hotel’s rooms with `pictures` intact.",
+        "The backend does not expose any new write operations for guests; it only ensures correct read visibility for rooms/photos."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix backend room create/update persistence so when the Hotel account saves a room with `pictures`, the stored room record retains the provided `pictures` list and remains associated with the correct `hotelId` for all subsequent reads (Admin/Hotel/Guest).",
-      "target": "backend",
+      "text": "In the Hotel account (Hotel Area → Rooms), render all previously uploaded room photos for each existing room, and ensure the hotel owner can add and remove photos when creating/editing a room.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "what is uploaded in the hotel account must be exactly the same as what appears in the admin account and the guest account"
+          "DI AKUN HOTEL JUGA HARUS TAMPIL SEMUA U=FOTO KAMAR YAMG SUDAH DI UPLOAD,"
         ]
       },
       "acceptanceCriteria": [
-        "Creating a room as a Hotel account with a non-empty `pictures` array persists those exact strings in backend state.",
-        "Updating an existing room as the owning Hotel account persists the updated `pictures` array and does not clear pictures unintentionally.",
-        "After create/update, subsequent reads via existing queries used by Admin, Hotel Area, and Guest Hotel Detail return the persisted `pictures` values."
+        "Hotel Area → Rooms lists existing rooms (not an empty state when rooms exist).",
+        "Each room row/card shows photo thumbnails using the existing `RoomPhotosSection` component (or equivalent consistent gallery UI).",
+        "Clicking any thumbnail opens a zoom/preview modal using the existing `ImagePreviewDialog`.",
+        "When editing a room, existing photos are shown and can be removed by the hotel owner, and newly uploaded photos are appended and saved."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Update the Hotel Area Rooms UI to clearly differentiate between (a) genuinely empty room results and (b) backend fetch failures or filtered/unauthorized results, so Hotel owners are not shown a misleading “No rooms yet” state when the backend call failed or returned unexpected filtered results that hide existing rooms/photos.",
+      "text": "On the Guest account Browse Hotels page, display room photo thumbnails inside each hotel card (similar to Admin’s photo presentation), and allow click-to-zoom preview.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "we already several deploy but still not showing room photos on guest and hotel account. While in admin it exists."
+          "DI AKUN TAMU DI FITUR BROWSER HOTEL SAMA SEPERTI DI AKUN ADMIN, FOTO KAMAR MUNCUL DI BOWSER HOTEL ."
         ]
       },
       "acceptanceCriteria": [
-        "If the rooms query fails, show an explicit error state (not the empty-state message) with a retry option.",
-        "If rooms exist but pictures are missing/empty, the UI should still show the room entry and a clear photos count (0) without hiding the room.",
-        "The empty-state message (“No rooms yet...”) is only shown when the rooms query succeeds and returns an empty array for the hotel owner."
+        "Browse Hotels cards show at least one representative room photo thumbnail when the hotel has rooms with photos (e.g., first available room’s first photo).",
+        "If a hotel has no room photos, the card shows a clear ‘No photos available’ placeholder state (English text).",
+        "Clicking a thumbnail opens the existing `ImagePreviewDialog` for zoom/preview.",
+        "The page remains responsive and keeps existing navigation behavior (‘View Details & Book’ still works)."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Ensure the guest-facing Hotel Detail page renders room photos reliably using the returned `pictures` strings, and provide a safe fallback UI when rooms exist but a room has zero valid pictures so guests can still browse and book.",
+      "text": "Enforce role-based room photo UI permissions consistently: Hotel owners can add/remove photos via room create/edit; Guests are view-only and cannot see any edit/delete controls for room photos.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "still not showing room photos on guest account"
+          "DI AKUN HOTEL DAN AKUN TAMU ANDA TIDAK KERJAKAN."
         ]
       },
       "acceptanceCriteria": [
-        "On Hotel Detail, each room displays its photos when `pictures` contains valid image strings.",
-        "If `pictures` is empty or contains only invalid/unloadable strings, show a consistent fallback state (e.g., “No photos available for this room”) while keeping the rest of the room card and booking actions available.",
-        "Photo rendering logic accepts the same `pictures` formats produced by the Hotel upload flow (currently data URLs)."
+        "Guest-facing pages (Browse Hotels, Hotel Detail) do not render any photo upload/remove/edit controls.",
+        "Hotel Area renders upload/remove controls only where appropriate (room create/edit flows).",
+        "No admin-only UI is required for this change; do not introduce admin edit/delete for room photos if the intended behavior is view-only there."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Apply a consistent visual theme across the affected pages (Hotel Area Rooms, Browse Hotels, Hotel Detail) with a warm, hospitality-oriented style (neutral backgrounds + orange accents), keeping typography and spacing consistent and avoiding blue/purple as primary brand colors.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-user-1"
+        ],
+        "quotes": [
+          "YA KERJAKAN"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Browse Hotels and Hotel Area Rooms use consistent card layout, spacing, and thumbnail styling.",
+        "Primary accents use warm/orange tones; blue/purple are not used as the main theme colors.",
+        "All user-facing text introduced/changed by this work is in English."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in `backend/main.mo` (no additional backend services).",
-    "Do not modify any frontend files under `frontend/src/components/ui` or any paths listed as immutable in SYSTEM_CONTEXT.",
-    "Use English for any user-facing UI text added or changed."
+    "Backend must remain a single Motoko actor in `backend/main.mo`; only add `backend/migration.mo` if a state upgrade is required.",
+    "Do not edit files under `frontend/src/components/ui` or any paths listed in `frontend.immutablePaths`; compose existing UI components instead.",
+    "Use React Query invalidation patterns already present in `frontend/src/hooks/useQueries.ts` after room create/update so photo changes appear immediately."
   ],
   "nonGoals": [
-    "Adding third-party image hosting/CDN integrations.",
-    "Adding new authentication providers beyond Internet Identity.",
-    "Redesigning unrelated booking/payment/admin features."
+    "Adding new authentication providers (only Internet Identity is supported).",
+    "Introducing external databases or third-party storage services for images.",
+    "Changing booking/payment business logic beyond what is necessary to correctly display room photos."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

@@ -1,66 +1,77 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T20:23:26.788Z",
+  "generatedAt": "2026-02-08T21:11:05.266Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
+    "total": 5,
     "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix backend room retrieval so the same room records (including the full `pictures : [Text]` array) are returned consistently for Admin, the owning Hotel account, and Guests. Rooms that appear for Admin must not disappear or lose their `pictures` data when viewed by the owning Hotel account or by Guests browsing a hotel.",
+        "summary": "Fix backend room/room-photo visibility so Hotel owners and Guests can fetch rooms (including the `pictures` array) and see the same room photo data that is currently visible in the Admin UI.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Fix backend room create/update persistence so when the Hotel account saves a room with `pictures`, the stored room record retains the provided `pictures` list and remains associated with the correct `hotelId` for all subsequent reads (Admin/Hotel/Guest).",
-        "status": "unknown",
-        "plannedFiles": [],
+        "summary": "In the Hotel account (Hotel Area → Rooms), render all previously uploaded room photos for each existing room, and ensure the hotel owner can add and remove photos when creating/editing a room.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/src/components/hotel/RoomsPanel.tsx",
+          "frontend/src/components/hotel/RoomPhotosSection.tsx"
+        ],
         "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Update the Hotel Area Rooms UI to clearly differentiate between (a) genuinely empty room results and (b) backend fetch failures or filtered/unauthorized results, so Hotel owners are not shown a misleading “No rooms yet” state when the backend call failed or returned unexpected filtered results that hide existing rooms/photos.",
+        "summary": "On the Guest account Browse Hotels page, display room photo thumbnails inside each hotel card (similar to Admin’s photo presentation), and allow click-to-zoom preview.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/hotel/RoomsPanel.tsx"
+          "frontend/src/pages/BrowseHotelsPage.tsx",
+          "frontend/src/components/common/ImagePreviewDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/hotel/RoomsPanel.tsx"
+          "frontend/src/pages/BrowseHotelsPage.tsx"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Ensure the guest-facing Hotel Detail page renders room photos reliably using the returned `pictures` strings, and provide a safe fallback UI when rooms exist but a room has zero valid pictures so guests can still browse and book.",
-        "status": "implemented",
+        "summary": "Enforce role-based room photo UI permissions consistently: Hotel owners can add/remove photos via room create/edit; Guests are view-only and cannot see any edit/delete controls for room photos.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/components/hotel/RoomPhotosSection.tsx",
+          "frontend/src/components/hotel/RoomsPanel.tsx",
           "frontend/src/pages/HotelDetailPage.tsx"
         ],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Apply a consistent visual theme across the affected pages (Hotel Area Rooms, Browse Hotels, Hotel Detail) with a warm, hospitality-oriented style (neutral backgrounds + orange accents), keeping typography and spacing consistent and avoiding blue/purple as primary brand colors.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/BrowseHotelsPage.tsx",
+          "frontend/src/components/hotel/RoomsPanel.tsx",
+          "frontend/src/pages/HotelDetailPage.tsx",
+          "frontend/src/index.css"
+        ],
         "matchedFiles": [
-          "frontend/src/components/hotel/RoomPhotosSection.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx"
+          "frontend/src/pages/BrowseHotelsPage.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/hotel/RoomPhotosSection.tsx",
-    "frontend/src/components/hotel/RoomsPanel.tsx",
-    "frontend/src/pages/HotelDetailPage.tsx",
+    "frontend/src/pages/BrowseHotelsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

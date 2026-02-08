@@ -11,6 +11,7 @@ import { useGetHotels, useGetRooms } from '../hooks/useQueries';
 import { BookingForm } from '../components/booking/BookingForm';
 import { HotelPaymentMethodsList } from '../components/payments/HotelPaymentMethodsList';
 import { RoomPhotosSection } from '../components/hotel/RoomPhotosSection';
+import { ImagePreviewDialog } from '../components/common/ImagePreviewDialog';
 import { MapPin, ExternalLink, Loader2, AlertCircle, Home } from 'lucide-react';
 import { formatMoney } from '../utils/money';
 
@@ -19,7 +20,6 @@ export default function HotelDetailPage() {
   const navigate = useNavigate();
   const { data: hotels, isLoading: hotelsLoading, error: hotelsError } = useGetHotels();
   
-  // Convert hotelId string to Principal for the query
   const hotelPrincipal = hotelId ? Principal.fromText(hotelId) : undefined;
   const { data: rooms, isLoading: roomsLoading, error: roomsError } = useGetRooms({ hotelId: hotelPrincipal });
   
@@ -154,11 +154,11 @@ export default function HotelDetailPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Room Photos */}
                   <RoomPhotosSection
                     pictures={room.pictures || []}
                     roomNumber={room.roomNumber}
                     onImageClick={setPreviewImage}
+                    compact={true}
                   />
 
                   <Button
@@ -206,23 +206,11 @@ export default function HotelDetailPage() {
         </Dialog>
       )}
 
-      {/* Image Preview Dialog */}
-      {previewImage && (
-        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>Room Photo</DialogTitle>
-            </DialogHeader>
-            <div className="relative w-full">
-              <img
-                src={previewImage}
-                alt="Room preview"
-                className="w-full h-auto max-h-[70vh] object-contain rounded"
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <ImagePreviewDialog
+        imageUrl={previewImage}
+        onClose={() => setPreviewImage(null)}
+        title="Room Photo"
+      />
     </div>
   );
 }

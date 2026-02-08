@@ -1,42 +1,101 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Hotel Area empty-state vs error and improve guest room photo fallbacks",
+  "title": "Render room photo thumbnails with zoom in Hotel Rooms and Guest Browse Hotels",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Differentiate empty room results from fetch failures or unexpected/filtered results in the Hotel Area Rooms UI, including a retry option.",
+      "id": "REQ-2",
+      "summary": "Show all previously uploaded room photos in Hotel Area → Rooms, with thumbnail gallery + zoom, and preserve add/remove behavior in create/edit.",
       "acceptanceCriteria": [
-        "If the rooms query fails, show an explicit error state (not the empty-state message) with a retry option.",
-        "If rooms exist but pictures are missing/empty, the UI should still show the room entry and a clear photos count (0) without hiding the room.",
-        "The empty-state message (“No rooms yet...”) is only shown when the rooms query succeeds and returns an empty array for the hotel owner."
+        "Hotel Area → Rooms lists existing rooms (not an empty state when rooms exist).",
+        "Each room row/card shows photo thumbnails using the existing `RoomPhotosSection` component (or equivalent consistent gallery UI).",
+        "Clicking any thumbnail opens a zoom/preview modal using the existing `ImagePreviewDialog`.",
+        "When editing a room, existing photos are shown and can be removed by the hotel owner, and newly uploaded photos are appended and saved."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/hotel/RoomsPanel.tsx",
           "operation": "modify",
-          "description": "Update rooms listing states to avoid misleading empty-state messaging: (1) for roomsError, show a destructive error Alert plus a Retry button that triggers refetchRooms; (2) add a distinct 'unexpected/filtered results' warning state when the query succeeds but the returned rooms array does not contain any rooms owned by the current hotel (e.g., rooms.length > 0 but myRooms.length === 0), including a Retry action; (3) keep showing each room row regardless of pictures presence and continue displaying a photos count (0 when empty). Use shadcn-ui Alert/Button/Card primitives already used in this file to present the states. Verify the component's usage instructions before implementing."
+          "description": "Update the Rooms listing Photos column to render thumbnails via the existing RoomPhotosSection (compact mode) for each room, and wire thumbnail clicks to the existing ImagePreviewDialog for zoom/preview. Keep current create/edit dialog behavior for adding/removing photos, ensuring it initializes from the room’s existing `pictures` and saves updated arrays. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/hotel/RoomPhotosSection.tsx",
+          "operation": "modify",
+          "description": "Align gallery fallback/placeholder copy and thumbnail styling so it can be reused consistently in Hotel Area Rooms and Guest browsing contexts, while keeping it view-only (no edit/delete controls). Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Display representative room photo thumbnails inside each Browse Hotels card and enable click-to-zoom preview.",
+      "acceptanceCriteria": [
+        "Browse Hotels cards show at least one representative room photo thumbnail when the hotel has rooms with photos (e.g., first available room’s first photo).",
+        "If a hotel has no room photos, the card shows a clear ‘No photos available’ placeholder state (English text).",
+        "Clicking a thumbnail opens the existing `ImagePreviewDialog` for zoom/preview.",
+        "The page remains responsive and keeps existing navigation behavior (‘View Details & Book’ still works)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/BrowseHotelsPage.tsx",
+          "operation": "modify",
+          "description": "Enhance hotel cards to render a representative room photo thumbnail (derived from hotel.rooms -> room.pictures) and show a ‘No photos available’ placeholder when none exist; add a page-level ImagePreviewDialog and wire thumbnail clicks to open it without affecting existing navigation. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/common/ImagePreviewDialog.tsx",
+          "operation": "modify",
+          "description": "Confirm the dialog styling supports a consistent zoom/preview experience across Browse Hotels and Hotel/Room galleries (no functional change beyond any necessary styling/props alignment). Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Render guest-facing room photos reliably on Hotel Detail and provide a consistent fallback when rooms have zero valid or unloadable pictures.",
+      "summary": "Ensure room photo UI controls are role-appropriate: hotel owners can add/remove in create/edit; guests are view-only everywhere.",
       "acceptanceCriteria": [
-        "On Hotel Detail, each room displays its photos when `pictures` contains valid image strings.",
-        "If `pictures` is empty or contains only invalid/unloadable strings, show a consistent fallback state (e.g., “No photos available for this room”) while keeping the rest of the room card and booking actions available.",
-        "Photo rendering logic accepts the same `pictures` formats produced by the Hotel upload flow (currently data URLs)."
+        "Guest-facing pages (Browse Hotels, Hotel Detail) do not render any photo upload/remove/edit controls.",
+        "Hotel Area renders upload/remove controls only where appropriate (room create/edit flows).",
+        "No admin-only UI is required for this change; do not introduce admin edit/delete for room photos if the intended behavior is view-only there."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/hotel/RoomPhotosSection.tsx",
+          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
           "operation": "modify",
-          "description": "Harden photo rendering so unloadable images do not create blank UI: keep the existing validation for accepted formats (data URLs and http/https), but additionally track image load failures and automatically fall back to the next available image (or the 'No photos available for this room' fallback Card when none can be rendered). Ensure the fallback remains consistent for both main image and thumbnails, and do not remove/hide the entire room card or booking actions. Use shadcn-ui Card for the fallback UI already used by this component. Verify the component's usage instructions before implementing."
+          "description": "Harden UI permission boundaries for photo management: ensure upload/remove controls are only rendered inside hotel-owner create/edit flows and remain hidden/disabled for any view-only roles, while keeping thumbnail preview available for all viewers of the RoomsPanel. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/pages/HotelDetailPage.tsx",
           "operation": "modify",
-          "description": "Confirm Hotel Detail consistently passes the backend-provided pictures array through to RoomPhotosSection (including data URLs) and does not gate room rendering on photo availability; keep booking actions enabled even when the photo section is in fallback mode. Verify the component's usage instructions before implementing."
+          "description": "Verify guest-facing hotel detail remains strictly view-only for room photos (no upload/remove UI), while keeping RoomPhotosSection thumbnail click-to-zoom wired to ImagePreviewDialog consistently. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Apply a consistent warm hospitality theme (neutral backgrounds + orange accents) across Hotel Area Rooms, Browse Hotels, and Hotel Detail photo sections.",
+      "acceptanceCriteria": [
+        "Browse Hotels and Hotel Area Rooms use consistent card layout, spacing, and thumbnail styling.",
+        "Primary accents use warm/orange tones; blue/purple are not used as the main theme colors.",
+        "All user-facing text introduced/changed by this work is in English."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/BrowseHotelsPage.tsx",
+          "operation": "modify",
+          "description": "Unify card layout, spacing, and thumbnail presentation with Hotel Area/Hotel Detail using the existing Tailwind theme tokens (primary/secondary/muted) to maintain warm/orange accents and neutral surfaces; ensure any newly introduced text is English."
+        },
+        {
+          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
+          "operation": "modify",
+          "description": "Align Rooms listing card/table spacing and thumbnail styling with Browse Hotels and Hotel Detail using existing theme tokens (primary/muted/border) to preserve warm hospitality look and avoid blue/purple as primary accents."
+        },
+        {
+          "path": "frontend/src/pages/HotelDetailPage.tsx",
+          "operation": "modify",
+          "description": "Ensure room cards and photo thumbnails match the same warm/orange accent styling and consistent spacing used in Browse Hotels and Hotel Area Rooms; keep all changed text in English."
+        },
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "If needed, fine-tune global theme variables (neutral backgrounds + orange primary) to keep affected pages visually consistent without introducing blue/purple as primary colors; do not add new global stylesheet entry points."
         }
       ]
     }
