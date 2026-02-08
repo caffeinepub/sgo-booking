@@ -1,61 +1,57 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Restore the application to the pre-v25/pre-v26 state by recovering missing role-based panels/features (Guest/Hotel/Admin) and fixing Admin token generation failure after Version 26 deployment.",
+  "summary": "Restore the application to match Version 27 exactly by reverting/bringing back all backend and frontend files/state as they existed in v27.",
   "architectural_notes": [
-    "Role-based UI/feature availability regressed after Version 26; Guest/Hotel/Admin panels must match behavior from earlier versions."
+    "Treat 'Version 27' as the canonical baseline to restore: backend/main.mo plus the full listed frontend file set, routing, role-based panels (Guest/Hotel/Admin), and related assets/docs."
   ],
   "known_issues": [
-    "Guest account: 'My Booking' and 'Guest Account' features/menus are missing after Version 26.",
-    "Hotel account: 'My Booking', 'Guest Account', and 'Hotel Area' features/menus are missing after Version 26.",
-    "Admin: 'My Booking' is missing after Version 26.",
-    "Admin: Generate Token action is present but returns 'FAILED' when clicked after Version 26."
+    "Current deployed version is missing or diverged from Version 27; user requests full restoration to v27."
   ],
   "isFixRequest": true,
-  "existing_features": [],
+  "existing_features": [
+    {
+      "id": "feature-update-the-displayed-build-identifier-so-the-ui-clearly-indicates-version-27-e-g-the-footer-build-string-sourced-from-frontend-src-buildinfo-ts-must-reflect-version-27",
+      "title": "Update the displayed build identifier so the UI clearly indicates Version 27 (e.g., the footer build string sourced from frontend/src/buildInfo.ts must reflect Version 27).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    }
+  ],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Restore role detection and authorization behavior so Admin and Hotel accounts are not treated as Guest accounts, and role-gated routes (/admin, /hotel, /guest or /account) render the correct pages for the correct users (matching the last known stable behavior before Version 25/26).",
+      "summary": "Restore/revert the entire codebase (backend + frontend) to exactly match Version 27 (all files/state)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Restore the application code to match Version 27 exactly by reverting/recovering all backend and frontend files to their Version 27 contents, including restoring any missing role-based pages/panels (Guest/Hotel/Admin) and any backend APIs those UI flows depend on.",
       "reqIds": [
         "REQ-1"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-2",
-      "summary": "Restore the missing user-facing panels/menus for each role in the frontend: Guest Account must include “Guest Account” and “My Bookings”; Hotel Account must include “My Bookings”, “Guest Account”, and “Hotel Area”; Admin must include “My Bookings”, and the missing links/panels must be visible again under the same conditions as before the regression.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Fix Admin “Generate Token” so it no longer returns “FAILED” when clicked by restoring/implementing the backend APIs used by the Invite Token UI (createInviteToken and getInviteTokens) and ensuring they succeed for authorized Admin callers, returning a usable token and refreshing the token list.",
+      "id": "AR-4",
+      "summary": "If the restored Version 27 backend schema/state layout differs from the currently deployed state, implement a safe, conditional canister upgrade migration (backend/migration.mo) so existing production data remains readable and the canister can upgrade without trapping.",
       "reqIds": [
         "REQ-3"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-4",
-      "summary": "Ensure bookings (“My Bookings”) functionality is restored and consistent across Guest, Hotel, and Admin views by verifying the backend bookings query API used by the frontend (getBookings with filters) is present and returns correct results based on caller role and filters.",
+      "id": "AR-5",
+      "summary": "Run and pass the existing frontend regression checklist (frontend/REGRESSION_CHECKLIST.md) against the restored Version 27 build, focusing on authentication/authorization, role-based navigation visibility, Guest/Hotel/Admin panels, booking flows, and Admin invite token generation.",
       "reqIds": [
         "REQ-4"
       ],
       "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Run and pass the existing regression checklist to confirm the restored behavior for authentication, authorization, Admin Panel access, Hotel Area access, and booking flows after the fixes are applied.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "status": "pending"
     }
   ],
-  "projectName": "Restore missing Guest/Hotel/Admin panels and fix Admin invite token generation failure (post v26 regression)",
+  "projectName": "Restore entire codebase to Version 27 (backend + frontend)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

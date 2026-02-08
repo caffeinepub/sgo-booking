@@ -1,1 +1,1 @@
-export const BUILD_VERSION = 'v24-restored';
+export const BUILD_VERSION = 'v27';

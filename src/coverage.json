@@ -1,69 +1,65 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T22:27:51.212Z",
+  "generatedAt": "2026-02-08T22:44:22.477Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
-    "implemented": 0,
+    "total": 4,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Restore role detection and authorization behavior so Admin and Hotel accounts are not treated as Guest accounts, and role-gated routes (/admin, /hotel, /guest or /account) render the correct pages for the correct users (matching the last known stable behavior before Version 25/26).",
+        "summary": "Restore the application code to match Version 27 exactly by reverting/recovering all backend and frontend files to their Version 27 contents, including restoring any missing role-based pages/panels (Guest/Hotel/Admin) and any backend APIs those UI flows depend on.",
         "status": "missing",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/auth/RequireRole.tsx",
           "frontend/src/App.tsx",
-          "frontend/src/pages/AccountStatusPage.tsx"
+          "frontend/src/components/auth/RequireAuth.tsx",
+          "frontend/src/components/auth/RequireRole.tsx",
+          "frontend/src/components/nav/TopNav.tsx",
+          "frontend/src/pages/MainMenuPage.tsx",
+          "frontend/src/pages/AdminPanelPage.tsx",
+          "frontend/src/pages/HotelAreaPage.tsx",
+          "frontend/src/pages/GuestAccountPage.tsx",
+          "frontend/src/components/auth/AccessDeniedScreen.tsx",
+          "frontend/src/components/auth/GuardErrorScreen.tsx"
         ],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Restore the missing user-facing panels/menus for each role in the frontend: Guest Account must include “Guest Account” and “My Bookings”; Hotel Account must include “My Bookings”, “Guest Account”, and “Hotel Area”; Admin must include “My Bookings”, and the missing links/panels must be visible again under the same conditions as before the regression.",
-        "status": "missing",
+        "summary": "Update the displayed build identifier so the UI clearly indicates Version 27 (e.g., the footer build string sourced from frontend/src/buildInfo.ts must reflect Version 27).",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/nav/TopNav.tsx",
-          "frontend/src/pages/GuestAccountPage.tsx",
-          "frontend/src/pages/HotelAreaPage.tsx",
-          "frontend/src/pages/AdminPanelPage.tsx"
+          "frontend/src/buildInfo.ts",
+          "frontend/src/components/layout/AppShell.tsx",
+          "frontend/src/pages/AccountStatusPage.tsx"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/buildInfo.ts"
+        ]
       },
       {
         "id": "REQ-3",
-        "summary": "Fix Admin “Generate Token” so it no longer returns “FAILED” when clicked by restoring/implementing the backend APIs used by the Invite Token UI (createInviteToken and getInviteTokens) and ensuring they succeed for authorized Admin callers, returning a usable token and refreshing the token list.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/admin/InviteTokensPanel.tsx",
-          "frontend/src/types/extended-backend.ts"
-        ],
+        "summary": "If the restored Version 27 backend schema/state layout differs from the currently deployed state, implement a safe, conditional canister upgrade migration (backend/migration.mo) so existing production data remains readable and the canister can upgrade without trapping.",
+        "status": "unknown",
+        "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-4",
-        "summary": "Ensure bookings (“My Bookings”) functionality is restored and consistent across Guest, Hotel, and Admin views by verifying the backend bookings query API used by the frontend (getBookings with filters) is present and returns correct results based on caller role and filters.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/hotel/HotelBookingsPanel.tsx",
-          "frontend/src/components/admin/AdminBookingsPanel.tsx",
-          "frontend/src/pages/GuestAccountPage.tsx"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Run and pass the existing regression checklist to confirm the restored behavior for authentication, authorization, Admin Panel access, Hotel Area access, and booking flows after the fixes are applied.",
+        "summary": "Run and pass the existing frontend regression checklist (frontend/REGRESSION_CHECKLIST.md) against the restored Version 27 build, focusing on authentication/authorization, role-based navigation visibility, Guest/Hotel/Admin panels, booking flows, and Admin invite token generation.",
         "status": "missing",
         "plannedFiles": [
           "frontend/REGRESSION_CHECKLIST.md",
-          "frontend/src/components/debug/AuthDiagnosticsPanel.tsx"
+          "frontend/src/components/admin/InviteTokensPanel.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/nav/TopNav.tsx",
+          "frontend/src/components/auth/RequireRole.tsx",
+          "frontend/src/pages/GuestAccountPage.tsx",
+          "frontend/src/pages/HotelAreaPage.tsx"
         ],
         "matchedFiles": []
       }
@@ -72,7 +68,9 @@
   "changedFiles": [
     "build-request.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/buildInfo.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

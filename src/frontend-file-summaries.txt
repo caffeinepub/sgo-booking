@@ -1,7 +1,7 @@
 {
   "frontend/src/App.tsx": "Main application component with TanStack Router setup including all routes (/, /browse, /browse/$hotelId, /guest, /account, /account-status, /hotel, /admin) with proper auth/role guards and QueryClientProvider.",
   "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations with auth-related query keys scoped to authenticated principal ID, using type assertions to cast the base actor to ExtendedBackendInterface for accessing methods not in the generated interface.",
-  "frontend/src/buildInfo.ts": "Build version constant set to 'v24-restored' for deployment verification.",
+  "frontend/src/buildInfo.ts": "Build version constant set to 'v27' for deployment verification.",
   "frontend/src/index.css": "Global styles with OKLCH color system using white background, subtle gray borders, and amber/orange accent color (avoiding blue/purple), with support for both light and dark modes.",
   "frontend/index.html": "HTML entry point with SGO-Booking title, favicon reference, and meta description.",
   "frontend/src/i18n/LocaleContext.tsx": "Locale context provider managing language selection state (currently English only) with localStorage persistence.",

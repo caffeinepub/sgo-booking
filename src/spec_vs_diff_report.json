@@ -1,53 +1,56 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T22:27:51.208Z",
-  "summary": "Diff only updates project_state.json to record the requested work as pending; no frontend/backend implementation changes are present, so none of the BuildRequest requirements are implemented.",
+  "generatedAt": "2026-02-08T22:44:22.475Z",
+  "summary": "Diff only updates the frontend build version constant to v27 and updates metadata/summaries; it does not show actual restoration of Version 27 backend/frontend code, migration work, or regression checklist validation.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Restore role detection and authorization so Admin/Hotel are not treated as Guest, and role-gated routes render correct pages without losing state.",
-      "reason": "No application code changes are shown; only project_state.json metadata was modified.",
+      "requirement": "Restore the application code to match Version 27 exactly (backend + frontend), including Guest/Hotel/Admin pages/panels and dependent backend APIs.",
+      "reason": "The diff shows no substantive restoration/reversion of backend/main.mo or the actual frontend route/page/component source files—only a build version string update and summary/metadata files. A truncated summary file mentions many restored routes/pages, but the diff does not include those file content changes.",
       "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Restore missing role-based frontend panels/menus (Guest Account/My Bookings, Hotel Area entry point, Admin My Bookings) with English text.",
-      "reason": "No frontend code changes are shown; only project_state.json metadata was modified.",
-      "evidence": [
+        "frontend-file-summaries.txt (truncated)",
+        "frontend/src/buildInfo.ts",
         "project_state.json"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Fix Admin Generate Token by restoring backend APIs (createInviteToken, getInviteTokens) with proper admin authorization and usable token/list refresh.",
-      "reason": "No backend Motoko code changes are shown; only project_state.json metadata was modified.",
+      "requirement": "Implement a safe, conditional canister upgrade migration (backend/migration.mo) if schema/state layout differs so upgrades do not trap and prior data remains readable.",
+      "reason": "No backend files are added/modified in the diff summary, and there is no evidence of backend/migration.mo changes or any upgrade/migration logic.",
       "evidence": [
-        "project_state.json"
+        "<file-diff>: Added: 0, Modified: 3 (no backend files listed)"
       ]
     },
     {
       "id": "REQ-4",
-      "requirement": "Restore/verify bookings query API (getBookings with filters) and consistent My Bookings behavior for Guest/Hotel/Admin.",
-      "reason": "No backend/frontend code changes are shown; only project_state.json metadata was modified.",
+      "requirement": "Run and pass the existing frontend regression checklist (frontend/REGRESSION_CHECKLIST.md) focusing on auth/role navigation, panels, booking flows, and admin invite tokens.",
+      "reason": "No changes or results related to frontend/REGRESSION_CHECKLIST.md are shown, and the diff provides no evidence of checklist execution or fixes driven by it.",
+      "evidence": [
+        "<file-diff>: Modified files list does not include frontend/REGRESSION_CHECKLIST.md"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Project tracking/metadata update marking restoration work items as pending (project_state.json).",
+      "reason": "BuildRequest asks to restore Version 27 and related migration/checklist outcomes; it does not request adding/updating internal project management metadata.",
       "evidence": [
         "project_state.json"
       ]
     },
     {
-      "id": "REQ-5",
-      "requirement": "Run and pass frontend/REGRESSION_CHECKLIST.md relevant items and fix any discovered failures.",
-      "reason": "No evidence of checklist execution or related fixes; only project_state.json metadata was modified.",
+      "description": "Added/updated a generated summary file describing many frontend files and features (frontend-file-summaries.txt).",
+      "reason": "BuildRequest does not ask for generating documentation/summary artifacts; only code restoration/migration/checklist compliance.",
       "evidence": [
-        "project_state.json"
+        "frontend-file-summaries.txt (truncated)"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.93,
+  "confidence": 0.74,
   "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/buildInfo.ts",
     "project_state.json"
   ]
 }

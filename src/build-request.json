@@ -1,117 +1,87 @@
 {
   "kind": "build_request",
-  "title": "Restore missing Guest/Hotel/Admin panels and fix Admin invite token generation failure (post v26 regression)",
+  "title": "Restore entire codebase to Version 27 (backend + frontend)",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Restore role detection and authorization behavior so Admin and Hotel accounts are not treated as Guest accounts, and role-gated routes (/admin, /hotel, /guest or /account) render the correct pages for the correct users (matching the last known stable behavior before Version 25/26).",
+      "text": "Restore the application code to match Version 27 exactly by reverting/recovering all backend and frontend files to their Version 27 contents, including restoring any missing role-based pages/panels (Guest/Hotel/Admin) and any backend APIs those UI flows depend on.",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-restore-v27"
         ],
         "quotes": [
-          "WHY are many missing on guest and hotel accounts... and in admin cannot generate token",
-          "I do not want to know—restore my program like before...",
-          "Check all previous versions...",
-          "KERJAKANSEKRANG OLEH ANDA'"
+          "kembalikan semua file versi 27"
         ]
       },
       "acceptanceCriteria": [
-        "When logged in as an Admin, navigation and route guards allow access to /admin and show Admin panels (including bookings and invite token management).",
-        "When logged in as a Hotel account (activated), navigation and route guards allow access to /hotel and show the full Hotel Area dashboard.",
-        "When logged in as a Guest, navigation and route guards allow access to /guest (and/or /account as configured) and show the Guest Account page with bookings.",
-        "No role/authorization state is reset, lost, or corrupted during deploy/upgrade."
+        "All routes and role-gated areas that were present in Version 27 are available again (Guest, Hotel Area, Admin Panel) and behave consistently with the Version 27 behavior.",
+        "No Version 27 files listed by the user are missing from the restored project.",
+        "The restored app compiles successfully (frontend build + Motoko canister build) with no runtime crashes on initial navigation."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Restore the missing user-facing panels/menus for each role in the frontend: Guest Account must include “Guest Account” and “My Bookings”; Hotel Account must include “My Bookings”, “Guest Account”, and “Hotel Area”; Admin must include “My Bookings”, and the missing links/panels must be visible again under the same conditions as before the regression.",
+      "text": "Update the displayed build identifier so the UI clearly indicates Version 27 (e.g., the footer build string sourced from frontend/src/buildInfo.ts must reflect Version 27).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-restore-v27"
         ],
         "quotes": [
-          "DI AKUN TAMU YANG HILANG FITUR MY BOOKING DAN GEUST ACCOUNT.",
-          "DI AKUN HOTEL YANG HILANG MY BOOKING, GEUST ACCOUNT DAN HOTEL AREA.",
-          "DI AKUN ADMIN YANG HILANG MY BOOKING."
+          "kembalikan semua file versi 27"
         ]
       },
       "acceptanceCriteria": [
-        "Authenticated Guest users can navigate to their account page and see the Guest Account header and a “My Bookings” section with booking list/empty state.",
-        "Authenticated Hotel users can access the Hotel Area entry point from navigation/menu and reach the Hotel dashboard; hotel bookings (“My Bookings”) are visible and functional there.",
-        "Authenticated Admin users can access an Admin bookings view (“My Bookings”) from the Admin area and see booking data load states and results.",
-        "All user-facing labels/messages added or changed as part of this restoration are in English."
+        "The footer build label shows a Version 27 identifier (not the current 'v24-restored')."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Fix Admin “Generate Token” so it no longer returns “FAILED” when clicked by restoring/implementing the backend APIs used by the Invite Token UI (createInviteToken and getInviteTokens) and ensuring they succeed for authorized Admin callers, returning a usable token and refreshing the token list.",
-      "target": "both",
+      "text": "If the restored Version 27 backend schema/state layout differs from the currently deployed state, implement a safe, conditional canister upgrade migration (backend/migration.mo) so existing production data remains readable and the canister can upgrade without trapping.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-restore-v27"
         ],
         "quotes": [
-          "DI AKUN ADMIN MUNCUL FAILED KETIKA MAU GENERATE TOKEN",
-          "DI AKUN ADMIN DI KLIK BISA TAPI HASILNYA FAILED."
+          "kembalikan semua file versi 27"
         ]
       },
       "acceptanceCriteria": [
-        "In the Admin UI, clicking “Generate Token” with a valid Hotel Principal creates a new invite token successfully (success toast shown; no “FAILED”).",
-        "The invite token list refreshes after generation and shows the newly created token with its bound principal and usage info.",
-        "Non-admin callers cannot create invite tokens; the UI shows an appropriate error message (in English).",
-        "Backend main actor exposes the methods expected by the frontend hooks/types for invite token creation and listing, and they work with existing persisted data."
+        "Upgrading the canister from the current deployed version to the restored Version 27 does not trap.",
+        "Previously stored hotels/rooms/bookings/profiles (if any exist in stable memory) remain accessible after upgrade."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Ensure bookings (“My Bookings”) functionality is restored and consistent across Guest, Hotel, and Admin views by verifying the backend bookings query API used by the frontend (getBookings with filters) is present and returns correct results based on caller role and filters.",
+      "text": "Run and pass the existing frontend regression checklist (frontend/REGRESSION_CHECKLIST.md) against the restored Version 27 build, focusing on authentication/authorization, role-based navigation visibility, Guest/Hotel/Admin panels, booking flows, and Admin invite token generation.",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-user-restore-v27"
         ],
         "quotes": [
-          "...missing My Booking on guest/hotel/admin accounts"
+          "kembalikan semua file versi 27"
         ]
       },
       "acceptanceCriteria": [
-        "Guest “My Bookings” loads bookings created by the logged-in guest and renders without errors.",
-        "Hotel bookings view loads bookings for the hotel and renders without errors.",
-        "Admin bookings view loads all bookings (or the intended admin-visible set) and renders without errors.",
-        "Booking status, totals, and details dialogs render correctly and do not throw runtime errors."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Run and pass the existing regression checklist to confirm the restored behavior for authentication, authorization, Admin Panel access, Hotel Area access, and booking flows after the fixes are applied.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "...restore my program like before... check all previous versions..."
-        ]
-      },
-      "acceptanceCriteria": [
-        "All items in frontend/REGRESSION_CHECKLIST.md relevant to authentication/authorization/admin/hotel/booking flows pass without newly introduced regressions.",
-        "Any discovered checklist failures are fixed as part of this build request."
+        "All checklist items related to role-based navigation and access control pass (Admin can access /admin, Hotel can access /hotel when activated, Guest is denied for /admin and /hotel).",
+        "Admin invite token generation succeeds and the token list refreshes without showing a FAILED state.",
+        "Guest and Hotel booking views show expected booking data without missing menus/pages."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; add backend/migration.mo only if state upgrade is required to preserve existing data.",
-    "Do not edit frontend files under frontend/src/components/ui or other paths listed as immutable in SYSTEM_CONTEXT; compose them instead.",
-    "Keep all user-facing text in English."
+    "Backend must remain a single Motoko actor in backend/main.mo; do not introduce additional backend services.",
+    "Do not modify any frontend files under the immutable paths listed in SYSTEM_CONTEXT (compose shadcn/ui components rather than editing them).",
+    "Use English for any user-facing text changed/added as part of the restoration."
   ],
   "nonGoals": [
-    "Introducing new product features beyond restoring previously available Guest/Hotel/Admin panels and fixing token generation.",
-    "Adding third-party authentication providers (only Internet Identity is supported).",
-    "Adding external databases or non-Internet-Computer backend services."
+    "Implementing new features beyond what existed in Version 27.",
+    "Redesigning the UI/visual theme beyond what is required to restore Version 27.",
+    "Adding third-party authentication methods other than Internet Identity."
   ],
   "imageRequirements": {
     "required": [],
