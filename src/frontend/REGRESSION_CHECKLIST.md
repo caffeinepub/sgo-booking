@@ -1,210 +1,163 @@
-# SGO-Booking Frontend Regression Checklist
+# Pre-Release Regression Checklist
 
-## Pre-Release Validation Checklist
+This checklist must be completed before deploying any new version to production.
 
-### Authentication & Authorization (V24 Restored)
+## Authentication & Authorization
 
-#### Login/Logout Flow
-- [ ] Login with Internet Identity works without errors
-- [ ] After logout, all cached queries are cleared (queryClient.clear())
-- [ ] After logout → login with different account, new account's role/admin/hotel data loads correctly
-- [ ] No stale data from previous session appears after switching accounts
+### V24 Verification Steps (Critical)
+- [ ] **Admin Role Detection**
+  - [ ] Log in as admin principal (ayatf-afj3q-z5wvo-4ocoi-x7lve-uel5k-yhe6p-ahp57-ww5ch-bc72g-wae)
+  - [ ] Verify Account Status page shows `Is Admin: Yes` (not "No" or "Unknown")
+  - [ ] Verify Account Status page shows correct Role (not "Unknown")
+  - [ ] Verify "Admin Panel" link appears in TopNav
+  - [ ] Verify "Hotel Area" link appears in TopNav
+  - [ ] Verify /admin route is accessible without AccessDenied screen
+  - [ ] Verify /hotel route is accessible without AccessDenied screen
 
-#### Admin Account Verification
-- [ ] Admin account shows "Is Admin: Yes" in Account Status page
-- [ ] Admin account can access /admin route (Admin Panel visible)
-- [ ] Admin account can access /hotel route (Hotel Management visible)
-- [ ] TopNav shows both "Admin Panel" and "Hotel Area" links for admin
-- [ ] Admin Panel displays: Invite Tokens, Hotel Visibility, Bookings sections
+- [ ] **Hotel Role Detection**
+  - [ ] Log in as activated hotel owner
+  - [ ] Verify Account Status page shows `Role: Hotel`
+  - [ ] Verify Account Status page shows `Hotel Activated: Yes`
+  - [ ] Verify "Hotel Area" link appears in TopNav (but not "Admin Panel")
+  - [ ] Verify /hotel route is accessible
+  - [ ] Verify /admin route shows AccessDenied screen
 
-#### Hotel Account Verification
-- [ ] Hotel owner account shows role as "Hotel" in Account Status
-- [ ] Activated hotel owner can access /hotel route
-- [ ] Hotel Management shows all tabs: Profile, Rooms, Payments, Bookings, Record Stays, Subscription
-- [ ] TopNav shows "Hotel Area" link for activated hotel owner
-- [ ] Unactivated hotel owner sees activation form when accessing /hotel
+- [ ] **Guest Role Detection**
+  - [ ] Log in as guest user (no hotel activation)
+  - [ ] Verify Account Status page shows `Role: Guest`
+  - [ ] Verify Account Status page shows `Hotel Activated: No`
+  - [ ] Verify neither "Admin Panel" nor "Hotel Area" links appear in TopNav
+  - [ ] Verify /admin route shows AccessDenied screen
+  - [ ] Verify /hotel route shows AccessDenied screen
 
-#### Guest Account Verification
-- [ ] Guest account shows role as "Guest" in Account Status
-- [ ] Guest cannot access /admin (shows Access Denied)
-- [ ] Guest cannot access /hotel (shows Access Denied)
-- [ ] TopNav does NOT show "Admin Panel" or "Hotel Area" for guests
-- [ ] Guest can browse hotels and view hotel details
+### Cross-Session Cache Isolation
+- [ ] Log in as admin, verify admin access
+- [ ] Log out, log in as guest, verify guest restrictions (no cached admin access)
+- [ ] Log out, log in as hotel owner, verify hotel access (no cached guest/admin state)
 
-#### Role Query Caching (Critical V24 Fix)
-- [ ] Role queries (callerUserRole, isCurrentUserAdmin, callerHotelProfile) are scoped to principal ID
-- [ ] After logout, role queries are disabled (enabled: !!identity)
-- [ ] After login, role queries refetch with new principal's data
-- [ ] No "flash" of wrong role/access level when switching accounts
+### Post-Rollback Critical Tests
+- [ ] After any rollback/restore operation:
+  - [ ] Clear browser cache and localStorage
+  - [ ] Log in as admin and verify all admin panels load
+  - [ ] Verify no "Unknown" role states persist
+  - [ ] Verify no infinite "Checking permissions..." spinners
 
-### Room Management
+## Core Functionality
 
-#### Room Creation
-- [ ] Hotel owner can create a new room via Rooms tab
-- [ ] Room form validates all required fields (number, type, price, currency)
-- [ ] Room photos can be uploaded (multiple files)
-- [ ] After successful creation, room appears in Rooms table immediately
-- [ ] After successful creation, room appears in Browse Hotels (guest view) immediately
-- [ ] Error messages surface clearly if creation fails
+### Hotel Browsing (Guest Flow)
+- [ ] Browse Hotels page loads and displays hotel cards
+- [ ] Hotel cards show representative room photos (not "No photos available" when photos exist)
+- [ ] Click on hotel card navigates to hotel detail page
+- [ ] Hotel detail page shows room photos and booking form
+- [ ] Booking form allows date selection and guest count input
+- [ ] Booking form calculates total price correctly
+- [ ] Booking submission succeeds and shows confirmation
 
-#### Room Photo Display
-- [ ] Room photos display as thumbnails in Rooms table (hotel view)
-- [ ] Room photos display in hotel cards on Browse Hotels page (guest view)
-- [ ] Room photos display in Hotel Detail page (guest view)
-- [ ] Click on thumbnail opens full-size preview dialog
-- [ ] Invalid/failed images show fallback placeholder
-- [ ] All valid data: URL formats are supported (data:image/*, data:application/*, http://, https://, blob:)
+### Hotel Management (Hotel Owner Flow)
+- [ ] Hotel Area page loads with all tabs (Profile, Rooms, Payments, Bookings, Stays, Subscription)
+- [ ] Profile tab allows editing hotel name, location, address, map link, WhatsApp, email
+- [ ] Rooms tab shows existing rooms with photos
+- [ ] Rooms tab allows adding new rooms with photo upload
+- [ ] Rooms tab allows editing existing rooms
+- [ ] Room photo upload handles multiple images correctly
+- [ ] Payments tab shows payment methods list
+- [ ] Payments tab allows adding/removing payment methods
+- [ ] Bookings tab shows bookings filtered to hotel owner's property
+- [ ] Stays tab allows marking eligible bookings as completed
+- [ ] Subscription tab shows subscription status
 
-#### Room Editing
-- [ ] Hotel owner can edit existing room details
-- [ ] Hotel owner can add/remove room photos
-- [ ] After successful update, changes reflect immediately in all views (hotel table, browse page, detail page)
-- [ ] No page reload required to see updated photos
+### Admin Panel (Admin Flow)
+- [ ] Admin Panel page loads with all sections
+- [ ] Invite Tokens section allows generating new tokens with bound principal
+- [ ] Invite Tokens section validates principal format
+- [ ] Invite Tokens table displays all tokens with bound principal
+- [ ] Hotel Visibility section shows all hotels
+- [ ] Hotel Visibility section allows toggling hotel active status
+- [ ] Hotel Visibility section allows changing subscription status
+- [ ] Bookings Overview section shows all bookings across all hotels
 
-#### Room Persistence
-- [ ] After creating/editing room, refresh page → changes persist
-- [ ] After logout → login, rooms and photos still display correctly
-- [ ] After canister upgrade/restart, rooms and photos still display correctly
+### Guest Account (Authenticated Guest Flow)
+- [ ] My Account page loads
+- [ ] My Bookings section shows user's bookings
+- [ ] Booking details dialog opens when clicking on booking
+- [ ] Booking status badges display correctly
+- [ ] Payment proof upload works (if applicable)
+
+## UI/UX
+
+### Navigation
+- [ ] TopNav shows correct links based on user role
+- [ ] Language selector works (if multiple languages)
+- [ ] Logout button works and clears session
+- [ ] All navigation links lead to correct pages
+
+### Responsive Design
+- [ ] Test on mobile viewport (375px width)
+- [ ] Test on tablet viewport (768px width)
+- [ ] Test on desktop viewport (1920px width)
+- [ ] All pages are readable and functional on all viewports
+
+### Loading States
+- [ ] All data fetching shows appropriate loading indicators
+- [ ] No infinite loading spinners
+- [ ] No blank screens during data loading
+
+### Error Handling
+- [ ] Network errors show user-friendly messages
+- [ ] Permission errors show AccessDenied screen with context
+- [ ] Form validation errors are clear and actionable
+- [ ] Failed image uploads show error messages
+
+## Data Integrity
+
+### Profile Management
+- [ ] User profile creation works on first login
+- [ ] User profile updates persist correctly
+- [ ] Profile completion gate blocks access until profile is complete
+
+### Hotel Activation
+- [ ] Invite token validation works correctly
+- [ ] Invite token consumption activates hotel owner
+- [ ] Hotel profile is created after activation
+- [ ] Hotel owner can access Hotel Area after activation
 
 ### Booking Flow
+- [ ] Booking creation stores correct data
+- [ ] Booking status updates work
+- [ ] Payment proof upload and storage work
+- [ ] Stay completion records correctly
 
-#### Guest Booking
-- [ ] Guest can view hotel details and room list
-- [ ] Guest can select dates, guest count, and create booking
-- [ ] Booking appears in "My Bookings" (Guest Account page)
-- [ ] Booking appears in hotel owner's Bookings tab
-- [ ] Booking appears in Admin Panel bookings overview
+### Room Management
+- [ ] Room creation stores all fields correctly
+- [ ] Room updates persist correctly
+- [ ] Room photos upload and display correctly
+- [ ] Room deletion works (if implemented)
 
-#### Payment Proof Upload
-- [ ] Guest can upload payment proof for pending booking
-- [ ] Payment proof displays in booking details dialog
-- [ ] Hotel owner can see payment proof in their bookings view
+## Performance
 
-#### Hotel Owner Actions
-- [ ] Hotel owner can update booking status (e.g., mark as booked, checked-in)
-- [ ] Hotel owner can record stay completion for eligible bookings
-- [ ] Status changes reflect immediately in all views
+- [ ] Initial page load is under 3 seconds
+- [ ] Hotel browsing page loads all hotels efficiently
+- [ ] Room photos load without blocking UI
+- [ ] No unnecessary re-renders or query refetches
 
-### Admin Functions
+## Security
 
-#### Invite Token Management
-- [ ] Admin can generate principal-bound invite tokens
-- [ ] Generated tokens display with bound principal
-- [ ] Tokens table shows all active/inactive tokens
+- [ ] Unauthenticated users cannot access protected routes
+- [ ] Guest users cannot access admin or hotel routes
+- [ ] Hotel owners can only see their own hotel data
+- [ ] Admins can see all data but cannot impersonate users
 
-#### Hotel Visibility Control
-- [ ] Admin can toggle hotel active/inactive status
-- [ ] Admin can change subscription status (Paid/Unpaid/TEST)
-- [ ] Inactive hotels do not appear in guest Browse Hotels view
-- [ ] Active hotels with Paid/TEST subscription appear in Browse Hotels
+## Build & Deployment
 
-#### Hotel Activation
-- [ ] Admin can activate hotel owner via "Activate Hotel Owner" button
-- [ ] After activation, hotel owner can immediately access /hotel
-- [ ] After activation, hotel profile loads without errors
-
-### UI/UX
-
-#### Navigation
-- [ ] All navigation links work correctly (no 404s)
-- [ ] Role-based navigation visibility is correct (admin/hotel/guest)
-- [ ] Breadcrumbs/back buttons navigate correctly
-
-#### Loading States
-- [ ] Loading spinners display during data fetch
-- [ ] No infinite loading states (all queries have error handling)
-- [ ] Skeleton loaders or placeholders for slow-loading content
-
-#### Error Handling
-- [ ] Network errors display user-friendly messages
-- [ ] Permission errors show Access Denied screen with clear messaging
-- [ ] Form validation errors display inline
-- [ ] Toast notifications for success/error actions
-
-#### Responsive Design
-- [ ] All pages render correctly on mobile (320px+)
-- [ ] All pages render correctly on tablet (768px+)
-- [ ] All pages render correctly on desktop (1024px+)
-- [ ] Navigation collapses appropriately on mobile
-
-### Data Integrity
-
-#### Cross-Account Isolation
-- [ ] Hotel owner A cannot see/edit hotel owner B's data
-- [ ] Guest A cannot see guest B's bookings
-- [ ] Admin can see all data across all accounts
-
-#### Concurrent Updates
-- [ ] Multiple users editing different rooms → no conflicts
-- [ ] Multiple guests booking same room → handled correctly
-- [ ] Admin actions (activate/deactivate) reflect immediately for affected users
-
-### Performance
-
-#### Query Optimization
-- [ ] No unnecessary refetches on every render
-- [ ] Queries use appropriate staleTime/cacheTime
-- [ ] Mutations invalidate only relevant queries
-
-#### Image Loading
-- [ ] Room photos load progressively (thumbnails first)
-- [ ] Failed images don't block page render
-- [ ] Large images don't cause layout shift
-
-### Build & Deployment
-
-#### Build Verification
-- [ ] Build version displays in footer (v24-restored)
+- [ ] Build completes without errors
+- [ ] Build version is correctly displayed in footer
 - [ ] No console errors in production build
-- [ ] All assets load correctly (images, fonts, icons)
-
-#### Post-Deployment Smoke Test
-- [ ] Login works in production
-- [ ] Admin account can access admin panel
-- [ ] Hotel account can access hotel area
-- [ ] Guest can browse and book hotels
-- [ ] All critical user flows complete successfully
+- [ ] All assets load correctly from CDN/static paths
 
 ---
 
-## How to Use This Checklist
-
-1. **Before Release**: Run through all items manually or via automated tests
-2. **After V24 Restore**: Focus on Authentication & Authorization section first
-3. **Mark Items**: Check off items as you verify them
-4. **Document Issues**: Note any failures with steps to reproduce
-5. **Retest Fixes**: After fixing issues, retest affected items
-
-## Critical V24 Verification Steps
-
-After deploying V24 restore, verify these scenarios in order:
-
-1. **Admin Account Test**:
-   - Login with admin principal
-   - Verify "Is Admin: Yes" in Account Status
-   - Navigate to /admin → should see Admin Panel
-   - Navigate to /hotel → should see Hotel Management
-   - Logout
-
-2. **Hotel Account Test**:
-   - Login with hotel owner principal
-   - Verify role shows "Hotel" in Account Status
-   - Navigate to /hotel → should see Hotel Management with all tabs
-   - Verify TopNav shows "Hotel Area" link
-   - Logout
-
-3. **Guest Account Test**:
-   - Login with guest principal (or stay logged out)
-   - Verify role shows "Guest" in Account Status
-   - Try to navigate to /admin → should see Access Denied
-   - Try to navigate to /hotel → should see Access Denied
-   - Verify TopNav does NOT show admin/hotel links
-
-4. **Cross-Session Cache Test**:
-   - Login as Admin → verify admin access
-   - Logout (verify queryClient.clear() called)
-   - Login as Guest → verify NO admin access (no stale cache)
-   - Logout
-   - Login as Hotel → verify hotel access only
-
-If all 4 scenarios pass, V24 role-based access is correctly restored.
+**Tester Name:** _______________  
+**Date:** _______________  
+**Version Tested:** _______________  
+**Result:** [ ] PASS [ ] FAIL  
+**Notes:**

@@ -5,7 +5,7 @@ import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { useGetCallerUserRole, useIsCurrentUserAdmin, useGetCallerHotelProfile } from '../../hooks/useQueries';
 import { LanguageSelector } from './LanguageSelector';
 import { useQueryClient } from '@tanstack/react-query';
-import { Building2, ShieldCheck, User, LogOut, LogIn } from 'lucide-react';
+import { Building2, ShieldCheck, User, LogOut, LogIn, Home, Calendar } from 'lucide-react';
 import { UserRole } from '../../backend';
 
 export function TopNav() {
@@ -60,16 +60,32 @@ export function TopNav() {
 
             <div className="hidden md:flex items-center gap-1">
               <Button variant="ghost" asChild>
+                <Link to="/">
+                  <Home className="h-4 w-4 mr-2" />
+                  Home
+                </Link>
+              </Button>
+
+              <Button variant="ghost" asChild>
                 <Link to="/browse">Browse Hotels</Link>
               </Button>
 
               {isAuthenticated && (
-                <Button variant="ghost" asChild>
-                  <Link to="/account">
-                    <User className="h-4 w-4 mr-2" />
-                    My Account
-                  </Link>
-                </Button>
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link to="/bookings">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      My Bookings
+                    </Link>
+                  </Button>
+
+                  <Button variant="ghost" asChild>
+                    <Link to="/account">
+                      <User className="h-4 w-4 mr-2" />
+                      Account
+                    </Link>
+                  </Button>
+                </>
               )}
 
               {showAdminPanel && (

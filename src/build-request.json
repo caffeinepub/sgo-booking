@@ -1,100 +1,122 @@
 {
   "kind": "build_request",
-  "title": "Restore entire codebase to Version 27 (backend + frontend)",
+  "title": "Restore admin invite token generation + missing Guest/Bookings/Hotel navigation to match screenshots",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Restore the application code to match Version 27 exactly by reverting/recovering all backend and frontend files to their Version 27 contents, including restoring any missing role-based pages/panels (Guest/Hotel/Admin) and any backend APIs those UI flows depend on.",
-      "target": "both",
+      "text": "Restore the backend Motoko API for hotel invite tokens so the frontend Admin Panel can successfully generate and list invite tokens without runtime errors. Implement (or re-introduce) the exact methods expected by the frontend extended backend interface: createInviteToken(maxUses, boundPrincipal), getInviteTokens(), validateInviteToken(token), and consumeInviteToken(token), with admin-only authorization for token creation/listing and appropriate authorization for validation/consumption.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-user-restore-v27"
+          "msg-user-1",
+          "msg-user-2"
         ],
         "quotes": [
-          "kembalikan semua file versi 27"
+          "kembali kan lagi seperti sesuai screnshot dan admin bisa generatye token.",
+          "masa saya mau buat generate token saja ga bisa sebagai admin. Ini lihat screnshot yang saya kirim"
         ]
       },
       "acceptanceCriteria": [
-        "All routes and role-gated areas that were present in Version 27 are available again (Guest, Hotel Area, Admin Panel) and behave consistently with the Version 27 behavior.",
-        "No Version 27 files listed by the user are missing from the restored project.",
-        "The restored app compiles successfully (frontend build + Motoko canister build) with no runtime crashes on initial navigation."
+        "Calling createInviteToken from the frontend no longer throws \"extendedActor.createInviteToken is not a function\".",
+        "Admin users can generate a token bound to a provided Principal and a maxUses value.",
+        "Admin users can load the invite token list in the Admin Panel (InviteTokensPanel) successfully.",
+        "validateInviteToken returns false for unknown/expired/used tokens and true for valid tokens.",
+        "consumeInviteToken increments usage and rejects when maxUses is exceeded (or when token is inactive), matching the UI expectations."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update the displayed build identifier so the UI clearly indicates Version 27 (e.g., the footer build string sourced from frontend/src/buildInfo.ts must reflect Version 27).",
-      "target": "frontend",
+      "text": "Ensure backend authorization aligns with the app’s role-gated UI: admin can access /admin and generate invite tokens; hotel users can access /hotel only when activated; guests cannot access /admin or /hotel. Fix any backend role/admin detection endpoints that the frontend relies on (e.g., isCallerAdmin and getCallerUserRole) so role-based navigation and guards are consistent and do not regress.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-user-restore-v27"
+          "msg-user-3"
         ],
         "quotes": [
-          "kembalikan semua file versi 27"
+          "itu juga fitur my booing, guest account dan hotel area di akun tamu dan akun hotel bleum muncul juga. harusnya seperti ini tampilan nya ssesuai dengan screnshot."
         ]
       },
       "acceptanceCriteria": [
-        "The footer build label shows a Version 27 identifier (not the current 'v24-restored')."
+        "Logging in as the hard-coded admin principal shows Admin access in the frontend guards (no AccessDenied for /admin, /hotel).",
+        "Logging in as an activated hotel user can access /hotel and does not see /admin.",
+        "Logging in as a guest cannot access /admin or /hotel (AccessDenied is shown), and no infinite \"Checking permissions...\" spinner occurs due to role/admin query failures."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "If the restored Version 27 backend schema/state layout differs from the currently deployed state, implement a safe, conditional canister upgrade migration (backend/migration.mo) so existing production data remains readable and the canister can upgrade without trapping.",
-      "target": "backend",
+      "text": "Restore the TopNav links and labeling to match the screenshots: show a clear 'Home' link, 'Browse Hotels', 'My Bookings', 'Account' (or equivalent account page label matching the screenshot), and 'Hotel Area' (when permitted). Keep 'Admin Panel' visible only for admin. Ensure 'My Bookings' navigates to a page that shows the user’s bookings list (reuse the existing GuestAccountPage bookings table).",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-restore-v27"
+          "msg-user-3",
+          "msg-user-1"
         ],
         "quotes": [
-          "kembalikan semua file versi 27"
+          "itu juga fitur my booing, guest account dan hotel area di akun tamu dan akun hotel bleum muncul juga.",
+          "kembali kan lagi seperti sesuai screnshot dan admin bisa generatye token."
         ]
       },
       "acceptanceCriteria": [
-        "Upgrading the canister from the current deployed version to the restored Version 27 does not trap.",
-        "Previously stored hotels/rooms/bookings/profiles (if any exist in stable memory) remain accessible after upgrade."
+        "Top navigation includes a 'My Bookings' entry as shown in the screenshot and it leads to a working bookings view.",
+        "Top navigation includes a Home entry that routes to '/'.",
+        "The account link label matches the screenshot expectation (e.g., 'Account' instead of 'My Account') while still routing correctly.",
+        "Admin users see 'Admin Panel' in TopNav; non-admin users do not.",
+        "The 'Hotel Area' link appears for admin and activated hotel users as intended, consistent with guards."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Run and pass the existing frontend regression checklist (frontend/REGRESSION_CHECKLIST.md) against the restored Version 27 build, focusing on authentication/authorization, role-based navigation visibility, Guest/Hotel/Admin panels, booking flows, and Admin invite token generation.",
-      "target": "both",
+      "text": "Add/adjust routing so there is an explicit route for 'My Bookings' (e.g., '/bookings') that renders the same bookings table currently shown in GuestAccountPage, and ensure it is protected by authentication and profile completion gates (same protection level as the current '/account' route).",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-restore-v27"
+          "msg-user-3"
         ],
         "quotes": [
-          "kembalikan semua file versi 27"
+          "fitur my booing, guest account dan hotel area ... bleum muncul juga. harusnya seperti ini tampilan nya ssesuai dengan screnshot."
         ]
       },
       "acceptanceCriteria": [
-        "All checklist items related to role-based navigation and access control pass (Admin can access /admin, Hotel can access /hotel when activated, Guest is denied for /admin and /hotel).",
-        "Admin invite token generation succeeds and the token list refreshes without showing a FAILED state.",
-        "Guest and Hotel booking views show expected booking data without missing menus/pages."
+        "Visiting the 'My Bookings' route while logged out redirects to login/RequireAuth behavior (consistent with existing protected routes).",
+        "Visiting the 'My Bookings' route while logged in shows the bookings list and booking detail dialog without errors.",
+        "No existing routes (/account, /guest) break; they continue to function."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Run and satisfy the existing regression checklist items relevant to this fix (Admin Invite Tokens generation, role-based navigation, Guest Account bookings visibility, and Hotel Area access). Fix any discovered regressions that prevent the app from matching the provided screenshots for the affected flows.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-user-1",
+          "msg-user-3"
+        ],
+        "quotes": [
+          "kembali kan lagi seperti sesuai screnshot dan admin bisa generatye token.",
+          "harusnya seperti ini tampilan nya ssesuai dengan screnshot."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin flow: Invite Tokens section can generate tokens and displays them in the table.",
+        "Guest flow: Guest Account / bookings view shows booking rows (or an empty state) and does not crash.",
+        "Hotel flow: Hotel Area is reachable for activated hotel users and shows its tabbed UI.",
+        "Navigation links lead to the correct pages and are shown/hidden based on role as expected."
       ]
     }
   ],
   "constraints": [
     "Backend must remain a single Motoko actor in backend/main.mo; do not introduce additional backend services.",
-    "Do not modify any frontend files under the immutable paths listed in SYSTEM_CONTEXT (compose shadcn/ui components rather than editing them).",
-    "Use English for any user-facing text changed/added as part of the restoration."
+    "Do not edit files under frontend/src/components/ui or other paths listed as immutable in SYSTEM_CONTEXT; compose UI using existing components instead.",
+    "Use English for any user-facing text changes."
   ],
   "nonGoals": [
-    "Implementing new features beyond what existed in Version 27.",
-    "Redesigning the UI/visual theme beyond what is required to restore Version 27.",
-    "Adding third-party authentication methods other than Internet Identity."
+    "Adding new unrelated features beyond restoring the previously working Admin token generation and the missing navigation/sections shown in the screenshots.",
+    "Introducing third-party authentication providers (Internet Identity only).",
+    "Adding external databases or non-Motoko backend services."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

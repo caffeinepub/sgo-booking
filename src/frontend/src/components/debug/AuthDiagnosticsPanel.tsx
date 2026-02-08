@@ -8,8 +8,8 @@ import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 export function AuthDiagnosticsPanel() {
   const { identity } = useInternetIdentity();
-  const { data: role, isLoading: roleLoading } = useGetCallerUserRole();
-  const { data: isAdmin, isLoading: adminLoading } = useIsCurrentUserAdmin();
+  const { data: role, isLoading: roleLoading, isFetched: roleFetched } = useGetCallerUserRole();
+  const { data: isAdmin, isLoading: adminLoading, isFetched: adminFetched } = useIsCurrentUserAdmin();
   const { data: hotelProfile, isLoading: hotelLoading } = useGetCallerHotelProfile();
 
   const principalId = identity?.getPrincipal().toString() || 'Not authenticated';
@@ -55,7 +55,7 @@ export function AuthDiagnosticsPanel() {
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Role:</span>
             <div className="flex items-center gap-2">
-              {roleLoading ? (
+              {roleLoading || !roleFetched ? (
                 <span className="text-xs text-muted-foreground">Loading...</span>
               ) : (
                 <>
@@ -71,7 +71,7 @@ export function AuthDiagnosticsPanel() {
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Is Admin:</span>
             <div className="flex items-center gap-2">
-              {adminLoading ? (
+              {adminLoading || !adminFetched ? (
                 <span className="text-xs text-muted-foreground">Loading...</span>
               ) : (
                 <>
@@ -112,6 +112,8 @@ export function AuthDiagnosticsPanel() {
             • Guest accounts: role=Guest, cannot access /admin or /hotel
             <br />
             • Query keys are scoped to principal to prevent cross-session cache pollution
+            <br />
+            • Hard-coded admin principal: ayatf-afj3q-z5wvo-4ocoi-x7lve-uel5k-yhe6p-ahp57-ww5ch-bc72g-wae
           </p>
         </div>
       </CardContent>

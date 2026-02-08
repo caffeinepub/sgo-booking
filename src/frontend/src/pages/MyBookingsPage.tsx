@@ -5,15 +5,15 @@ import { Button } from '../components/ui/button';
 import { Calendar, User } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 
-export function GuestAccountPage() {
+export function MyBookingsPage() {
   const navigate = useNavigate();
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Guest Account</h1>
+        <h1 className="text-3xl font-bold mb-2">My Bookings</h1>
         <p className="text-muted-foreground">
-          Manage your bookings and account
+          View and manage your hotel reservations
         </p>
       </div>
 
@@ -22,9 +22,9 @@ export function GuestAccountPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              <CardTitle>My Bookings</CardTitle>
+              <CardTitle>Browse Hotels</CardTitle>
             </div>
-            <CardDescription>View and manage your hotel reservations</CardDescription>
+            <CardDescription>Find and book your next stay</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => navigate({ to: '/browse' })} className="w-full">

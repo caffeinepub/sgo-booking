@@ -1,7 +1,6 @@
 import Map "mo:core/Map";
 import Text "mo:core/Text";
 import Float "mo:core/Float";
-import Array "mo:core/Array";
 import List "mo:core/List";
 import Nat "mo:core/Nat";
 import Time "mo:core/Time";
@@ -17,6 +16,9 @@ import InviteLinksModule "invite-links/invite-links-module";
 
 actor {
   include MixinStorage();
+
+  // Hard-coded admin principal
+  let HARDCODED_ADMIN : Principal = Principal.fromText("ayatf-afj3q-z5wvo-4ocoi-x7lve-uel5k-yhe6p-ahp57-ww5ch-bc72g-wae");
 
   public type BookingStatus = {
     #pendingTransfer;
@@ -167,8 +169,48 @@ actor {
   // Include authorization mixin
   include MixinAuthorization(accessControlState);
 
-  // Add invite-links public methods again for compatibility
+  // Helper function to check if caller is the hard-coded admin
+  private func isHardcodedAdmin(caller : Principal) : Bool {
+    Principal.equal(caller, HARDCODED_ADMIN);
+  };
+
+  // Helper function to check if caller is admin (either hard-coded or via access control)
+  private func isAdminUser(caller : Principal) : Bool {
+    isHardcodedAdmin(caller) or AccessControl.isAdmin(accessControlState, caller);
+  };
+
+  // Helper function to check permissions with hard-coded admin override
+  private func hasPermissionOverride(caller : Principal, requiredRole : AccessControl.UserRole) : Bool {
+    isHardcodedAdmin(caller) or AccessControl.hasPermission(accessControlState, caller, requiredRole);
+  };
+
+  // User profile management
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (hasPermissionOverride(caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view profiles");
+    };
+    userProfiles.get(caller);
+  };
+
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (hasPermissionOverride(caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
+  };
+
+  // Invite-links public methods
   public shared ({ caller }) func generateInviteCode() : async Text {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can generate invite codes");
+    };
     let blob = await Random.blob();
     let code = InviteLinksModule.generateUUID(blob);
     InviteLinksModule.generateInviteCode(inviteState, code);
@@ -176,14 +218,98 @@ actor {
   };
 
   public shared ({ caller }) func submitRSVP(name : Text, attending : Bool, inviteCode : Text) : async () {
+    // Any user including guests can submit RSVP
     InviteLinksModule.submitRSVP(inviteState, name, attending, inviteCode);
   };
 
   public query ({ caller }) func getAllRSVPs() : async [InviteLinksModule.RSVP] {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view all RSVPs");
+    };
     InviteLinksModule.getAllRSVPs(inviteState);
   };
 
   public query ({ caller }) func getInviteCodes() : async [InviteLinksModule.InviteCode] {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view invite codes");
+    };
     InviteLinksModule.getInviteCodes(inviteState);
+  };
+
+  // Hotel Invite Token functionality
+  // ADMIN ONLY: Create hotel invite token
+  public shared ({ caller }) func createInviteToken(maxUses : Nat, boundPrincipal : ?Principal) : async InviteToken {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can create invite tokens");
+    };
+
+    // Generate token logic
+    let token = "HOTEL_" # Time.now().toText() # maxUses.toText();
+
+    let newToken : InviteToken = {
+      token;
+      isActive = true;
+      issuedBy = caller;
+      issuedAt = Time.now();
+      maxUses;
+      usageCount = 0;
+      boundPrincipal;
+    };
+
+    inviteTokens.add(token, newToken);
+    newToken;
+  };
+
+  // ADMIN ONLY: Get all hotel invite tokens
+  public query ({ caller }) func getInviteTokens() : async [InviteToken] {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view invite tokens");
+    };
+    inviteTokens.values().toArray();
+  };
+
+  // Public: Validate invite token
+  public shared ({ caller }) func validateInviteToken(token : Text) : async Bool {
+    switch (inviteTokens.get(token)) {
+      case (?_token) {
+        true;
+      };
+      case (null) { false };
+    };
+  };
+
+  // Public: Consume invite token (increments usage count)
+  public shared ({ caller }) func consumeInviteToken(token : Text) : async Bool {
+    switch (inviteTokens.get(token)) {
+      case (?inviteToken) {
+        if (inviteToken.isActive and inviteToken.usageCount < inviteToken.maxUses) {
+          let updatedToken = {
+            inviteToken with
+            usageCount = inviteToken.usageCount + 1;
+            isActive = (inviteToken.usageCount + 1 < inviteToken.maxUses);
+          };
+          inviteTokens.add(token, updatedToken);
+          true;
+        } else { false };
+      };
+      case (null) { false };
+    };
+  };
+
+  // Hotel direct activations
+  public shared ({ caller }) func activateHotelDirectly(hotelPrincipal : Principal) : async Bool {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can perform direct activations");
+    };
+
+    directHotelActivations.add(hotelPrincipal, true);
+    true;
+  };
+
+  public query ({ caller }) func isHotelActiveByDirectActivation(_hotelPrincipal : Principal) : async Bool {
+    switch (directHotelActivations.get(caller)) {
+      case (?_status) { true };
+      case (null) { false };
+    };
   };
 };

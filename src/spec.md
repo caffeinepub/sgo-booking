@@ -1,12 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Restore the entire application (backend + frontend) to match Version 27 exactly, including role-based areas and dependent APIs, and make the UI clearly show it is Version 27.
+**Goal:** Restore the previously working admin invite-token generation and role-gated navigation (Home/My Bookings/Account/Hotel Area/Admin Panel) so the app matches the provided screenshots and does not error at runtime.
 
 **Planned changes:**
-- Revert/recover all backend and frontend files to their Version 27 contents, restoring any missing Guest/Hotel/Admin pages/panels and required backend APIs.
-- Update the frontend build identifier so the UI displays a Version 27 label (replacing any current restored version label).
-- Add a safe, conditional canister upgrade migration (backend/migration.mo) if Version 27 stable-state layout differs from the currently deployed state, so upgrades do not trap and existing data remains readable.
-- Run and ensure the existing frontend regression checklist passes for Version 27, focusing on auth/role gating, Guest/Hotel/Admin navigation and panels, booking flows, and Admin invite token generation.
+- Re-introduce the Motoko backend API methods the frontend expects for hotel invite tokens: `createInviteToken(maxUses, boundPrincipal)`, `getInviteTokens()`, `validateInviteToken(token)`, and `consumeInviteToken(token)`, including admin-only access for token creation/listing.
+- Fix/align backend role & admin detection used by frontend guards (e.g., admin access to `/admin`, activated hotel access to `/hotel`, guest restrictions) to prevent permission-check spinners and incorrect AccessDenied states.
+- Restore TopNav entries and labels to match screenshots: Home, Browse Hotels, My Bookings, Account, Hotel Area (when permitted), and Admin Panel (admin-only).
+- Add/adjust routing for an explicit “My Bookings” route (e.g., `/bookings`) that reuses the existing bookings table currently shown in the Account/Guest area, with the same auth/profile-completion protection as `/account`.
+- Verify the impacted flows (admin token management, guest bookings view, hotel area access, role-based link visibility) match the screenshots and do not regress.
 
-**User-visible outcome:** The app behaves like Version 27 again: Guest/Hotel/Admin routes and panels are present and properly role-gated, the footer/build label indicates Version 27, upgrades preserve existing data, and core flows (including Admin invite tokens and booking views) work without crashes.
+**User-visible outcome:** Admins can generate and view hotel invite tokens without errors, and users see the correct navigation (including My Bookings) with pages accessible/hidden based on their role (admin/hotel/guest) as shown in the screenshots.

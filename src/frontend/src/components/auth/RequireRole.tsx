@@ -10,12 +10,12 @@ interface RequireRoleProps {
 }
 
 export function RequireRole({ children, allowedRoles }: RequireRoleProps) {
-  const { data: role, isLoading: roleLoading, error: roleError } = useGetCallerUserRole();
-  const { data: isAdmin, isLoading: adminLoading, error: adminError } = useIsCurrentUserAdmin();
+  const { data: role, isLoading: roleLoading, error: roleError, isFetched: roleFetched } = useGetCallerUserRole();
+  const { data: isAdmin, isLoading: adminLoading, error: adminError, isFetched: adminFetched } = useIsCurrentUserAdmin();
   
   // Only fetch hotel profile if role is UserRole.user (not just if it's in allowedRoles)
   const shouldCheckHotelProfile = role === UserRole.user;
-  const { data: hotelProfile, isLoading: hotelProfileLoading } = useGetCallerHotelProfile({ 
+  const { data: hotelProfile, isLoading: hotelProfileLoading, isFetched: hotelProfileFetched } = useGetCallerHotelProfile({ 
     enabled: shouldCheckHotelProfile 
   });
 
@@ -24,16 +24,17 @@ export function RequireRole({ children, allowedRoles }: RequireRoleProps) {
     return <GuardErrorScreen error={roleError || adminError} />;
   }
 
-  // Admin bypass - check first before any loading states
-  if (isAdmin === true) {
+  // Admin bypass - check first before any loading states, but only after queries are fetched
+  if (adminFetched && isAdmin === true) {
     return <>{children}</>;
   }
 
   // Determine which queries we're actually waiting for
   const relevantLoading = roleLoading || adminLoading || (shouldCheckHotelProfile && hotelProfileLoading);
+  const relevantFetched = roleFetched && adminFetched && (!shouldCheckHotelProfile || hotelProfileFetched);
 
   // Show loading state while checking permissions
-  if (relevantLoading) {
+  if (relevantLoading || !relevantFetched) {
     return (
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">

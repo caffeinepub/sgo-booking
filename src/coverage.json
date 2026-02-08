@@ -1,76 +1,91 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T22:44:22.477Z",
+  "generatedAt": "2026-02-08T23:22:18.921Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 1,
+    "total": 5,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Restore the application code to match Version 27 exactly by reverting/recovering all backend and frontend files to their Version 27 contents, including restoring any missing role-based pages/panels (Guest/Hotel/Admin) and any backend APIs those UI flows depend on.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/components/auth/RequireAuth.tsx",
-          "frontend/src/components/auth/RequireRole.tsx",
-          "frontend/src/components/nav/TopNav.tsx",
-          "frontend/src/pages/MainMenuPage.tsx",
-          "frontend/src/pages/AdminPanelPage.tsx",
-          "frontend/src/pages/HotelAreaPage.tsx",
-          "frontend/src/pages/GuestAccountPage.tsx",
-          "frontend/src/components/auth/AccessDeniedScreen.tsx",
-          "frontend/src/components/auth/GuardErrorScreen.tsx"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Update the displayed build identifier so the UI clearly indicates Version 27 (e.g., the footer build string sourced from frontend/src/buildInfo.ts must reflect Version 27).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/buildInfo.ts",
-          "frontend/src/components/layout/AppShell.tsx",
-          "frontend/src/pages/AccountStatusPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/buildInfo.ts"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "If the restored Version 27 backend schema/state layout differs from the currently deployed state, implement a safe, conditional canister upgrade migration (backend/migration.mo) so existing production data remains readable and the canister can upgrade without trapping.",
+        "summary": "Restore the backend Motoko API for hotel invite tokens so the frontend Admin Panel can successfully generate and list invite tokens without runtime errors. Implement (or re-introduce) the exact methods expected by the frontend extended backend interface: createInviteToken(maxUses, boundPrincipal), getInviteTokens(), validateInviteToken(token), and consumeInviteToken(token), with admin-only authorization for token creation/listing and appropriate authorization for validation/consumption.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
+        "id": "REQ-2",
+        "summary": "Ensure backend authorization aligns with the app’s role-gated UI: admin can access /admin and generate invite tokens; hotel users can access /hotel only when activated; guests cannot access /admin or /hotel. Fix any backend role/admin detection endpoints that the frontend relies on (e.g., isCallerAdmin and getCallerUserRole) so role-based navigation and guards are consistent and do not regress.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Restore the TopNav links and labeling to match the screenshots: show a clear 'Home' link, 'Browse Hotels', 'My Bookings', 'Account' (or equivalent account page label matching the screenshot), and 'Hotel Area' (when permitted). Keep 'Admin Panel' visible only for admin. Ensure 'My Bookings' navigates to a page that shows the user’s bookings list (reuse the existing GuestAccountPage bookings table).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/nav/TopNav.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/nav/TopNav.tsx",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
         "id": "REQ-4",
-        "summary": "Run and pass the existing frontend regression checklist (frontend/REGRESSION_CHECKLIST.md) against the restored Version 27 build, focusing on authentication/authorization, role-based navigation visibility, Guest/Hotel/Admin panels, booking flows, and Admin invite token generation.",
-        "status": "missing",
+        "summary": "Add/adjust routing so there is an explicit route for 'My Bookings' (e.g., '/bookings') that renders the same bookings table currently shown in GuestAccountPage, and ensure it is protected by authentication and profile completion gates (same protection level as the current '/account' route).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/MyBookingsPage.tsx",
+          "frontend/src/components/booking/MyBookingsTable.tsx",
+          "frontend/src/pages/GuestAccountPage.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/MyBookingsPage.tsx",
+          "frontend/src/components/booking/MyBookingsTable.tsx",
+          "frontend/src/pages/GuestAccountPage.tsx",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Run and satisfy the existing regression checklist items relevant to this fix (Admin Invite Tokens generation, role-based navigation, Guest Account bookings visibility, and Hotel Area access). Fix any discovered regressions that prevent the app from matching the provided screenshots for the affected flows.",
+        "status": "implemented",
         "plannedFiles": [
           "frontend/REGRESSION_CHECKLIST.md",
-          "frontend/src/components/admin/InviteTokensPanel.tsx",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/nav/TopNav.tsx",
           "frontend/src/components/auth/RequireRole.tsx",
-          "frontend/src/pages/GuestAccountPage.tsx",
-          "frontend/src/pages/HotelAreaPage.tsx"
+          "frontend/src/hooks/useQueries.ts"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts"
+        ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/buildInfo.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/booking/MyBookingsTable.tsx",
+    "frontend/src/components/nav/TopNav.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/GuestAccountPage.tsx",
+    "frontend/src/pages/MyBookingsPage.tsx",
+    "frontend/src/types/extended-backend.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

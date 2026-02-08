@@ -111,10 +111,10 @@ export interface ExtendedBackendInterface {
   saveCallerUserProfile(profile: UserProfile): Promise<void>;
   makeMeAdmin(): Promise<void>;
   
-  // Invite tokens
+  // Invite tokens - FIXED: createInviteToken returns InviteToken object, not just string
   validateInviteToken(token: string): Promise<boolean>;
-  consumeInviteToken(token: string): Promise<void>;
-  createInviteToken(maxUses: bigint, boundPrincipal: Principal | null): Promise<string>;
+  consumeInviteToken(token: string): Promise<boolean>;
+  createInviteToken(maxUses: bigint, boundPrincipal: Principal | null): Promise<InviteToken>;
   getInviteTokens(): Promise<InviteToken[]>;
   
   // Hotels

@@ -1,56 +1,61 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T22:44:22.475Z",
-  "summary": "Diff only updates the frontend build version constant to v27 and updates metadata/summaries; it does not show actual restoration of Version 27 backend/frontend code, migration work, or regression checklist validation.",
+  "generatedAt": "2026-02-08T23:22:18.918Z",
+  "summary": "Frontend navigation and routing for a dedicated “My Bookings” page were added, and TopNav now includes Home/Browse Hotels/My Bookings/Account plus role-gated Admin Panel and Hotel Area links. Backend file was modified but the diff is truncated, so invite-token API restoration and role/authorization endpoint behavior cannot be confirmed from the provided evidence.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Restore the application code to match Version 27 exactly (backend + frontend), including Guest/Hotel/Admin pages/panels and dependent backend APIs.",
-      "reason": "The diff shows no substantive restoration/reversion of backend/main.mo or the actual frontend route/page/component source files—only a build version string update and summary/metadata files. A truncated summary file mentions many restored routes/pages, but the diff does not include those file content changes.",
+      "requirement": "Restore backend Motoko invite token API methods expected by the frontend: createInviteToken(maxUses, boundPrincipal), getInviteTokens(), validateInviteToken(token), consumeInviteToken(token) with correct authorization and usage/maxUses behavior.",
+      "reason": "backend/main.mo changes are truncated and do not show the required public methods being defined/implemented; only InviteToken type/state imports are visible.",
       "evidence": [
-        "frontend-file-summaries.txt (truncated)",
-        "frontend/src/buildInfo.ts",
-        "project_state.json"
+        "backend/main.mo (truncated)",
+        "frontend/src/types/extended-backend.ts (declares expected methods)",
+        "frontend/src/hooks/useQueries.ts (calls validateInviteToken/consumeInviteToken via ExtendedBackendInterface)"
       ]
     },
     {
-      "id": "REQ-3",
-      "requirement": "Implement a safe, conditional canister upgrade migration (backend/migration.mo) if schema/state layout differs so upgrades do not trap and prior data remains readable.",
-      "reason": "No backend files are added/modified in the diff summary, and there is no evidence of backend/migration.mo changes or any upgrade/migration logic.",
+      "id": "REQ-2",
+      "requirement": "Ensure backend authorization and role detection endpoints (e.g., isCallerAdmin, getCallerUserRole) align with UI guards (admin /admin, activated hotel /hotel, guests denied) without infinite permission spinners.",
+      "reason": "Frontend guards and queries call isCallerAdmin/getCallerUserRole, but backend/main.mo diff is truncated and does not show these endpoints’ implementations or their corrected authorization logic.",
       "evidence": [
-        "<file-diff>: Added: 0, Modified: 3 (no backend files listed)"
+        "frontend/src/hooks/useQueries.ts (uses actor.getCallerUserRole and actor.isCallerAdmin)",
+        "backend/main.mo (truncated)",
+        "frontend/src/components/nav/TopNav.tsx (uses role/admin queries for link visibility)"
       ]
     },
     {
-      "id": "REQ-4",
-      "requirement": "Run and pass the existing frontend regression checklist (frontend/REGRESSION_CHECKLIST.md) focusing on auth/role navigation, panels, booking flows, and admin invite tokens.",
-      "reason": "No changes or results related to frontend/REGRESSION_CHECKLIST.md are shown, and the diff provides no evidence of checklist execution or fixes driven by it.",
+      "id": "REQ-5",
+      "requirement": "Satisfy regression checklist for invite tokens, role-based navigation, guest bookings visibility, and hotel area access to match screenshots.",
+      "reason": "The diff shows code changes but provides no test/run evidence or complete backend logic to verify the full end-to-end regression checklist outcomes (especially invite token flows and role/activation enforcement).",
       "evidence": [
-        "<file-diff>: Modified files list does not include frontend/REGRESSION_CHECKLIST.md"
+        "backend/main.mo (truncated)",
+        "frontend/src/components/nav/TopNav.tsx (role-gated links)",
+        "frontend/src/App.tsx (guards added for /bookings, /hotel, /admin)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Project tracking/metadata update marking restoration work items as pending (project_state.json).",
-      "reason": "BuildRequest asks to restore Version 27 and related migration/checklist outcomes; it does not request adding/updating internal project management metadata.",
+      "description": "Added “Account Status” quick-action card and navigation from the new My Bookings page (and similar dashboard-style cards).",
+      "reason": "BuildRequest focuses on restoring invite token generation and missing navigation/sections shown in screenshots; adding extra dashboard cards/links (e.g., to /account-status) is not explicitly requested and may be considered scope expansion.",
       "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "description": "Added/updated a generated summary file describing many frontend files and features (frontend-file-summaries.txt).",
-      "reason": "BuildRequest does not ask for generating documentation/summary artifacts; only code restoration/migration/checklist compliance.",
-      "evidence": [
-        "frontend-file-summaries.txt (truncated)"
+        "frontend/src/pages/MyBookingsPage.tsx (Account Status card linking to /account-status)",
+        "frontend/src/pages/GuestAccountPage.tsx (Account Status card/link)"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/buildInfo.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/components/booking/MyBookingsTable.tsx",
+    "frontend/src/components/nav/TopNav.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/GuestAccountPage.tsx",
+    "frontend/src/pages/MyBookingsPage.tsx",
+    "frontend/src/types/extended-backend.ts",
     "project_state.json"
   ]
 }

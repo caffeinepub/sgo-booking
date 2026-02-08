@@ -5,6 +5,7 @@ import { AppShell } from './components/layout/AppShell';
 import { MainMenuPage } from './pages/MainMenuPage';
 import { BrowseHotelsPage } from './pages/BrowseHotelsPage';
 import { GuestAccountPage } from './pages/GuestAccountPage';
+import { MyBookingsPage } from './pages/MyBookingsPage';
 import { AccountStatusPage } from './pages/AccountStatusPage';
 import { HotelAreaPage } from './pages/HotelAreaPage';
 import { AdminPanelPage } from './pages/AdminPanelPage';
@@ -49,6 +50,18 @@ const hotelDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/browse/$hotelId',
   component: HotelDetailPage,
+});
+
+const bookingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/bookings',
+  component: () => (
+    <RequireAuth>
+      <ProfileCompletionGate>
+        <MyBookingsPage />
+      </ProfileCompletionGate>
+    </RequireAuth>
+  ),
 });
 
 const guestAccountRoute = createRoute({
@@ -113,6 +126,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   browseRoute,
   hotelDetailRoute,
+  bookingsRoute,
   guestAccountRoute,
   accountRoute,
   accountStatusRoute,

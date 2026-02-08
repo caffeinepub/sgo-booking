@@ -15,6 +15,15 @@ export interface InviteCode {
   'code' : string,
   'used' : boolean,
 }
+export interface InviteToken {
+  'boundPrincipal' : [] | [Principal],
+  'token' : string,
+  'usageCount' : bigint,
+  'isActive' : boolean,
+  'issuedAt' : Time,
+  'issuedBy' : Principal,
+  'maxUses' : bigint,
+}
 export interface RSVP {
   'name' : string,
   'inviteCode' : string,
@@ -22,6 +31,11 @@ export interface RSVP {
   'attending' : boolean,
 }
 export type Time = bigint;
+export interface UserProfile {
+  'name' : string,
+  'email' : [] | [string],
+  'phone' : [] | [string],
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -53,13 +67,22 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'activateHotelDirectly' : ActorMethod<[Principal], boolean>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'consumeInviteToken' : ActorMethod<[string], boolean>,
+  'createInviteToken' : ActorMethod<[bigint, [] | [Principal]], InviteToken>,
   'generateInviteCode' : ActorMethod<[], string>,
   'getAllRSVPs' : ActorMethod<[], Array<RSVP>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getInviteCodes' : ActorMethod<[], Array<InviteCode>>,
+  'getInviteTokens' : ActorMethod<[], Array<InviteToken>>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'isHotelActiveByDirectActivation' : ActorMethod<[Principal], boolean>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'submitRSVP' : ActorMethod<[string, boolean, string], undefined>,
+  'validateInviteToken' : ActorMethod<[string], boolean>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

@@ -25,11 +25,25 @@ export const UserRole = IDL.Variant({
   'guest' : IDL.Null,
 });
 export const Time = IDL.Int;
+export const InviteToken = IDL.Record({
+  'boundPrincipal' : IDL.Opt(IDL.Principal),
+  'token' : IDL.Text,
+  'usageCount' : IDL.Nat,
+  'isActive' : IDL.Bool,
+  'issuedAt' : Time,
+  'issuedBy' : IDL.Principal,
+  'maxUses' : IDL.Nat,
+});
 export const RSVP = IDL.Record({
   'name' : IDL.Text,
   'inviteCode' : IDL.Text,
   'timestamp' : Time,
   'attending' : IDL.Bool,
+});
+export const UserProfile = IDL.Record({
+  'name' : IDL.Text,
+  'email' : IDL.Opt(IDL.Text),
+  'phone' : IDL.Opt(IDL.Text),
 });
 export const InviteCode = IDL.Record({
   'created' : Time,
@@ -65,13 +79,34 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'activateHotelDirectly' : IDL.Func([IDL.Principal], [IDL.Bool], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'consumeInviteToken' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'createInviteToken' : IDL.Func(
+      [IDL.Nat, IDL.Opt(IDL.Principal)],
+      [InviteToken],
+      [],
+    ),
   'generateInviteCode' : IDL.Func([], [IDL.Text], []),
   'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
+  'getInviteTokens' : IDL.Func([], [IDL.Vec(InviteToken)], ['query']),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'isHotelActiveByDirectActivation' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Bool],
+      ['query'],
+    ),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
+  'validateInviteToken' : IDL.Func([IDL.Text], [IDL.Bool], []),
 });
 
 export const idlInitArgs = [];
@@ -94,11 +129,25 @@ export const idlFactory = ({ IDL }) => {
     'guest' : IDL.Null,
   });
   const Time = IDL.Int;
+  const InviteToken = IDL.Record({
+    'boundPrincipal' : IDL.Opt(IDL.Principal),
+    'token' : IDL.Text,
+    'usageCount' : IDL.Nat,
+    'isActive' : IDL.Bool,
+    'issuedAt' : Time,
+    'issuedBy' : IDL.Principal,
+    'maxUses' : IDL.Nat,
+  });
   const RSVP = IDL.Record({
     'name' : IDL.Text,
     'inviteCode' : IDL.Text,
     'timestamp' : Time,
     'attending' : IDL.Bool,
+  });
+  const UserProfile = IDL.Record({
+    'name' : IDL.Text,
+    'email' : IDL.Opt(IDL.Text),
+    'phone' : IDL.Opt(IDL.Text),
   });
   const InviteCode = IDL.Record({
     'created' : Time,
@@ -134,13 +183,34 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'activateHotelDirectly' : IDL.Func([IDL.Principal], [IDL.Bool], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'consumeInviteToken' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'createInviteToken' : IDL.Func(
+        [IDL.Nat, IDL.Opt(IDL.Principal)],
+        [InviteToken],
+        [],
+      ),
     'generateInviteCode' : IDL.Func([], [IDL.Text], []),
     'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
+    'getInviteTokens' : IDL.Func([], [IDL.Vec(InviteToken)], ['query']),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'isHotelActiveByDirectActivation' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Bool],
+        ['query'],
+      ),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
+    'validateInviteToken' : IDL.Func([IDL.Text], [IDL.Bool], []),
   });
 };
 

@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-displayed-build-identifier-so-the-ui-clearly-indicates-version-27-e-g-the-footer-build-string-sourced-from-frontend-src-buildinfo-ts-must-reflect-version-27",
-      "featureTitle": "Update the displayed build identifier so the UI clearly indicates Version 27 (e.g., the footer build string sourced from frontend/src/buildInfo.ts must reflect Version 27).",
+      "featureId": "feature-restore-the-topnav-links-and-labeling-to-match-the-screenshots-show-a-clear-home-link-browse-hotels-my-bookings-account-or-equivalent-account-page-label-matching-the-screenshot-and-hotel-area-when-permitted-keep-admin-panel-visible-only-for-admin-ensure-my-bookings-navigates-to-a-page-that-shows-the-user-s-bookings-list-reuse-the-existing-guestaccountpage-bookings-table",
+      "featureTitle": "Restore the TopNav links and labeling to match the screenshots: show a clear 'Home' link, 'Browse Hotels', 'My Bookings', 'Account' (or equivalent account page label matching the screenshot), and 'Hotel Area' (when permitted). Keep 'Admin Panel' visible only for admin. Ensure 'My Bookings' navigates to a page that shows the user’s bookings list (reuse the existing GuestAccountPage bookings table).",
       "files": [
-        "frontend/src/buildInfo.ts"
+        "frontend/src/App.tsx",
+        "frontend/src/components/nav/TopNav.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -18,7 +19,52 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-2"
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-adjust-routing-so-there-is-an-explicit-route-for-my-bookings-e-g-bookings-that-renders-the-same-bookings-table-currently-shown-in-guestaccountpage-and-ensure-it-is-protected-by-authentication-and-profile-completion-gates-same-protection-level-as-the-current-account-route",
+      "featureTitle": "Add/adjust routing so there is an explicit route for 'My Bookings' (e.g., '/bookings') that renders the same bookings table currently shown in GuestAccountPage, and ensure it is protected by authentication and profile completion gates (same protection level as the current '/account' route).",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/booking/MyBookingsTable.tsx",
+        "frontend/src/pages/GuestAccountPage.tsx",
+        "frontend/src/pages/MyBookingsPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-run-and-satisfy-the-existing-regression-checklist-items-relevant-to-this-fix-admin-invite-tokens-generation-role-based-navigation-guest-account-bookings-visibility-and-hotel-area-access-fix-any-discovered-regressions-that-prevent-the-app-from-matching-the-provided-screenshots-for-the-affected-flows",
+      "featureTitle": "Run and satisfy the existing regression checklist items relevant to this fix (Admin Invite Tokens generation, role-based navigation, Guest Account bookings visibility, and Hotel Area access). Fix any discovered regressions that prevent the app from matching the provided screenshots for the affected flows.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

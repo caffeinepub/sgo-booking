@@ -10,6 +10,7 @@ import type {
   BookingStatus,
   SubscriptionStatus,
   ExtendedBackendInterface,
+  InviteToken,
 } from '../types/extended-backend';
 
 export function useGetCallerUserRole() {
@@ -24,7 +25,8 @@ export function useGetCallerUserRole() {
       return await actor.getCallerUserRole();
     },
     enabled: !!actor && !isFetching && !!identity,
-    staleTime: 30000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     retry: 1,
   });
 }
@@ -41,7 +43,8 @@ export function useIsCurrentUserAdmin() {
       return await actor.isCallerAdmin();
     },
     enabled: !!actor && !isFetching && !!identity,
-    staleTime: 30000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     retry: 1,
   });
 }
@@ -130,6 +133,38 @@ export function useConsumeInviteToken() {
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
       queryClient.invalidateQueries({ queryKey: ['isCurrentUserAdmin'] });
     },
+  });
+}
+
+export function useCreateInviteToken() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: { maxUses: bigint; boundPrincipal: Principal | null }) => {
+      if (!actor) throw new Error('Actor not available');
+      const extendedActor = actor as unknown as ExtendedBackendInterface;
+      return extendedActor.createInviteToken(params.maxUses, params.boundPrincipal);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inviteTokens'] });
+    },
+  });
+}
+
+export function useGetInviteTokens() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery<InviteToken[]>({
+    queryKey: ['inviteTokens'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      const extendedActor = actor as unknown as ExtendedBackendInterface;
+      return extendedActor.getInviteTokens();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+    retry: 1,
   });
 }
 
@@ -327,136 +362,6 @@ export function useUpdateHotelProfile() {
   });
 }
 
-export function useAddPaymentMethod() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: { name: string; details: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.addPaymentMethod(params.name, params.details);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
-    },
-  });
-}
-
-export function useRemovePaymentMethod() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (index: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.removePaymentMethod(index);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
-    },
-  });
-}
-
-export function useCreateRoom() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: {
-      roomNumber: string;
-      roomType: string;
-      pricePerNight: bigint;
-      currency: string;
-      pictures: string[];
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.createRoom(
-        params.roomNumber,
-        params.roomType,
-        params.pricePerNight,
-        params.currency,
-        params.pictures
-      );
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      await queryClient.refetchQueries({ queryKey: ['rooms'] });
-      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
-      await queryClient.refetchQueries({ queryKey: ['hotels'] });
-    },
-  });
-}
-
-export function useUpdateRoom() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: {
-      roomId: bigint;
-      roomNumber: string;
-      roomType: string;
-      pricePerNight: bigint;
-      currency: string;
-      pictures: string[];
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.updateRoom(
-        params.roomId,
-        params.roomNumber,
-        params.roomType,
-        params.pricePerNight,
-        params.currency,
-        params.pictures
-      );
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      await queryClient.refetchQueries({ queryKey: ['rooms'] });
-      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
-      await queryClient.refetchQueries({ queryKey: ['hotels'] });
-    },
-  });
-}
-
-export function useCreateInviteToken() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: { maxUses: bigint; boundPrincipal: Principal | null }) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.createInviteToken(params.maxUses, params.boundPrincipal);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inviteTokens'] });
-    },
-  });
-}
-
-export function useGetInviteTokens() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery({
-    queryKey: ['inviteTokens'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.getInviteTokens();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
 export function useSetHotelActiveStatus() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -506,54 +411,94 @@ export function useActivateHotelOwner() {
   });
 }
 
-export function useGenerateInviteCode() {
+export function useAddPaymentMethod() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params: { name: string; details: string }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.generateInviteCode();
+      const extendedActor = actor as unknown as ExtendedBackendInterface;
+      return extendedActor.addPaymentMethod(params.name, params.details);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inviteCodes'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
     },
   });
 }
 
-export function useGetInviteCodes() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery({
-    queryKey: ['inviteCodes'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getInviteCodes();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useSubmitRSVP() {
+export function useRemovePaymentMethod() {
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: { name: string; attending: boolean; inviteCode: string }) => {
+    mutationFn: async (index: bigint) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.submitRSVP(params.name, params.attending, params.inviteCode);
+      const extendedActor = actor as unknown as ExtendedBackendInterface;
+      return extendedActor.removePaymentMethod(index);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
     },
   });
 }
 
-export function useGetAllRSVPs() {
-  const { actor, isFetching } = useActor();
+export function useCreateRoom() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
 
-  return useQuery({
-    queryKey: ['rsvps'],
-    queryFn: async () => {
+  return useMutation({
+    mutationFn: async (params: {
+      roomNumber: string;
+      roomType: string;
+      pricePerNight: bigint;
+      currency: string;
+      pictures: string[];
+    }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getAllRSVPs();
+      const extendedActor = actor as unknown as ExtendedBackendInterface;
+      return extendedActor.createRoom(
+        params.roomNumber,
+        params.roomType,
+        params.pricePerNight,
+        params.currency,
+        params.pictures
+      );
     },
-    enabled: !!actor && !isFetching,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+    },
+  });
+}
+
+export function useUpdateRoom() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      roomId: bigint;
+      roomNumber: string;
+      roomType: string;
+      pricePerNight: bigint;
+      currency: string;
+      pictures: string[];
+    }) => {
+      if (!actor) throw new Error('Actor not available');
+      const extendedActor = actor as unknown as ExtendedBackendInterface;
+      return extendedActor.updateRoom(
+        params.roomId,
+        params.roomNumber,
+        params.roomType,
+        params.pricePerNight,
+        params.currency,
+        params.pictures
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+    },
   });
 }
