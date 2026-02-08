@@ -1,61 +1,42 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Frontend fixes for room data refresh, correct hotelId usage, and regression verification",
+  "title": "Fix Hotel Area empty-state vs error and improve guest room photo fallbacks",
   "requirements": [
     {
       "id": "REQ-3",
-      "summary": "Ensure hotel dashboard and guest hotel detail refresh room data correctly and never query rooms with an invalid/anonymous hotelId; keep UI copy in English.",
+      "summary": "Differentiate empty room results from fetch failures or unexpected/filtered results in the Hotel Area Rooms UI, including a retry option.",
       "acceptanceCriteria": [
-        "Hotel Area > Rooms shows a loading state, then the correct rooms for the logged-in hotel principal; it does not depend on admin visibility to show rooms.",
-        "After creating/updating a room in RoomsPanel, the rooms list updates without requiring a hard refresh (React Query cache invalidation/refetch works).",
-        "Guest hotel detail page displays rooms for the hotel in the URL, and does not show an empty list if rooms exist in the backend."
+        "If the rooms query fails, show an explicit error state (not the empty-state message) with a retry option.",
+        "If rooms exist but pictures are missing/empty, the UI should still show the room entry and a clear photos count (0) without hiding the room.",
+        "The empty-state message (“No rooms yet...”) is only shown when the rooms query succeeds and returns an empty array for the hotel owner."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/hotel/RoomsPanel.tsx",
           "operation": "modify",
-          "description": "Stop deriving hotelId from the raw identity principal (which may be undefined/anonymous early) and instead source the hotelId from the activated caller hotel profile (getCallerHotelProfile). Ensure the rooms query is disabled until a valid hotelId is available, show a clear English empty/blocked state when hotelId is not available, and keep the existing loading state. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Enhance the rooms query hook to support safe/conditional querying (e.g., accept an optional enabled flag and avoid issuing a backend call when hotelId is missing). Ensure query keys remain stable and that invalidation after create/update continues to refresh both hotel dashboard and guest detail views. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/HotelDetailPage.tsx",
-          "operation": "modify",
-          "description": "Harden hotelId parsing and room fetching for the guest hotel detail flow: handle invalid hotelId in the URL gracefully (English error UI), avoid double-filtering pitfalls, and surface room-load errors to the UI (toast/alert) rather than silently rendering an empty list when the query fails. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useRoomImageUpload.ts",
-          "operation": "modify",
-          "description": "Ensure room photo upload failures and progress states are consistently surfaced to the calling UI (English error messages) so room create/update does not appear to succeed when uploads fail. This continues to rely on the blob-storage ExternalBlob flow; verify the component's usage instructions before implementing."
+          "description": "Update rooms listing states to avoid misleading empty-state messaging: (1) for roomsError, show a destructive error Alert plus a Retry button that triggers refetchRooms; (2) add a distinct 'unexpected/filtered results' warning state when the query succeeds but the returned rooms array does not contain any rooms owned by the current hotel (e.g., rooms.length > 0 but myRooms.length === 0), including a Retry action; (3) keep showing each room row regardless of pictures presence and continue displaying a photos count (0 when empty). Use shadcn-ui Alert/Button/Card primitives already used in this file to present the states. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Document a focused regression verification pass for room upload/visibility and ensure room save/load errors are visible in the UI.",
+      "summary": "Render guest-facing room photos reliably on Hotel Detail and provide a consistent fallback when rooms have zero valid or unloadable pictures.",
       "acceptanceCriteria": [
-        "There is a documented, repeatable set of steps (based on the existing checklist) to verify: hotel creates room with photos, hotel can still see it after reload, guest can see it in Browse/Hotel Detail, and admin view is consistent.",
-        "Any errors encountered during room save or load are surfaced to the UI (English) rather than failing silently."
+        "On Hotel Detail, each room displays its photos when `pictures` contains valid image strings.",
+        "If `pictures` is empty or contains only invalid/unloadable strings, show a consistent fallback state (e.g., “No photos available for this room”) while keeping the rest of the room card and booking actions available.",
+        "Photo rendering logic accepts the same `pictures` formats produced by the Hotel upload flow (currently data URLs)."
       ],
       "file_operations": [
         {
-          "path": "frontend/REGRESSION_CHECKLIST.md",
+          "path": "frontend/src/components/hotel/RoomPhotosSection.tsx",
           "operation": "modify",
-          "description": "Add a dedicated, step-by-step verification section for the room upload persistence and visibility flow across hotel owner (Hotel Area > Rooms), guest browsing (Browse Hotels > Hotel Detail), and post-reload persistence. Include explicit checks for error surfacing (English) for both room save and room load failures. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
-          "operation": "modify",
-          "description": "Add explicit UI error surfacing for room load failures (not just save failures) so regressions are visible during verification; keep all user-facing strings in English. Verify the component's usage instructions before implementing."
+          "description": "Harden photo rendering so unloadable images do not create blank UI: keep the existing validation for accepted formats (data URLs and http/https), but additionally track image load failures and automatically fall back to the next available image (or the 'No photos available for this room' fallback Card when none can be rendered). Ensure the fallback remains consistent for both main image and thumbnails, and do not remove/hide the entire room card or booking actions. Use shadcn-ui Card for the fallback UI already used by this component. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/pages/HotelDetailPage.tsx",
           "operation": "modify",
-          "description": "Add explicit UI error surfacing for room load failures in the guest hotel detail page (e.g., toast/alert with retry guidance) to avoid silent empty states during regression verification; keep all user-facing strings in English. Verify the component's usage instructions before implementing."
+          "description": "Confirm Hotel Detail consistently passes the backend-provided pictures array through to RoomPhotosSection (including data URLs) and does not gate room rendering on photo availability; keep booking actions enabled even when the photo section is in fallback mode. Verify the component's usage instructions before implementing."
         }
       ]
     }

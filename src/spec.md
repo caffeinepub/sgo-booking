@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Ensure rooms created/updated by hotel accounts persist under the correct hotel and are visible consistently to hotel owners and guests (not just admins).
+**Goal:** Ensure room photos uploaded by Hotel accounts persist correctly and display consistently for Admin, the owning Hotel, and Guests.
 
 **Planned changes:**
-- Fix backend room create/update to store rooms under the correct hotel principal and ensure room reads use a single source of truth (roomsMap/hotelsMap) without admin-only dependencies.
-- Align backend hotel/room visibility rules so guest hotel discovery and hotel detail room lists correctly show hotels/rooms needed for booking (consistent rules across getHotels/getRooms).
-- Update frontend hotel dashboard and guest hotel detail flows to reliably query rooms using the correct hotelId, show loading states, and refresh room lists after create/update (React Query refetch/invalidation).
-- Add and document a focused regression verification checklist for: hotel room upload (with photos), post-reload persistence, guest browse/detail visibility, and admin consistency; surface save/load errors in English.
+- Fix backend room create/update so the `pictures : [Text]` array is persisted exactly as provided and remains associated with the correct `hotelId`.
+- Fix backend room retrieval/listing so Admin, owning Hotel, and Guests receive consistent room records including the full `pictures` array (without role-based stripping or unintended filtering).
+- Update Hotel Area Rooms UI to distinguish between empty results vs fetch/authorization/filter issues, showing an explicit error + retry on failures and only showing “No rooms yet...” when a successful fetch returns an empty list.
+- Ensure the guest-facing Hotel Detail page reliably renders room photos from returned `pictures` values and shows a clear fallback when a room has zero valid/unloadable pictures while keeping booking actions available.
 
-**User-visible outcome:** Hotel owners can upload rooms and still see them after reloading in Hotel Area > Rooms, and guests can discover the hotel and view its available rooms on the hotel detail page for booking; admin/hotel/guest views remain consistent.
+**User-visible outcome:** Hotel owners and guests can reliably see the same room photos that admins see; when photos are missing or a fetch fails, the UI communicates the issue clearly without hiding rooms or showing misleading empty states.

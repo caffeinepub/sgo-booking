@@ -1,35 +1,67 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T19:19:01.803Z",
-  "summary": "Frontend changes add safer room querying (avoid invalid/anonymous hotelId), improved loading/error states, and a detailed regression checklist for room upload/visibility. The diff does not provide evidence of backend changes to room persistence/visibility logic (room create/update/listing and guest visibility rules), so core backend requirements appear unimplemented or unverifiable from the provided truncation.",
+  "generatedAt": "2026-02-08T20:23:26.785Z",
+  "summary": "Frontend changes add safer room photo rendering (with fallback) and improved error handling around hotel/room queries, plus various routing/app shell updates. Backend diff evidence is truncated and does not show concrete changes to room create/update or retrieval logic needed to guarantee picture persistence/visibility across Admin/Hotel/Guest, so backend requirements cannot be confirmed as implemented from the provided diff summary.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Fix backend room create/update and room listing so rooms are persisted under the correct hotel principal and retrievable by hotel owner and guests (not admin-only), using a single source of truth and correct role filtering.",
-      "reason": "The diff excerpt of backend/main.mo only shows type definitions and map initializations; it does not show any changes to the room create/update/listing functions or role-based filtering logic needed to ensure persistence and cross-role visibility.",
+      "requirement": "Fix backend room retrieval so the same room records (including the full `pictures : [Text]` array) are returned consistently for Admin, the owning Hotel account, and Guests.",
+      "reason": "The backend file diff for `backend/main.mo` is truncated and does not include any shown modifications to the room listing/query methods or role-based filtering logic that would ensure consistent room sets and preservation of the `pictures` array across roles.",
       "evidence": [
-        "backend/main.mo (truncated; no createRoom/updateRoom/getRooms logic shown)"
+        "backend/main.mo (truncated; no room query/listing logic shown)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Fix backend hotel/room visibility rules so guests can discover hotels with uploaded rooms and view those rooms consistently (visibility gating consistent between getHotels and getRooms).",
-      "reason": "No backend getHotels/getRooms visibility rule changes are visible in the provided backend/main.mo truncation. Frontend calls getHotels/getRooms, but the required behavior depends on backend filtering rules.",
+      "requirement": "Fix backend room create/update persistence so when the Hotel account saves a room with `pictures`, the stored room record retains the provided `pictures` list and remains associated with the correct `hotelId` for all subsequent reads (Admin/Hotel/Guest).",
+      "reason": "The diff summary does not show any create/update room method implementation changes in `backend/main.mo` demonstrating persistence of `pictures` and correct `hotelId` association; backend content is truncated before relevant methods.",
       "evidence": [
-        "backend/main.mo (truncated; no getHotels/getRooms logic shown)"
+        "backend/main.mo (truncated; no room create/update logic shown)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Update the Hotel Area Rooms UI to clearly differentiate between empty results vs backend fetch failures/filtered results, including explicit error state with retry; only show empty-state message when query succeeds and returns empty.",
+      "reason": "Although `RoomsPanel.tsx` now reads `roomsError` and `refetchRooms` and imports Alert/Refresh icons, the provided diff snippet is truncated before rendering logic, so it does not conclusively show the required error-vs-empty UI differentiation and retry control behavior.",
+      "evidence": [
+        "frontend/src/components/hotel/RoomsPanel.tsx (truncated; render/empty-state logic not shown)"
       ]
     }
   ],
-  "hallucinated_features": [],
+  "hallucinated_features": [
+    {
+      "description": "Added backend migration module and wiring (migration run) unrelated to room photo persistence/visibility requirements.",
+      "reason": "BuildRequest did not ask for a migration system or new migration file; this appears to be additional infrastructure beyond the stated requirements (even if potentially harmless).",
+      "evidence": [
+        "backend/migration.mo",
+        "backend/main.mo (with migration = Migration.run)"
+      ]
+    },
+    {
+      "description": "Broad frontend app/router/auth/role-guard refactors and new pages/tab wiring not requested (e.g., route tree changes, role guards, payments tab wiring, locale provider).",
+      "reason": "BuildRequest scope is limited to room photo persistence/visibility and specific UI states for Hotel Rooms and Guest Hotel Detail; these additional navigation/auth/layout/i18n and other feature changes are not requested.",
+      "evidence": [
+        "frontend/src/App.tsx",
+        "frontend-file-summaries.txt (multiple unrelated component/page changes: routing, LocaleContext, AppShell, TopNav, RequireRole, HotelAreaPage payments tab wiring)"
+      ]
+    },
+    {
+      "description": "Global styling and build metadata changes not requested.",
+      "reason": "BuildRequest does not mention updating CSS theme system, index.html metadata, or adding a build version constant.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/src/index.css, frontend/index.html, frontend/src/buildInfo.ts)"
+      ]
+    }
+  ],
   "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/REGRESSION_CHECKLIST.md",
+    "frontend/src/App.tsx",
+    "frontend/src/components/hotel/RoomPhotosSection.tsx",
     "frontend/src/components/hotel/RoomsPanel.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/hooks/useRoomImageUpload.ts",
     "frontend/src/pages/HotelDetailPage.tsx",
     "project_state.json"
   ]

@@ -11,10 +11,12 @@ import Int "mo:core/Int";
 import Random "mo:core/Random";
 import Runtime "mo:core/Runtime";
 import MixinStorage "blob-storage/Mixin";
+import Migration "migration";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import InviteLinksModule "invite-links/invite-links-module";
 
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -267,7 +269,7 @@ actor {
       let stayLengthNanos = Int.abs((checkOut - checkIn)).toNat();
       let nights =
         if (stayLengthNanos == 0) { staysIfZero } else {
-          (stayLengthNanos + nanosecondsInDay - 1) / nanosecondsInDay;
+          ((stayLengthNanos + nanosecondsInDay) - 1) / nanosecondsInDay;
         };
       pricePerNight * nights;
     };

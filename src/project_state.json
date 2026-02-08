@@ -1,26 +1,26 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Hotel booking app: room data uploaded by hotel must be saved and visible on hotel dashboard and guest views (currently only visible to admin).",
+  "summary": "Project to ensure hotel room photos uploaded by hotel accounts are stored in backend and displayed consistently for hotel, admin, and guest accounts; currently photos appear only in admin.",
   "architectural_notes": [
-    "Room listings uploaded by hotel should be automatically published/visible to hotel and guests (no admin-only visibility), with role-based access ensuring correct read/write permissions."
+    "Room photos are mastered by the hotel account: upload -> persist in backend storage -> shared read access for admin and guest views; all roles must render the same photo data source."
   ],
   "known_issues": [
-    "Bug/regression: hotel-uploaded room data appears in admin account but does not appear in hotel or guest accounts."
+    "Bug: room photos appear in admin account but not in hotel or guest accounts; expected to be consistent across all roles from hotel uploads."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-frontend-hotel-dashboard-and-guest-hotel-detail-views-reliably-refresh-room-data-after-create-update-and-do-not-accidentally-query-rooms-with-an-invalid-anonymous-hotelid-keep-all-user-facing-copy-in-english",
-      "title": "Ensure frontend hotel dashboard and guest hotel detail views reliably refresh room data after create/update and do not accidentally query rooms with an invalid/anonymous hotelId. Keep all user-facing copy in English.",
+      "id": "feature-update-the-hotel-area-rooms-ui-to-clearly-differentiate-between-a-genuinely-empty-room-results-and-b-backend-fetch-failures-or-filtered-unauthorized-results-so-hotel-owners-are-not-shown-a-misleading-no-rooms-yet-state-when-the-backend-call-failed-or-returned-unexpected-filtered-results-that-hide-existing-rooms-photos",
+      "title": "Update the Hotel Area Rooms UI to clearly differentiate between (a) genuinely empty room results and (b) backend fetch failures or filtered/unauthorized results, so Hotel owners are not shown a misleading “No rooms yet” state when the backend call failed or returned unexpected filtered results that hide existing rooms/photos.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-a-focused-regression-verification-pass-for-the-room-upload-visibility-flow-covering-hotel-owner-upload-guest-browsing-and-post-reload-persistence-and-document-any-steps-needed-to-reproduce-verify-the-fix-in-the-existing-regression-checklist",
-      "title": "Add a focused regression verification pass for the room upload/visibility flow covering hotel owner upload, guest browsing, and post-reload persistence, and document any steps needed to reproduce/verify the fix in the existing regression checklist.",
+      "id": "feature-ensure-the-guest-facing-hotel-detail-page-renders-room-photos-reliably-using-the-returned-pictures-strings-and-provide-a-safe-fallback-ui-when-rooms-exist-but-a-room-has-zero-valid-pictures-so-guests-can-still-browse-and-book",
+      "title": "Ensure the guest-facing Hotel Detail page renders room photos reliably using the returned `pictures` strings, and provide a safe fallback UI when rooms exist but a room has zero valid pictures so guests can still browse and book.",
       "reqIds": [
         "REQ-4"
       ],
@@ -30,13 +30,13 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix/build room data upload flow so hotel-uploaded room listings are saved and visible to both hotel dashboard and guest account (not only admin).",
+      "summary": "Ensure room photos uploaded by hotel are persisted in backend and displayed identically across hotel, admin, and guest accounts",
       "reqIds": [],
-      "status": "in_progress"
+      "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Fix backend room create/update and room listing behavior so that rooms uploaded by a hotel account are persisted under the correct hotel principal and are retrievable by (a) the same hotel account in the hotel dashboard and (b) guests browsing the hotel detail page (not only admins). Ensure the room read path uses a single source of truth (roomsMap/hotelsMap) and that role-based filtering does not accidentally exclude the hotel owner or guests for the uploaded hotel.",
+      "summary": "Fix backend room retrieval so the same room records (including the full `pictures : [Text]` array) are returned consistently for Admin, the owning Hotel account, and Guests. Rooms that appear for Admin must not disappear or lose their `pictures` data when viewed by the owning Hotel account or by Guests browsing a hotel.",
       "reqIds": [
         "REQ-1"
       ],
@@ -44,14 +44,14 @@
     },
     {
       "id": "AR-3",
-      "summary": "Fix backend hotel/room visibility rules so guest-facing hotel discovery and room browsing do not hide hotels/rooms in a way that breaks booking discovery. Align the rules with the required behavior: once a hotel uploads rooms, guests must be able to see that hotel’s rooms for booking in guest views.",
+      "summary": "Fix backend room create/update persistence so when the Hotel account saves a room with `pictures`, the stored room record retains the provided `pictures` list and remains associated with the correct `hotelId` for all subsequent reads (Admin/Hotel/Guest).",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
     }
   ],
-  "projectName": "Fix room upload persistence and visibility for hotel and guest accounts",
+  "projectName": "Fix room photo persistence and visibility for Hotel and Guest accounts",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

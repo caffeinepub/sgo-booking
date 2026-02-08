@@ -1,14 +1,13 @@
 import Map "mo:core/Map";
-import List "mo:core/List";
 import Nat "mo:core/Nat";
-import Principal "mo:core/Principal";
-import Time "mo:core/Time";
+import List "mo:core/List";
+import Text "mo:core/Text";
 import Float "mo:core/Float";
-import AccessControl "authorization/access-control";
-import InviteLinksModule "invite-links/invite-links-module";
+import Time "mo:core/Time";
+import Principal "mo:core/Principal";
 
 module {
-  public type BookingStatus = {
+  type BookingStatus = {
     #pendingTransfer;
     #paymentFailed;
     #booked;
@@ -16,51 +15,37 @@ module {
     #canceled;
   };
 
-  public type PaymentMethod = {
+  type PaymentMethod = {
     name : Text;
     details : Text;
   };
 
-  public type HotelContact = {
+  type HotelContact = {
     whatsapp : ?Text;
     email : ?Text;
   };
 
-  public type SubscriptionStatus = {
+  type SubscriptionStatus = {
     #paid;
     #unpaid;
     #test;
   };
 
-  public type HotelDataView = {
+  type HotelData = {
     id : Principal;
     name : Text;
     location : Text;
-    address : Text;
-    mapLink : Text;
-    active : Bool;
-    rooms : [Nat];
-    bookings : [Nat];
-    paymentMethods : [PaymentMethod];
-    contact : HotelContact;
-    subscriptionStatus : SubscriptionStatus;
-  };
-
-  public type HotelData = {
-    id : Principal;
-    name : Text;
-    location : Text;
-    address : Text;
-    mapLink : Text;
-    active : Bool;
     rooms : List.List<Nat>;
+    address : Text;
+    mapLink : Text;
+    active : Bool;
     bookings : List.List<Nat>;
     paymentMethods : List.List<PaymentMethod>;
     contact : HotelContact;
     subscriptionStatus : SubscriptionStatus;
   };
 
-  public type Room = {
+  type Room = {
     id : Nat;
     hotelId : Principal;
     roomNumber : Text;
@@ -70,27 +55,22 @@ module {
     pictures : [Text];
   };
 
-  public type BookingRequest = {
+  type BookingRequest = {
     id : Nat;
+    status : BookingStatus;
     hotelId : ?Principal;
     roomId : Nat;
     userId : Principal;
     checkIn : Int;
     checkOut : Int;
     totalPrice : Nat;
-    status : BookingStatus;
     guests : Nat;
     timestamp : Int;
     paymentProof : ?Text;
     currency : Text;
   };
 
-  public type BookingQueryResult = {
-    bookings : [BookingRequest];
-    totalCount : Nat;
-  };
-
-  public type InviteToken = {
+  type InviteToken = {
     token : Text;
     isActive : Bool;
     issuedBy : Principal;
@@ -100,7 +80,7 @@ module {
     boundPrincipal : ?Principal;
   };
 
-  public type Payment = {
+  type Payment = {
     paymentId : Nat;
     bookingId : Nat;
     amount : Float;
@@ -111,82 +91,33 @@ module {
     timestamp : Int;
   };
 
-  public type BookingQuery = {
-    hotelId : ?Principal;
-    status : ?BookingStatus;
-    fromDate : ?Int;
-    toDate : ?Int;
-    minPrice : ?Nat;
-    maxPrice : ?Nat;
-  };
-
-  public type UserProfile = {
+  type UserProfile = {
     name : Text;
     email : ?Text;
     phone : ?Text;
   };
 
-  public type RoomQuery = {
-    hotelId : ?Principal;
-    minPrice : ?Nat;
-    maxPrice : ?Nat;
-    roomType : ?Text;
-    availableOnly : ?Bool;
-  };
-
-  public type OldHotelData = {
-    id : Principal;
-    name : Text;
-    location : Text;
-    address : Text;
-    mapLink : Text;
-    active : Bool;
-    rooms : List.List<Nat>;
-    bookings : List.List<Nat>;
-    paymentMethods : List.List<PaymentMethod>;
-  };
-
-  public type OldActor = {
-    roomsMap : Map.Map<Nat, Room>;
-    bookingsMap : Map.Map<Nat, BookingRequest>;
-    userProfiles : Map.Map<Principal, UserProfile>;
-    hotelsMap : Map.Map<Principal, OldHotelData>;
-    inviteTokens : Map.Map<Text, InviteToken>;
-    payments : Map.Map<Nat, Payment>;
-    directHotelActivations : Map.Map<Principal, Bool>;
-    accessControlState : AccessControl.AccessControlState;
-    inviteState : InviteLinksModule.InviteLinksSystemState;
-  };
-
-  public type NewActor = {
-    roomsMap : Map.Map<Nat, Room>;
-    bookingsMap : Map.Map<Nat, BookingRequest>;
-    userProfiles : Map.Map<Principal, UserProfile>;
+  type OldActor = {
     hotelsMap : Map.Map<Principal, HotelData>;
+    bookingsMap : Map.Map<Nat, BookingRequest>;
+    roomsMap : Map.Map<Nat, Room>;
+    userProfiles : Map.Map<Principal, UserProfile>;
     inviteTokens : Map.Map<Text, InviteToken>;
     payments : Map.Map<Nat, Payment>;
     directHotelActivations : Map.Map<Principal, Bool>;
-    accessControlState : AccessControl.AccessControlState;
-    inviteState : InviteLinksModule.InviteLinksSystemState;
+  };
+
+  type NewActor = {
+    hotelsMap : Map.Map<Principal, HotelData>;
+    bookingsMap : Map.Map<Nat, BookingRequest>;
+    roomsMap : Map.Map<Nat, Room>;
+    userProfiles : Map.Map<Principal, UserProfile>;
+    inviteTokens : Map.Map<Text, InviteToken>;
+    payments : Map.Map<Nat, Payment>;
+    directHotelActivations : Map.Map<Principal, Bool>;
   };
 
   public func run(old : OldActor) : NewActor {
-    let newHotelsMap = old.hotelsMap.map<Principal, OldHotelData, HotelData>(
-      func(_id, oldHotel) {
-        {
-          oldHotel with
-          contact = {
-            whatsapp = null;
-            email = null;
-          };
-          subscriptionStatus = #unpaid;
-        };
-      }
-    );
-    {
-      old with
-      hotelsMap = newHotelsMap;
-    };
+    old;
   };
 };
-
