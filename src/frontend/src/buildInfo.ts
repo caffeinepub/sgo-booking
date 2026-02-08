@@ -1,1 +1,1 @@
-export const BUILD_VERSION = 'sgo-v1-alpha';
+export const BUILD_VERSION = 'v24-restored';

@@ -30,7 +30,7 @@ export function AccessDeniedScreen({ currentRole, requiredRoles, isHotelActivate
 
   const isAdminOnlyPage = requiredRoles?.length === 1 && requiredRoles[0] === UserRole.admin;
   const isHotelRequired = requiredRoles?.includes(UserRole.user);
-  const needsActivation = isHotelRequired && !isHotelActivated && currentRole !== UserRole.admin;
+  const needsActivation = isHotelRequired && !isHotelActivated && currentRole === UserRole.user;
 
   const handleActivationSuccess = () => {
     setTimeout(() => {

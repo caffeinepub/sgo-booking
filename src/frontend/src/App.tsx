@@ -63,6 +63,18 @@ const guestAccountRoute = createRoute({
   ),
 });
 
+const accountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/account',
+  component: () => (
+    <RequireAuth>
+      <ProfileCompletionGate>
+        <GuestAccountPage />
+      </ProfileCompletionGate>
+    </RequireAuth>
+  ),
+});
+
 const accountStatusRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/account-status',
@@ -102,6 +114,7 @@ const routeTree = rootRoute.addChildren([
   browseRoute,
   hotelDetailRoute,
   guestAccountRoute,
+  accountRoute,
   accountStatusRoute,
   hotelAreaRoute,
   adminPanelRoute,

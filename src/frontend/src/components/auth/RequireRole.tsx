@@ -13,10 +13,10 @@ export function RequireRole({ children, allowedRoles }: RequireRoleProps) {
   const { data: role, isLoading: roleLoading, error: roleError } = useGetCallerUserRole();
   const { data: isAdmin, isLoading: adminLoading, error: adminError } = useIsCurrentUserAdmin();
   
-  // Only fetch hotel profile if this route requires hotel activation (UserRole.user in allowedRoles)
-  const needsHotelCheck = allowedRoles.includes(UserRole.user);
+  // Only fetch hotel profile if role is UserRole.user (not just if it's in allowedRoles)
+  const shouldCheckHotelProfile = role === UserRole.user;
   const { data: hotelProfile, isLoading: hotelProfileLoading } = useGetCallerHotelProfile({ 
-    enabled: needsHotelCheck 
+    enabled: shouldCheckHotelProfile 
   });
 
   // If role or admin queries failed, show error screen instead of infinite spinner
@@ -24,8 +24,13 @@ export function RequireRole({ children, allowedRoles }: RequireRoleProps) {
     return <GuardErrorScreen error={roleError || adminError} />;
   }
 
+  // Admin bypass - check first before any loading states
+  if (isAdmin === true) {
+    return <>{children}</>;
+  }
+
   // Determine which queries we're actually waiting for
-  const relevantLoading = roleLoading || adminLoading || (needsHotelCheck && hotelProfileLoading);
+  const relevantLoading = roleLoading || adminLoading || (shouldCheckHotelProfile && hotelProfileLoading);
 
   // Show loading state while checking permissions
   if (relevantLoading) {
@@ -39,18 +44,13 @@ export function RequireRole({ children, allowedRoles }: RequireRoleProps) {
     );
   }
 
-  // Admin bypass for all routes - explicit check for true
-  if (isAdmin === true) {
-    return <>{children}</>;
-  }
-
   // Check if user has required role
   const hasAccess = role && allowedRoles.includes(role);
   
-  // For hotel-specific routes, also check activation
-  // Hotel profile query now returns null on rejection, so we can safely check it
+  // For hotel users accessing hotel routes, also check activation
+  const needsHotelCheck = allowedRoles.includes(UserRole.user);
   const isHotelActivated = !!hotelProfile;
-  const needsActivation = needsHotelCheck && !isHotelActivated;
+  const needsActivation = needsHotelCheck && role === UserRole.user && !isHotelActivated;
 
   if (!hasAccess || needsActivation) {
     return (

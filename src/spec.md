@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Ensure uploaded room photos are visible to Hotel owners and Guests (as in Admin), with click-to-zoom previews and consistent warm/orange styling.
+**Goal:** Restore Version 24 role-based access behavior so Admin and Hotel accounts are no longer treated as Guests, and the Admin Panel (/admin) and Hotel Area (/hotel) are accessible to the correct roles again.
 
 **Planned changes:**
-- Fix backend room/room-photo read visibility so room listings for guests and hotel owners return rooms with a non-empty `pictures` array when photos exist.
-- Hotel Area → Rooms: render all previously uploaded room photos per room (thumbnails), open zoom/preview via the existing `ImagePreviewDialog`, and keep create/edit flows able to add and remove photos.
-- Guest Browse Hotels: show representative room photo thumbnail(s) on each hotel card (similar to Admin presentation), support click-to-zoom via `ImagePreviewDialog`, and show an English “No photos available” placeholder when none exist.
-- Enforce role-based UI: hotel owners can add/remove photos only in room create/edit; guests remain strictly view-only with no edit/delete controls.
-- Apply consistent warm, hospitality-oriented UI theme across Hotel Area Rooms, Browse Hotels, and Hotel Detail (neutral backgrounds + orange accents; avoid blue/purple as primary).
+- Restore frontend role detection and routing/guards so Admin users see the Admin navigation and can access `/admin`, Hotel owners can access `/hotel`, and Guests are denied for both.
+- Fix backend role/authorization checks and any related APIs to return the same Admin/Hotel/Guest results as Version 24 without wiping or reinitializing existing authorization state during deploy/upgrade.
+- Update the frontend build/version identifier to clearly indicate Version 24 is running, and ensure all auth/access user-facing text remains in English.
+- Run and ensure existing regression checks for Authentication & Authorization, Admin Panel access, and Hotel Area access pass after the rollback behavior is restored.
 
-**User-visible outcome:** Hotel owners can see and manage their room photos in the Hotel Area, and guests can see room photo thumbnails while browsing hotels and open photos in a zoom/preview modal, with a consistent warm/orange look and English UI text.
+**User-visible outcome:** Admins can access the Admin Panel and see admin navigation, Hotel owners can access the Hotel Management area and its tabs, and Guests remain blocked from both areas with an access denied screen—matching Version 24 behavior.

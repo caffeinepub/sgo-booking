@@ -1,14 +1,13 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Switch } from '../ui/switch';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useGetHotels, useSetHotelActiveStatus, useSetHotelSubscriptionStatus } from '../../hooks/useQueries';
+import { SubscriptionStatus } from '../../types/extended-backend';
+import { Eye, EyeOff, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { SubscriptionStatus } from '../../backend';
-import { Info } from 'lucide-react';
-import { Alert, AlertDescription } from '../ui/alert';
 
 export function HotelVisibilityPanel() {
   const { data: hotels, isLoading } = useGetHotels();
@@ -23,37 +22,56 @@ export function HotelVisibilityPanel() {
       });
       toast.success(`Hotel ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update hotel status');
+      toast.error(`Failed to update hotel status: ${error.message}`);
     }
   };
 
-  const handleSetSubscriptionStatus = async (hotelId: any, status: SubscriptionStatus) => {
+  const handleSubscriptionChange = async (hotelId: any, status: SubscriptionStatus) => {
     try {
-      await setSubscriptionStatus.mutateAsync({ hotelId, status });
-      toast.success(`Subscription status updated to ${status}`);
+      await setSubscriptionStatus.mutateAsync({
+        hotelId,
+        status,
+      });
+      toast.success('Subscription status updated successfully');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update subscription status');
+      toast.error(`Failed to update subscription: ${error.message}`);
     }
   };
 
   const getSubscriptionBadge = (status: SubscriptionStatus) => {
     switch (status) {
       case SubscriptionStatus.paid:
-        return <Badge variant="default" className="bg-green-600">Paid</Badge>;
+        return (
+          <Badge variant="default" className="gap-1">
+            <CheckCircle className="h-3 w-3" />
+            Paid
+          </Badge>
+        );
       case SubscriptionStatus.unpaid:
-        return <Badge variant="destructive">Unpaid</Badge>;
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <XCircle className="h-3 w-3" />
+            Unpaid
+          </Badge>
+        );
       case SubscriptionStatus.test:
-        return <Badge variant="secondary">TEST</Badge>;
-      default:
-        return <Badge variant="secondary">Unknown</Badge>;
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Test
+          </Badge>
+        );
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Hotel Visibility & Subscription Management</CardTitle>
-        <CardDescription>Control which hotels are visible to guests and manage subscription status</CardDescription>
+        <CardTitle>Hotel Visibility Control</CardTitle>
+        <CardDescription>
+          Manage which hotels are visible to guests. Only active hotels with Paid or TEST subscription appear in
+          Browse Hotels.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -66,84 +84,67 @@ export function HotelVisibilityPanel() {
             <p>No hotels registered yet</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                <div className="space-y-2">
-                  <p className="font-semibold">How it works:</p>
-                  <ul className="text-sm space-y-1 ml-4 list-disc">
-                    <li>
-                      <strong>Active/Inactive:</strong> Only active hotels appear in guest browse. Deactivate to hide from guests.
-                    </li>
-                    <li>
-                      <strong>Paid/Unpaid:</strong> Monthly subscription status. Unpaid hotels are hidden from guests and cannot be booked.
-                    </li>
-                    <li>
-                      <strong>TEST/DUMMY:</strong> Mark example hotels as TEST. TEST hotels are hidden from guests even if active.
-                    </li>
-                  </ul>
-                </div>
-              </AlertDescription>
-            </Alert>
-
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hotel Name</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Active</TableHead>
-                    <TableHead>Subscription</TableHead>
-                    <TableHead>Actions</TableHead>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Hotel Name</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Subscription</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {hotels.map((hotel) => (
+                  <TableRow key={hotel.id.toString()}>
+                    <TableCell className="font-medium">{hotel.name}</TableCell>
+                    <TableCell>{hotel.location}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={hotel.subscriptionStatus}
+                        onValueChange={(value) =>
+                          handleSubscriptionChange(hotel.id, value as SubscriptionStatus)
+                        }
+                        disabled={setSubscriptionStatus.isPending}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={SubscriptionStatus.paid}>Paid</SelectItem>
+                          <SelectItem value={SubscriptionStatus.unpaid}>Unpaid</SelectItem>
+                          <SelectItem value={SubscriptionStatus.test}>Test</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      {hotel.active ? (
+                        <Badge variant="default" className="gap-1">
+                          <Eye className="h-3 w-3" />
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="gap-1">
+                          <EyeOff className="h-3 w-3" />
+                          Inactive
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant={hotel.active ? 'outline' : 'default'}
+                        onClick={() => handleToggleActive(hotel.id, hotel.active)}
+                        disabled={setActiveStatus.isPending}
+                      >
+                        {hotel.active ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {hotels.map((hotel) => (
-                    <TableRow key={hotel.id.toString()}>
-                      <TableCell className="font-medium">{hotel.name}</TableCell>
-                      <TableCell>{hotel.location}</TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={hotel.active}
-                          onCheckedChange={() => handleToggleActive(hotel.id, hotel.active)}
-                          disabled={setActiveStatus.isPending}
-                        />
-                      </TableCell>
-                      <TableCell>{getSubscriptionBadge(hotel.subscriptionStatus)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSetSubscriptionStatus(hotel.id, SubscriptionStatus.paid)}
-                            disabled={setSubscriptionStatus.isPending || hotel.subscriptionStatus === SubscriptionStatus.paid}
-                          >
-                            Mark Paid
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSetSubscriptionStatus(hotel.id, SubscriptionStatus.unpaid)}
-                            disabled={setSubscriptionStatus.isPending || hotel.subscriptionStatus === SubscriptionStatus.unpaid}
-                          >
-                            Mark Unpaid
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSetSubscriptionStatus(hotel.id, SubscriptionStatus.test)}
-                            disabled={setSubscriptionStatus.isPending || hotel.subscriptionStatus === SubscriptionStatus.test}
-                          >
-                            Mark as TEST
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>

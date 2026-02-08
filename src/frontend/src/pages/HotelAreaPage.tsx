@@ -9,9 +9,12 @@ import { SubscriptionPanel } from '../components/hotel/SubscriptionPanel';
 import { HotelPaymentMethodsPanel } from '../components/hotel/HotelPaymentMethodsPanel';
 import { useGetCallerHotelProfile } from '../hooks/useQueries';
 import { Building2, AlertCircle } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { useNavigate } from '@tanstack/react-router';
 
 export function HotelAreaPage() {
   const { data: hotelProfile, isLoading } = useGetCallerHotelProfile();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -39,10 +42,18 @@ export function HotelAreaPage() {
               Your hotel profile could not be loaded. Please ensure you have completed the activation process.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
               If you believe this is an error, please contact support or try logging out and back in.
             </p>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate({ to: '/account' })} variant="outline">
+                Go to Account Status
+              </Button>
+              <Button onClick={() => navigate({ to: '/' })} variant="ghost">
+                Back to Home
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

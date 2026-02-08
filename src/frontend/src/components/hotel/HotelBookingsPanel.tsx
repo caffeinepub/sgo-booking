@@ -9,7 +9,7 @@ import { formatMoney } from '../../utils/money';
 export function HotelBookingsPanel() {
   const { data: hotelProfile } = useGetCallerHotelProfile();
   const { data: bookingsResult, isLoading } = useGetBookings({
-    hotelId: hotelProfile?.id,
+    hotelId: hotelProfile?.id || null,
   });
 
   const bookings = bookingsResult?.bookings || [];

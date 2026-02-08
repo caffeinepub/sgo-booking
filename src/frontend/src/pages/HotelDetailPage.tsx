@@ -1,77 +1,38 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { Principal } from '@icp-sdk/core/principal';
+import { useGetHotels, useGetRooms } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Separator } from '../components/ui/separator';
-import { useGetHotels, useGetRooms } from '../hooks/useQueries';
 import { BookingForm } from '../components/booking/BookingForm';
 import { HotelPaymentMethodsList } from '../components/payments/HotelPaymentMethodsList';
 import { RoomPhotosSection } from '../components/hotel/RoomPhotosSection';
-import { ImagePreviewDialog } from '../components/common/ImagePreviewDialog';
-import { MapPin, ExternalLink, Loader2, AlertCircle, Home } from 'lucide-react';
 import { formatMoney } from '../utils/money';
+import { Building2, MapPin, ArrowLeft, ExternalLink } from 'lucide-react';
 
 export default function HotelDetailPage() {
   const { hotelId } = useParams({ from: '/browse/$hotelId' });
   const navigate = useNavigate();
-  const { data: hotels, isLoading: hotelsLoading, error: hotelsError } = useGetHotels();
-  
-  const hotelPrincipal = hotelId ? Principal.fromText(hotelId) : undefined;
-  const { data: rooms, isLoading: roomsLoading, error: roomsError } = useGetRooms({ hotelId: hotelPrincipal });
-  
-  const [selectedRoom, setSelectedRoom] = useState<any>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const { data: hotels, isLoading: hotelsLoading } = useGetHotels();
 
+  const hotelPrincipal = Principal.fromText(hotelId);
   const hotel = hotels?.find((h) => h.id.toString() === hotelId);
-  const hotelRooms = rooms?.filter((r) => r.hotelId.toString() === hotelId) || [];
+
+  const { data: rooms, isLoading: roomsLoading, error: roomsError } = useGetRooms({ hotelId: hotelPrincipal || null });
+
+  const [selectedRoom, setSelectedRoom] = React.useState<any>(null);
 
   if (hotelsLoading || roomsLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading hotel details...</p>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading hotel details...</p>
+          </div>
         </div>
-      </div>
-    );
-  }
-
-  if (hotelsError) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error Loading Hotels</AlertTitle>
-          <AlertDescription>
-            {hotelsError instanceof Error ? hotelsError.message : 'Failed to load hotel data. Please try again.'}
-          </AlertDescription>
-        </Alert>
-        <Button onClick={() => navigate({ to: '/browse' })} className="mt-4 gap-2">
-          <Home className="h-4 w-4" />
-          Back to Hotels
-        </Button>
-      </div>
-    );
-  }
-
-  if (roomsError) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error Loading Rooms</AlertTitle>
-          <AlertDescription>
-            {roomsError instanceof Error ? roomsError.message : 'Failed to load room data. Please try again.'}
-          </AlertDescription>
-        </Alert>
-        <Button onClick={() => navigate({ to: '/browse' })} className="mt-4 gap-2">
-          <Home className="h-4 w-4" />
-          Back to Hotels
-        </Button>
       </div>
     );
   }
@@ -79,138 +40,137 @@ export default function HotelDetailPage() {
   if (!hotel) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Hotel Not Found</AlertTitle>
-          <AlertDescription>
-            The hotel you're looking for doesn't exist or is no longer available.
-          </AlertDescription>
-        </Alert>
-        <Button onClick={() => navigate({ to: '/browse' })} className="mt-4 gap-2">
-          <Home className="h-4 w-4" />
-          Back to Hotels
-        </Button>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground mb-4">Hotel not found</p>
+            <Button onClick={() => navigate({ to: '/browse' })}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Browse
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Hotel Header */}
-      <div className="mb-8">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">{hotel.name}</h1>
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <MapPin className="h-4 w-4" />
-              <span>{hotel.location}</span>
+      <Button variant="ghost" onClick={() => navigate({ to: '/browse' })} className="mb-6">
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Browse
+      </Button>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Building2 className="h-6 w-6 text-primary" />
+                    <CardTitle className="text-3xl">{hotel.name}</CardTitle>
+                  </div>
+                  <CardDescription className="flex items-center gap-2 text-base">
+                    <MapPin className="h-4 w-4" />
+                    {hotel.location}
+                  </CardDescription>
+                </div>
+                {hotel.active && <Badge variant="default">Active</Badge>}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-2">Address</h3>
+                <p className="text-muted-foreground">{hotel.address}</p>
+              </div>
+              {hotel.mapLink && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={hotel.mapLink} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View on Map
+                  </a>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Rooms</CardTitle>
+              <CardDescription>
+                {rooms && rooms.length > 0
+                  ? `${rooms.length} room${rooms.length !== 1 ? 's' : ''} available`
+                  : 'No rooms available'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {roomsError ? (
+                <p className="text-destructive text-sm">Failed to load rooms</p>
+              ) : !rooms || rooms.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No rooms available at this hotel</p>
+              ) : (
+                <div className="space-y-4">
+                  {rooms.map((room) => (
+                    <Card key={room.id.toString()} className="overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row gap-4">
+                          <div className="md:w-48 flex-shrink-0">
+                            <RoomPhotosSection 
+                              pictures={room.pictures} 
+                              roomNumber={room.roomNumber}
+                              compact 
+                            />
+                          </div>
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h3 className="font-semibold text-lg">{room.roomType}</h3>
+                                <p className="text-sm text-muted-foreground">Room {room.roomNumber}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold">{formatMoney(room.pricePerNight, room.currency)}</p>
+                                <p className="text-sm text-muted-foreground">per night</p>
+                              </div>
+                            </div>
+                            <Separator />
+                            <Button
+                              onClick={() => setSelectedRoom(room)}
+                              className="w-full md:w-auto"
+                              disabled={selectedRoom?.id === room.id}
+                            >
+                              {selectedRoom?.id === room.id ? 'Selected' : 'Book This Room'}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <HotelPaymentMethodsList
+            paymentMethods={hotel.paymentMethods}
+            contact={hotel.contact}
+            hotelName={hotel.name}
+          />
+        </div>
+
+        <div className="lg:col-span-1">
+          {selectedRoom ? (
+            <div className="sticky top-4">
+              <BookingForm room={selectedRoom} />
             </div>
-            {hotel.address && (
-              <p className="text-sm text-muted-foreground mb-2">{hotel.address}</p>
-            )}
-            {hotel.mapLink && (
-              <a
-                href={hotel.mapLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-              >
-                <ExternalLink className="h-3 w-3" />
-                View on Map
-              </a>
-            )}
-          </div>
-          <Badge variant={hotel.active ? 'default' : 'secondary'}>
-            {hotel.active ? 'Active' : 'Inactive'}
-          </Badge>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">Select a room to book</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
-
-      <Separator className="my-8" />
-
-      {/* Available Rooms */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-6">Available Rooms</h2>
-        {hotelRooms.length === 0 ? (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>No Rooms Available</AlertTitle>
-            <AlertDescription>
-              This hotel doesn't have any rooms listed at the moment.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            {hotelRooms.map((room) => (
-              <Card key={room.id.toString()} className="overflow-hidden">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle>Room {room.roomNumber} - {room.roomType}</CardTitle>
-                      <CardDescription className="mt-2">
-                        {formatMoney(room.pricePerNight, room.currency)} per night
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <RoomPhotosSection
-                    pictures={room.pictures || []}
-                    roomNumber={room.roomNumber}
-                    onImageClick={setPreviewImage}
-                    compact={true}
-                  />
-
-                  <Button
-                    onClick={() => setSelectedRoom(room)}
-                    className="w-full"
-                  >
-                    Book This Room
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Separator className="my-8" />
-
-      {/* Payment Methods */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-6">Payment Information</h2>
-        <HotelPaymentMethodsList
-          paymentMethods={hotel.paymentMethods}
-          hotelName={hotel.name}
-          hotelContact={hotel.contact}
-        />
-      </div>
-
-      {/* Booking Dialog */}
-      {selectedRoom && (
-        <Dialog open={!!selectedRoom} onOpenChange={() => setSelectedRoom(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Book Room {selectedRoom.roomNumber}</DialogTitle>
-            </DialogHeader>
-            <BookingForm
-              room={selectedRoom}
-              hotelId={hotel.id}
-              onSuccess={() => {
-                setSelectedRoom(null);
-                navigate({ to: '/account-status' });
-              }}
-              onCancel={() => setSelectedRoom(null)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <ImagePreviewDialog
-        imageUrl={previewImage}
-        onClose={() => setPreviewImage(null)}
-        title="Room Photo"
-      />
     </div>
   );
 }

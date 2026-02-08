@@ -1,65 +1,51 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Add missing room-photos frontend views for hotel and guest accounts so uploaded room photos display (like admin), with hotel manage actions and guest view in Browse Hotels/Hotel Detail.",
+  "summary": "Rollback production deployment from Version 25 to Version 24 to restore correct user roles (admin/hotel/guest) and associated panels/areas.",
   "architectural_notes": [
-    "Room photos are stored (backend) but missing/not implemented in frontend for Hotel and Guest accounts; need parity with Admin UI for display and management permissions."
+    "Production must support rollback to last stable release (Version 24) when critical role/permission regressions occur."
   ],
   "known_issues": [
-    "Room photos are not showing (empty) in Hotel account and Guest account (Browse Hotels), despite uploads/deploys."
+    "Version 25 regression: all accounts (admin/hotel) appear as guest; admin panel and Hotel Area are missing."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-on-the-guest-account-browse-hotels-page-display-room-photo-thumbnails-inside-each-hotel-card-similar-to-admin-s-photo-presentation-and-allow-click-to-zoom-preview",
-      "title": "On the Guest account Browse Hotels page, display room photo thumbnails inside each hotel card (similar to Admin’s photo presentation), and allow click-to-zoom preview.",
+      "id": "feature-restore-the-application-behavior-to-match-version-24-by-fixing-the-version-25-regression-where-admin-and-hotel-accounts-are-treated-as-guest-accounts-causing-the-admin-panel-admin-and-hotel-area-hotel-to-disappear-or-become-inaccessible",
+      "title": "Restore the application behavior to match Version 24 by fixing the Version 25 regression where Admin and Hotel accounts are treated as Guest accounts, causing the Admin Panel (/admin) and Hotel Area (/hotel) to disappear or become inaccessible.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-build-version-identifier-so-production-clearly-reflects-the-rollback-to-version-24-for-verification-and-support-and-ensure-user-facing-text-remains-in-english",
+      "title": "Update the frontend build/version identifier so production clearly reflects the rollback to Version 24 (for verification and support), and ensure user-facing text remains in English.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-apply-a-consistent-visual-theme-across-the-affected-pages-hotel-area-rooms-browse-hotels-hotel-detail-with-a-warm-hospitality-oriented-style-neutral-backgrounds-orange-accents-keeping-typography-and-spacing-consistent-and-avoiding-blue-purple-as-primary-brand-colors",
-      "title": "Apply a consistent visual theme across the affected pages (Hotel Area Rooms, Browse Hotels, Hotel Detail) with a warm, hospitality-oriented style (neutral backgrounds + orange accents), keeping typography and spacing consistent and avoiding blue/purple as primary brand colors.",
+      "id": "feature-run-and-pass-the-existing-regression-checks-specifically-for-authentication-authorization-admin-panel-access-and-hotel-area-access-after-the-version-24-rollback-behavior-is-restored",
+      "title": "Run and pass the existing regression checks specifically for Authentication & Authorization, Admin Panel access, and Hotel Area access after the Version 24 rollback behavior is restored.",
       "reqIds": [
-        "REQ-5"
+        "REQ-4"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
-      "id": "AR-1",
-      "summary": "Display uploaded room photos in Hotel account and Guest account (Browse Hotels and Hotel Detail) same as Admin; Hotel can upload/edit/delete, Guest views and can zoom.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
       "id": "AR-2",
-      "summary": "Fix backend room/room-photo visibility so Hotel owners and Guests can fetch rooms (including the `pictures` array) and see the same room photo data that is currently visible in the Admin UI.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "In the Hotel account (Hotel Area → Rooms), render all previously uploaded room photos for each existing room, and ensure the hotel owner can add and remove photos when creating/editing a room.",
+      "summary": "Ensure backend authorization and role detection APIs used by the frontend (e.g., user role and admin checks) return correct results consistent with Version 24, and do not reset or corrupt existing role/authorization state during upgrade/deploy.",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Enforce role-based room photo UI permissions consistently: Hotel owners can add/remove photos via room create/edit; Guests are view-only and cannot see any edit/delete controls for room photos.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "status": "pending"
     }
   ],
-  "projectName": "Show uploaded room photos in Hotel account and Guest Browse Hotels (with zoom)",
+  "projectName": "Rollback Version 25 regression by restoring Version 24 role-based access (Admin/Hotel/Guest) and panels",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -1,119 +1,118 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Alert, AlertDescription } from '../ui/alert';
 import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useGetCallerUserRole, useIsCurrentUserAdmin, useGetHotels } from '../../hooks/useQueries';
-import { Info, CheckCircle2, XCircle } from 'lucide-react';
-import { isDebugEnabled } from '../../utils/debugFlags';
+import { useGetCallerUserRole, useIsCurrentUserAdmin, useGetCallerHotelProfile } from '../../hooks/useQueries';
+import { UserRole } from '../../backend';
+import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 export function AuthDiagnosticsPanel() {
   const { identity } = useInternetIdentity();
   const { data: role, isLoading: roleLoading } = useGetCallerUserRole();
   const { data: isAdmin, isLoading: adminLoading } = useIsCurrentUserAdmin();
-  const { data: hotels, isLoading: hotelsLoading } = useGetHotels();
+  const { data: hotelProfile, isLoading: hotelLoading } = useGetCallerHotelProfile();
 
-  if (!isDebugEnabled()) {
-    return null;
-  }
+  const principalId = identity?.getPrincipal().toString() || 'Not authenticated';
 
-  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
-  const principalId = identity?.getPrincipal().toString();
-  const myHotel = hotels?.find((h) => h.id.toString() === principalId);
-  const isHotelActivated = !!myHotel;
+  const getRoleDisplay = (role?: UserRole) => {
+    if (!role) return 'Unknown';
+    if (role === UserRole.admin) return 'Admin';
+    if (role === UserRole.user) return 'Hotel';
+    return 'Guest';
+  };
+
+  const StatusIcon = ({ status }: { status: boolean | null | undefined }) => {
+    if (status === true) return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    if (status === false) return <XCircle className="h-4 w-4 text-red-500" />;
+    return <AlertCircle className="h-4 w-4 text-amber-500" />;
+  };
 
   return (
-    <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+    <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Info className="h-5 w-5 text-amber-600" />
-          <CardTitle className="text-amber-900 dark:text-amber-100">Auth Diagnostics (Debug Mode)</CardTitle>
-        </div>
-        <CardDescription className="text-amber-700 dark:text-amber-300">
-          Real-time authentication and authorization state
-        </CardDescription>
+        <CardTitle className="text-lg">Authentication Diagnostics (V24)</CardTitle>
+        <CardDescription>Real-time auth state for debugging role/access issues</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">Authenticated</p>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Authenticated:</span>
             <div className="flex items-center gap-2">
-              {isAuthenticated ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <Badge variant="default">Yes</Badge>
-                </>
+              <StatusIcon status={!!identity} />
+              <Badge variant={identity ? 'default' : 'secondary'}>
+                {identity ? 'Yes' : 'No'}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Principal ID:</span>
+            <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate">
+              {principalId}
+            </code>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Role:</span>
+            <div className="flex items-center gap-2">
+              {roleLoading ? (
+                <span className="text-xs text-muted-foreground">Loading...</span>
               ) : (
                 <>
-                  <XCircle className="h-4 w-4 text-red-600" />
-                  <Badge variant="outline">No</Badge>
+                  <StatusIcon status={!!role} />
+                  <Badge variant={role === UserRole.admin ? 'default' : 'secondary'}>
+                    {getRoleDisplay(role)}
+                  </Badge>
                 </>
               )}
             </div>
           </div>
 
-          <div>
-            <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">Role</p>
-            {roleLoading ? (
-              <Badge variant="outline">Loading...</Badge>
-            ) : (
-              <Badge variant="secondary">{role || 'None'}</Badge>
-            )}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Is Admin:</span>
+            <div className="flex items-center gap-2">
+              {adminLoading ? (
+                <span className="text-xs text-muted-foreground">Loading...</span>
+              ) : (
+                <>
+                  <StatusIcon status={isAdmin} />
+                  <Badge variant={isAdmin ? 'default' : 'secondary'}>
+                    {isAdmin ? 'Yes' : 'No'}
+                  </Badge>
+                </>
+              )}
+            </div>
           </div>
 
-          <div>
-            <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">Is Admin</p>
-            {adminLoading ? (
-              <Badge variant="outline">Loading...</Badge>
-            ) : (
-              <div className="flex items-center gap-2">
-                {isAdmin ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <Badge variant="default">Yes</Badge>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-4 w-4 text-gray-400" />
-                    <Badge variant="outline">No</Badge>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">Hotel Activated</p>
-            {hotelsLoading ? (
-              <Badge variant="outline">Loading...</Badge>
-            ) : (
-              <div className="flex items-center gap-2">
-                {isHotelActivated ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <Badge variant="default">Yes</Badge>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-4 w-4 text-gray-400" />
-                    <Badge variant="outline">No</Badge>
-                  </>
-                )}
-              </div>
-            )}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Hotel Activated:</span>
+            <div className="flex items-center gap-2">
+              {hotelLoading ? (
+                <span className="text-xs text-muted-foreground">Loading...</span>
+              ) : (
+                <>
+                  <StatusIcon status={!!hotelProfile} />
+                  <Badge variant={hotelProfile ? 'default' : 'secondary'}>
+                    {hotelProfile ? 'Yes' : 'No'}
+                  </Badge>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {principalId && (
-          <Alert className="bg-white dark:bg-gray-900">
-            <AlertDescription className="text-xs font-mono break-all">{principalId}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
-          <p>• Hotel Area visible: {isAdmin || (role === 'user' && isHotelActivated) ? 'Yes' : 'No'}</p>
-          <p>• Admin Panel visible: {isAdmin ? 'Yes' : 'No'}</p>
-          <p>• Total hotels in system: {hotels?.length || 0}</p>
+        <div className="pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground">
+            <strong>Expected behavior (V24):</strong>
+            <br />
+            • Admin accounts: isAdmin=true, can access /admin and /hotel
+            <br />
+            • Hotel accounts: role=Hotel, hotelActivated=true, can access /hotel
+            <br />
+            • Guest accounts: role=Guest, cannot access /admin or /hotel
+            <br />
+            • Query keys are scoped to principal to prevent cross-session cache pollution
+          </p>
         </div>
       </CardContent>
     </Card>

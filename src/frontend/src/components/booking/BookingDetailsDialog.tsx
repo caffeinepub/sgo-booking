@@ -1,134 +1,107 @@
-import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../ui/dialog';
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { BookingRequest } from '../../backend';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
+import { BookingRequest } from '../../types/extended-backend';
 import { BookingStatusBadge } from './BookingStatusBadge';
 import { formatMoney } from '../../utils/money';
-import { Copy, Check, Eye } from 'lucide-react';
+import { Eye, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BookingDetailsDialogProps {
   booking: BookingRequest;
-  trigger?: React.ReactNode;
   showGuestPrincipal?: boolean;
 }
 
-export function BookingDetailsDialog({ booking, trigger, showGuestPrincipal = false }: BookingDetailsDialogProps) {
-  const [copied, setCopied] = useState(false);
+export function BookingDetailsDialog({ booking, showGuestPrincipal = false }: BookingDetailsDialogProps) {
+  const [copied, setCopied] = React.useState(false);
 
-  const handleCopyPrincipal = async () => {
-    try {
-      await navigator.clipboard.writeText(booking.userId.toString());
-      setCopied(true);
-      toast.success('Guest Internet Identity copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast.error('Failed to copy to clipboard');
-    }
+  const handleCopyPrincipal = () => {
+    navigator.clipboard.writeText(booking.userId.toString());
+    setCopied(true);
+    toast.success('Guest principal copied to clipboard');
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="outline" size="sm" className="gap-2">
-            <Eye className="h-4 w-4" />
-            View Details
-          </Button>
-        )}
+        <Button variant="ghost" size="sm">
+          <Eye className="h-4 w-4 mr-1" />
+          View
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Booking Details</DialogTitle>
-          <DialogDescription>Complete information for booking #{booking.id.toString()}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm font-medium text-muted-foreground">Booking ID</div>
-              <div className="font-mono text-sm">#{booking.id.toString()}</div>
+              <p className="text-sm text-muted-foreground">Booking ID</p>
+              <p className="font-mono text-sm">#{booking.id.toString()}</p>
             </div>
             <div>
-              <div className="text-sm font-medium text-muted-foreground">Status</div>
-              <div className="mt-1">
-                <BookingStatusBadge status={booking.status} />
-              </div>
+              <p className="text-sm text-muted-foreground">Status</p>
+              <BookingStatusBadge status={booking.status} />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Check-in</p>
+              <p className="font-medium">{new Date(Number(booking.checkIn) / 1000000).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Check-out</p>
+              <p className="font-medium">{new Date(Number(booking.checkOut) / 1000000).toLocaleDateString()}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm font-medium text-muted-foreground">Check-in</div>
-              <div>{new Date(Number(booking.checkIn) / 1000000).toLocaleDateString()}</div>
+              <p className="text-sm text-muted-foreground">Guests</p>
+              <p className="font-medium">{booking.guests.toString()}</p>
             </div>
             <div>
-              <div className="text-sm font-medium text-muted-foreground">Check-out</div>
-              <div>{new Date(Number(booking.checkOut) / 1000000).toLocaleDateString()}</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Guests</div>
-              <div>{booking.guests.toString()}</div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Total Price</div>
-              <div className="font-semibold">{formatMoney(booking.totalPrice, booking.currency)}</div>
+              <p className="text-sm text-muted-foreground">Total Price</p>
+              <p className="font-semibold text-lg">{formatMoney(booking.totalPrice, booking.currency)}</p>
             </div>
           </div>
 
           {showGuestPrincipal && (
-            <div className="border-t pt-4">
-              <div className="text-sm font-medium text-muted-foreground mb-2">Guest Internet Identity</div>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-muted px-3 py-2 rounded text-xs break-all">
-                  {booking.userId.toString()}
-                </code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyPrincipal}
-                  className="gap-2 shrink-0"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copy
-                    </>
-                  )}
-                </Button>
+            <>
+              <Separator />
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Guest Internet Identity</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-muted px-2 py-1 rounded truncate">
+                    {booking.userId.toString()}
+                  </code>
+                  <Button variant="ghost" size="sm" onClick={handleCopyPrincipal}>
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
-          {booking.hotelId && (
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">Hotel ID</div>
-              <code className="text-xs break-all">{booking.hotelId.toString()}</code>
-            </div>
+          {booking.paymentProof && (
+            <>
+              <Separator />
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Payment Proof</p>
+                <Badge variant="default">Uploaded</Badge>
+              </div>
+            </>
           )}
 
           <div>
-            <div className="text-sm font-medium text-muted-foreground">Room ID</div>
-            <div className="font-mono text-sm">#{booking.roomId.toString()}</div>
-          </div>
-
-          <div>
-            <div className="text-sm font-medium text-muted-foreground">Booking Created</div>
-            <div className="text-sm">{new Date(Number(booking.timestamp) / 1000000).toLocaleString()}</div>
+            <p className="text-sm text-muted-foreground">Booking Date</p>
+            <p className="text-sm">{new Date(Number(booking.timestamp) / 1000000).toLocaleString()}</p>
           </div>
         </div>
       </DialogContent>

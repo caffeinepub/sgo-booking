@@ -5,21 +5,28 @@ import { Button } from '../components/ui/button';
 import { Building2, MapPin, ImageIcon } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { ImagePreviewDialog } from '../components/common/ImagePreviewDialog';
+import { getFirstValidPicture } from '../utils/roomPictures';
 
 export function BrowseHotelsPage() {
   const { data: hotels, isLoading } = useGetHotels();
   const navigate = useNavigate();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const getRepresentativePhoto = (hotel: any): string | null => {
     if (!hotel.rooms || hotel.rooms.length === 0) return null;
     
     for (const room of hotel.rooms) {
       if (room.pictures && room.pictures.length > 0) {
-        return room.pictures[0];
+        const validPic = getFirstValidPicture(room.pictures);
+        if (validPic) return validPic;
       }
     }
     return null;
+  };
+
+  const handleImageError = (hotelId: string) => {
+    setImageErrors((prev) => new Set(prev).add(hotelId));
   };
 
   return (
@@ -47,12 +54,15 @@ export function BrowseHotelsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {hotels.map((hotel) => {
+              const hotelKey = hotel.id.toString();
               const representativePhoto = getRepresentativePhoto(hotel);
+              const hasImageError = imageErrors.has(hotelKey);
+              const showPhoto = representativePhoto && !hasImageError;
               
               return (
-                <Card key={hotel.id.toString()} className="hover:shadow-lg transition-shadow overflow-hidden">
+                <Card key={hotelKey} className="hover:shadow-lg transition-shadow overflow-hidden">
                   {/* Room Photo Thumbnail */}
-                  {representativePhoto ? (
+                  {showPhoto ? (
                     <div 
                       className="relative w-full h-48 overflow-hidden bg-muted cursor-pointer group"
                       onClick={() => setPreviewImage(representativePhoto)}
@@ -61,6 +71,7 @@ export function BrowseHotelsPage() {
                         src={representativePhoto}
                         alt={`${hotel.name} room`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={() => handleImageError(hotelKey)}
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                     </div>

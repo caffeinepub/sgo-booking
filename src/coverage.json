@@ -1,66 +1,65 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T21:11:05.266Z",
+  "generatedAt": "2026-02-08T22:03:27.252Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
-    "implemented": 2,
+    "total": 4,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix backend room/room-photo visibility so Hotel owners and Guests can fetch rooms (including the `pictures` array) and see the same room photo data that is currently visible in the Admin UI.",
+        "summary": "Restore the application behavior to match Version 24 by fixing the Version 25 regression where Admin and Hotel accounts are treated as Guest accounts, causing the Admin Panel (/admin) and Hotel Area (/hotel) to disappear or become inaccessible.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/auth/RequireRole.tsx",
+          "frontend/src/components/nav/TopNav.tsx",
+          "frontend/src/pages/HotelAreaPage.tsx",
+          "frontend/src/components/auth/AccessDeniedScreen.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/auth/RequireRole.tsx",
+          "frontend/src/components/nav/TopNav.tsx",
+          "frontend/src/pages/HotelAreaPage.tsx",
+          "frontend/src/components/auth/AccessDeniedScreen.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Ensure backend authorization and role detection APIs used by the frontend (e.g., user role and admin checks) return correct results consistent with Version 24, and do not reset or corrupt existing role/authorization state during upgrade/deploy.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-2",
-        "summary": "In the Hotel account (Hotel Area → Rooms), render all previously uploaded room photos for each existing room, and ensure the hotel owner can add and remove photos when creating/editing a room.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/components/hotel/RoomPhotosSection.tsx"
-        ],
-        "matchedFiles": []
-      },
-      {
         "id": "REQ-3",
-        "summary": "On the Guest account Browse Hotels page, display room photo thumbnails inside each hotel card (similar to Admin’s photo presentation), and allow click-to-zoom preview.",
+        "summary": "Update the frontend build/version identifier so production clearly reflects the rollback to Version 24 (for verification and support), and ensure user-facing text remains in English.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/BrowseHotelsPage.tsx",
-          "frontend/src/components/common/ImagePreviewDialog.tsx"
+          "frontend/src/buildInfo.ts",
+          "frontend/src/components/layout/AppShell.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/BrowseHotelsPage.tsx"
+          "frontend/src/buildInfo.ts",
+          "frontend/src/components/layout/AppShell.tsx"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Enforce role-based room photo UI permissions consistently: Hotel owners can add/remove photos via room create/edit; Guests are view-only and cannot see any edit/delete controls for room photos.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Apply a consistent visual theme across the affected pages (Hotel Area Rooms, Browse Hotels, Hotel Detail) with a warm, hospitality-oriented style (neutral backgrounds + orange accents), keeping typography and spacing consistent and avoiding blue/purple as primary brand colors.",
+        "summary": "Run and pass the existing regression checks specifically for Authentication & Authorization, Admin Panel access, and Hotel Area access after the Version 24 rollback behavior is restored.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/BrowseHotelsPage.tsx",
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx",
-          "frontend/src/index.css"
+          "frontend/REGRESSION_CHECKLIST.md",
+          "frontend/src/components/debug/AuthDiagnosticsPanel.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/BrowseHotelsPage.tsx"
+          "frontend/REGRESSION_CHECKLIST.md",
+          "frontend/src/components/debug/AuthDiagnosticsPanel.tsx"
         ]
       }
     ]
@@ -71,7 +70,32 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/pages/BrowseHotelsPage.tsx",
+    "frontend/REGRESSION_CHECKLIST.md",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/buildInfo.ts",
+    "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+    "frontend/src/components/auth/AccessDeniedScreen.tsx",
+    "frontend/src/components/auth/ProfileCompletionGate.tsx",
+    "frontend/src/components/auth/RequireRole.tsx",
+    "frontend/src/components/booking/BookingDetailsDialog.tsx",
+    "frontend/src/components/booking/BookingForm.tsx",
+    "frontend/src/components/booking/BookingStatusBadge.tsx",
+    "frontend/src/components/debug/AuthDiagnosticsPanel.tsx",
+    "frontend/src/components/hotel/HotelBookingsPanel.tsx",
+    "frontend/src/components/hotel/RecordStayPanel.tsx",
+    "frontend/src/components/hotel/RoomsPanel.tsx",
+    "frontend/src/components/hotel/SubscriptionPanel.tsx",
+    "frontend/src/components/layout/AppShell.tsx",
+    "frontend/src/components/nav/TopNav.tsx",
+    "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/HotelAreaPage.tsx",
+    "frontend/src/pages/HotelDetailPage.tsx",
+    "frontend/src/types/extended-backend.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

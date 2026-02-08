@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '../ui/badge';
-import { BookingStatus } from '../../backend';
+import { BookingStatus } from '../../types/extended-backend';
 
 interface BookingStatusBadgeProps {
   status: BookingStatus;
@@ -9,32 +9,31 @@ interface BookingStatusBadgeProps {
 export function BookingStatusBadge({ status }: BookingStatusBadgeProps) {
   const getVariant = () => {
     switch (status) {
-      case 'booked':
+      case BookingStatus.booked:
+      case BookingStatus.checkedIn:
         return 'default';
-      case 'checkedIn':
+      case BookingStatus.pendingTransfer:
         return 'secondary';
-      case 'pendingTransfer':
-        return 'outline';
-      case 'canceled':
-      case 'paymentFailed':
+      case BookingStatus.paymentFailed:
+      case BookingStatus.canceled:
         return 'destructive';
       default:
-        return 'outline';
+        return 'secondary';
     }
   };
 
   const getLabel = () => {
     switch (status) {
-      case 'booked':
-        return 'Booked';
-      case 'checkedIn':
-        return 'Checked In';
-      case 'pendingTransfer':
+      case BookingStatus.pendingTransfer:
         return 'Pending Transfer';
-      case 'canceled':
-        return 'Canceled';
-      case 'paymentFailed':
+      case BookingStatus.paymentFailed:
         return 'Payment Failed';
+      case BookingStatus.booked:
+        return 'Booked';
+      case BookingStatus.checkedIn:
+        return 'Checked In';
+      case BookingStatus.canceled:
+        return 'Canceled';
       default:
         return status;
     }
