@@ -61,6 +61,7 @@ export interface BookingRequest {
   checkOut: bigint;
   totalPrice: bigint;
   guests: bigint;
+  roomsCount: bigint;
   timestamp: bigint;
   paymentProof: string | null;
   currency: string;
@@ -162,6 +163,7 @@ export interface ExtendedBackendInterface {
     checkIn: bigint,
     checkOut: bigint,
     guests: bigint,
+    roomsCount: bigint,
     currency: string
   ): Promise<bigint>;
   setPaymentProof(bookingId: bigint, paymentProof: string): Promise<void>;

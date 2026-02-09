@@ -1,22 +1,167 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add focused frontend regression checklist for hotel profile/rooms/browsing/admin visibility",
+  "title": "Guest bookings, hotel/admin booking management, and hotel-managed payment methods (frontend)",
   "requirements": [
     {
-      "id": "REQ-11",
-      "summary": "Add a focused regression check section to the existing frontend regression checklist covering hotel profile save, room create/update with photos, guest hotel browsing visibility, and admin hotel visibility toggles.",
+      "id": "REQ-12",
+      "summary": "Implement a standard guest booking flow on the Hotel Detail page (room selection → dates/rooms/guests → submit → success state).",
       "acceptanceCriteria": [
-        "Hotel portal: profile Save succeeds and persists after refresh.",
-        "Hotel portal: create room + upload/add pictures succeeds; room persists after refresh.",
-        "Guest portal: Browse Hotels lists active hotels; can open a hotel detail page.",
-        "Admin portal: Hotel Visibility Control lists hotels and can toggle active/subscription status without errors."
+        "On `/browse/$hotelId`, after selecting a room, the booking form collects: check-in date, check-out date, number of rooms, and number of guests.",
+        "Submitting the form creates a booking via the backend and shows a clear success state (e.g., booking ID and initial status).",
+        "Validation prevents invalid input (e.g., check-out <= check-in; rooms/guests < 1).",
+        "The previous 'Booking functionality coming soon/unavailable' placeholder messaging is no longer shown when booking is supported."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/booking/BookingForm.tsx",
+          "operation": "modify",
+          "description": "Replace the placeholder UI with a working booking form that accepts selected hotel/room as props, collects check-in/check-out, roomsCount, guests, validates inputs, calls the backend booking creation capability via React Query, and renders a clear success state (booking ID + initial status). Use shadcn-ui form primitives already in the repo (Card, Input, Button, etc.). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/HotelDetailPage.tsx",
+          "operation": "modify",
+          "description": "Wire the selected room and hotel into the updated BookingForm; ensure the right-side panel shows the form only after a room is selected, and remove/avoid any placeholder 'coming soon/unavailable' booking messaging in the booking area. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query mutations/queries used by the booking flow: create booking mutation and any supporting booking queries needed for success state refresh/invalidation. Implement safe actor-method existence checks to avoid runtime errors if the backend capability is missing. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-15",
+      "summary": "Replace the Guest portal 'My Bookings' placeholder with a real bookings table using backend booking data and booking details dialog.",
+      "acceptanceCriteria": [
+        "`/my-bookings` (or the existing My Bookings page) displays bookings for the logged-in guest using backend data.",
+        "Each booking row shows at minimum: hotel, room, check-in/out, roomsCount, guests, totalPrice/currency, and status.",
+        "Booking status updates (after hotel confirmation) are reflected for the guest after refresh/reload (and ideally via React Query invalidation)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/booking/MyBookingsTable.tsx",
+          "operation": "modify",
+          "description": "Implement a bookings table that loads guest bookings via a new `useGetBookings` hook, shows key fields (hotel/room, dates, roomsCount, guests, totalPrice/currency, status via BookingStatusBadge), and opens BookingDetailsDialog per row where appropriate. Remove the placeholder alert content. Use shadcn-ui components (Card, Table primitives if present, Button, etc.). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/MyBookingsPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the page presents the operational MyBookingsTable state (loading/empty/error) consistent with the rest of the UI and remains wired under the existing `/bookings` route. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a guest-scoped bookings query hook (e.g., `useGetBookings(filters)` with empty filters for guest context) and align query keys so that booking creation/confirmation invalidates guest bookings properly. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-16",
+      "summary": "Replace the Hotel Bookings placeholder with a bookings list for the caller hotel and an action to confirm pending bookings.",
+      "acceptanceCriteria": [
+        "Hotel Area → Bookings tab shows bookings belonging to the caller hotel.",
+        "Hotel can confirm a booking; after confirmation, the booking status is shown as confirmed (mapped to the backend status, e.g., `Booked`).",
+        "After confirming, relevant queries are invalidated so the UI updates without manual intervention beyond a normal refresh."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/hotel/HotelBookingsPanel.tsx",
+          "operation": "modify",
+          "description": "Implement a bookings list/table for the hotel owner using the caller hotel profile to scope queries; include an action button to confirm a pending booking by calling the backend booking status update capability; show status with BookingStatusBadge and allow viewing details via BookingDetailsDialog (with guest principal visibility enabled for hotel context if appropriate). Remove placeholder alert content. Use shadcn-ui components for layout and actions. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add hotel-scoped bookings query and update-booking-status mutation hooks, including query invalidation to refresh hotel bookings after confirmation. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-17",
+      "summary": "Replace the Admin Bookings placeholder with a real bookings overview list across hotels.",
+      "acceptanceCriteria": [
+        "Admin Panel → Bookings Overview shows bookings loaded from the backend.",
+        "Admin can see bookings across hotels (not limited to a single hotel).",
+        "Booking status displayed in admin matches guest/hotel views after confirmation."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/admin/AdminBookingsPanel.tsx",
+          "operation": "modify",
+          "description": "Implement an admin bookings overview list/table loading bookings across hotels via the backend booking query capability; show key fields and status with BookingStatusBadge and allow opening BookingDetailsDialog (with guest principal visible). Remove placeholder alert content. Use shadcn-ui components for consistent layout. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Ensure bookings query hooks support an admin context (no hotel filter) and are shared with guest/hotel views; keep query keys consistent so status changes are reflected after invalidation/refresh. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-19",
+      "summary": "Replace the Hotel Payment Methods placeholder with free-form add/list/remove payment methods UI.",
+      "acceptanceCriteria": [
+        "Hotel Area → Payments tab allows adding payment methods (free-form name + details) and shows them immediately after save.",
+        "Hotel can remove an existing payment method and the list updates accordingly.",
+        "No fixed list of providers is enforced; fields accept arbitrary text."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
+          "operation": "modify",
+          "description": "Implement payment method management UI (add: name + details; list existing; remove by action) driven by backend capabilities via React Query. Ensure inputs are free-form and do not enforce any fixed provider list. Use shadcn-ui components (Card, Input, Textarea if present, Button, etc.). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query mutations for adding/removing hotel payment methods and invalidate caller hotel profile and hotels queries so updated methods appear immediately and on guest-facing pages. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-20",
+      "summary": "Ensure hotel email entry is functional in the hotel profile UI and reflected in guest-facing hotel contact areas.",
+      "acceptanceCriteria": [
+        "Saving hotel profile with an email updates the backend `contact.email` field.",
+        "After saving, the Hotel Profile panel reloads and displays the saved email.",
+        "Guest-facing hotel contact displays the email when present (no placeholder text)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/hotel/HotelProfilePanel.tsx",
+          "operation": "modify",
+          "description": "Verify and adjust the hotel profile save flow to ensure the email field is included in the saved payload and consistently reloaded/displayed after save; ensure all user-facing strings added/changed are English and error messages remain clear. Use existing shadcn-ui form components already in the repo. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
+          "operation": "modify",
+          "description": "Ensure guest-facing contact section displays hotel email when present and avoids any placeholder text; keep behavior consistent with WhatsApp display. Use existing shadcn-ui components. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/HotelDetailPage.tsx",
+          "operation": "modify",
+          "description": "Confirm the hotel detail page passes through and renders the latest `contact` data (including email) in guest-facing sections, and ensure there is no placeholder copy for missing email. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-21",
+      "summary": "Add focused regression verification documentation to ensure booking and payment method changes don’t break existing flows.",
+      "acceptanceCriteria": [
+        "Document (in code comments or a short checklist update) the specific steps run to verify: hotel profile save, room create/update, guest hotel browsing, booking creation, booking confirmation, admin booking visibility, and payment methods management.",
+        "No runtime errors like missing actor methods occur for booking/payment/room/profile flows after deployment."
       ],
       "file_operations": [
         {
           "path": "frontend/REGRESSION_CHECKLIST.md",
           "operation": "modify",
-          "description": "Add/refresh a dedicated, high-signal regression subsection (manual checks) that explicitly validates: (1) HotelProfilePanel Save Changes persists and survives refresh, (2) RoomsPanel create/update with multiple photos (data URLs) persists and survives refresh, (3) BrowseHotelsPage shows active hotels and can navigate into HotelDetailPage, and (4) Admin HotelVisibilityPanel can toggle active/subscription and changes persist after refetch/refresh."
+          "description": "Update the checklist with explicit verification steps for: guest booking creation from Hotel Detail, guest bookings table display, hotel booking confirmation, admin bookings overview, and hotel payment methods add/remove; include a check for missing-backend-method runtime failures (graceful UI errors rather than crashes). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add defensive checks and user-safe error propagation in new booking/payment method hooks so missing backend capabilities do not cause uncaught runtime errors, supporting the regression requirement. Verify the component's usage instructions before implementing."
         }
       ]
     }

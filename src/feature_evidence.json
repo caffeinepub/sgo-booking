@@ -1,4 +1,161 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-replace-the-placeholder-guest-booking-ui-with-a-working-standard-hotel-booking-flow-on-the-hotel-detail-page-guest-selects-a-room-then-can-choose-check-in-date-check-out-date-number-of-rooms-and-number-of-guests-and-submit-a-booking",
+      "featureTitle": "Replace the placeholder guest booking UI with a working standard hotel booking flow on the Hotel Detail page: guest selects a room, then can choose check-in date, check-out date, number of rooms, and number of guests, and submit a booking.",
+      "files": [
+        "frontend/src/components/booking/BookingForm.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/HotelDetailPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-12"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-guest-booking-visibility-in-the-guest-portal-by-replacing-the-placeholder-my-bookings-ui-with-a-real-bookings-table-that-loads-from-getbookings-shows-status-dates-room-quantity-guests-total-price-and-opens-booking-details-using-the-existing-booking-details-dialog-where-appropriate",
+      "featureTitle": "Implement guest booking visibility in the Guest portal by replacing the placeholder 'My Bookings' UI with a real bookings table that loads from `getBookings`, shows status, dates, room quantity, guests, total price, and opens booking details using the existing booking details dialog where appropriate.",
+      "files": [
+        "frontend/src/components/booking/MyBookingsTable.tsx",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-15"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-hotel-side-booking-management-by-replacing-the-placeholder-hotel-bookings-panel-with-a-list-table-of-bookings-for-the-caller-hotel-including-an-action-to-confirm-a-pending-booking-calling-updatebookingstatus",
+      "featureTitle": "Implement hotel-side booking management by replacing the placeholder Hotel Bookings panel with a list/table of bookings for the caller hotel, including an action to confirm a pending booking (calling `updateBookingStatus`).",
+      "files": [
+        "frontend/src/components/hotel/HotelBookingsPanel.tsx",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-16"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-admin-side-bookings-overview-by-replacing-the-placeholder-admin-bookings-panel-with-a-real-bookings-list-that-can-display-bookings-across-all-hotels-using-getbookings-including-status-and-key-booking-fields",
+      "featureTitle": "Implement admin-side bookings overview by replacing the placeholder Admin Bookings panel with a real bookings list that can display bookings across all hotels (using `getBookings`), including status and key booking fields.",
+      "files": [
+        "frontend/src/components/admin/AdminBookingsPanel.tsx",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-17"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-replace-the-placeholder-hotel-payment-methods-panel-ui-with-an-operational-management-ui-add-payment-method-name-details-list-existing-methods-and-remove-method-actions-do-not-hardcode-payment-providers-or-countries",
+      "featureTitle": "Replace the placeholder Hotel Payment Methods panel UI with an operational management UI: add payment method (name, details), list existing methods, and remove method actions; do not hardcode payment providers or countries.",
+      "files": [
+        "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-19"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-hotel-email-entry-is-functional-end-to-end-the-hotel-profile-save-flow-must-persist-the-email-field-to-the-backend-and-reflect-it-in-hotel-profile-reads-and-guest-facing-contact-sections-where-applicable",
+      "featureTitle": "Ensure hotel email entry is functional end-to-end: the Hotel Profile Save flow must persist the email field to the backend and reflect it in hotel profile reads and guest-facing contact sections where applicable.",
+      "files": [
+        "frontend/src/components/hotel/HotelProfilePanel.tsx",
+        "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
+        "frontend/src/pages/HotelDetailPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-20"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-focused-regression-verification-aligned-with-frontend-regression-checklist-md-to-confirm-that-enabling-bookings-and-payment-methods-does-not-break-existing-flows-auth-browse-hotels-hotel-profile-rooms-admin-hotel-visibility",
+      "featureTitle": "Add focused regression verification aligned with `frontend/REGRESSION_CHECKLIST.md` to confirm that enabling bookings and payment methods does not break existing flows (auth, browse hotels, hotel profile, rooms, admin hotel visibility).",
+      "files": [
+        "frontend/REGRESSION_CHECKLIST.md",
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-21"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

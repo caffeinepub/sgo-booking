@@ -1,19 +1,80 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 5,
-  "summary": "Fix backend regressions preventing hotel profile saving and cross-portal visibility (hotel/admin/guest), including missing canister API methods for hotel profile updates and listing, and ensuring room/photo data and hotel data persist and are readable across all portals.",
+  "projectStateVersion": 7,
+  "summary": "Fix backend regressions preventing hotel profile saving and cross-portal visibility (hotel/admin/guest), and implement a standard hotel booking flow (select room, quantity, guests, dates) with booking visibility and status sync across guest/hotel/admin portals, plus enable hotel-managed flexible payment methods and hotel email entry.",
   "architectural_notes": [
     "Backend must expose a working createRoom function (previously existed) for saving room data including photo upload; client currently calls extendedActor.createRoom.",
     "Frontend is calling a hotel profile update API (error reported: `extendedActor.updateHotelProfile is not a function`); backend Candid/actor must expose the expected hotel profile save/update methods.",
-    "Hotel visibility across portals depends on backend listing/filtering (e.g., active/published/approved/subscription/token-used status) and persisted hotel records; ensure admin/guest listings source from correct storage and criteria."
+    "Hotel visibility across portals depends on backend listing/filtering (e.g., active/published/approved/subscription/token-used status) and persisted hotel records; ensure admin/guest listings source from correct storage and criteria.",
+    "Booking system requires persisted Booking records with status transitions (e.g., Pending -> Confirmed) and cross-portal query APIs so guest/hotel/admin all read the same source of truth.",
+    "Payment methods must be stored as hotel-defined/free-form entries (not hardcoded providers) and surfaced to guests as options including pay-online vs pay-at-hotel."
   ],
   "known_issues": [
     "Regression: hotel cannot save room data (including room photo upload). Error shown: “extendedActor.createRoom is not a function” and all room fields fail to save.",
     "Regression: Hotel profile Save does not work; runtime error reported: `extendedActor.updateHotelProfile is not a function`.",
-    "Hotels do not appear in admin and guest portals (shows 'No Hotels Available') even after hotel profile is filled and marked active / token used."
+    "Hotels do not appear in admin and guest portals (shows 'No Hotels Available') even after hotel profile is filled and marked active / token used.",
+    "Guest booking is currently unavailable (UI indicates 'Booking functionality is currently unavailable/coming soon'), so bookings cannot be created.",
+    "Hotel portal cannot currently add/manage payment methods and cannot save hotel email (features not active)."
   ],
   "isFixRequest": true,
-  "existing_features": [],
+  "existing_features": [
+    {
+      "id": "feature-replace-the-placeholder-guest-booking-ui-with-a-working-standard-hotel-booking-flow-on-the-hotel-detail-page-guest-selects-a-room-then-can-choose-check-in-date-check-out-date-number-of-rooms-and-number-of-guests-and-submit-a-booking",
+      "title": "Replace the placeholder guest booking UI with a working standard hotel booking flow on the Hotel Detail page: guest selects a room, then can choose check-in date, check-out date, number of rooms, and number of guests, and submit a booking.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-guest-booking-visibility-in-the-guest-portal-by-replacing-the-placeholder-my-bookings-ui-with-a-real-bookings-table-that-loads-from-getbookings-shows-status-dates-room-quantity-guests-total-price-and-opens-booking-details-using-the-existing-booking-details-dialog-where-appropriate",
+      "title": "Implement guest booking visibility in the Guest portal by replacing the placeholder 'My Bookings' UI with a real bookings table that loads from `getBookings`, shows status, dates, room quantity, guests, total price, and opens booking details using the existing booking details dialog where appropriate.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-hotel-side-booking-management-by-replacing-the-placeholder-hotel-bookings-panel-with-a-list-table-of-bookings-for-the-caller-hotel-including-an-action-to-confirm-a-pending-booking-calling-updatebookingstatus",
+      "title": "Implement hotel-side booking management by replacing the placeholder Hotel Bookings panel with a list/table of bookings for the caller hotel, including an action to confirm a pending booking (calling `updateBookingStatus`).",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-admin-side-bookings-overview-by-replacing-the-placeholder-admin-bookings-panel-with-a-real-bookings-list-that-can-display-bookings-across-all-hotels-using-getbookings-including-status-and-key-booking-fields",
+      "title": "Implement admin-side bookings overview by replacing the placeholder Admin Bookings panel with a real bookings list that can display bookings across all hotels (using `getBookings`), including status and key booking fields.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-replace-the-placeholder-hotel-payment-methods-panel-ui-with-an-operational-management-ui-add-payment-method-name-details-list-existing-methods-and-remove-method-actions-do-not-hardcode-payment-providers-or-countries",
+      "title": "Replace the placeholder Hotel Payment Methods panel UI with an operational management UI: add payment method (name, details), list existing methods, and remove method actions; do not hardcode payment providers or countries.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-hotel-email-entry-is-functional-end-to-end-the-hotel-profile-save-flow-must-persist-the-email-field-to-the-backend-and-reflect-it-in-hotel-profile-reads-and-guest-facing-contact-sections-where-applicable",
+      "title": "Ensure hotel email entry is functional end-to-end: the Hotel Profile Save flow must persist the email field to the backend and reflect it in hotel profile reads and guest-facing contact sections where applicable.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-focused-regression-verification-aligned-with-frontend-regression-checklist-md-to-confirm-that-enabling-bookings-and-payment-methods-does-not-break-existing-flows-auth-browse-hotels-hotel-profile-rooms-admin-hotel-visibility",
+      "title": "Add focused regression verification aligned with `frontend/REGRESSION_CHECKLIST.md` to confirm that enabling bookings and payment methods does not break existing flows (auth, browse hotels, hotel profile, rooms, admin hotel visibility).",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    }
+  ],
   "new_feature_requests": [
     {
       "id": "AR-1",
@@ -112,6 +173,54 @@
       "summary": "Add a focused regression check (manual or automated where applicable) using the existing `frontend/REGRESSION_CHECKLIST.md` flow to verify: hotel profile saving, room create/update with photos, guest browse hotel visibility, and admin hotel visibility toggles.",
       "reqIds": [
         "REQ-11"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Implement and enable standard booking flow for guests: select hotel/room, choose booking dates, number of rooms, and number of guests, then create a booking record (currently UI shows booking is unavailable/coming soon).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Add booking management across portals: bookings created by guests must appear in the Hotel account and Admin portal; Hotel can confirm a booking; booking status must update to Confirmed consistently in Guest, Hotel, and Admin views.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Implement flexible hotel-managed payment methods: do not hardcode country/payment providers; allow each hotel to add/edit its own payment methods (e.g., GoPay/DANA/ShopeePay/bank transfer/etc.) and expose them for guest checkout choice (online vs pay-at-hotel). Admin does not manage payment methods.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Fix/enable Hotel Portal fields that are currently not active: allow hotel to enter/save hotel email and add/manage payment methods from the hotel account without breaking existing features.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Implement backend booking APIs required by the frontend `ExtendedBackendInterface`: `createBooking(hotelId, roomId, checkIn, checkOut, guests, currency)`, `getBookings(filters)`, and `updateBookingStatus(bookingId, newStatus)` with correct authorization so bookings work for guest, hotel, and admin portals.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-20",
+      "summary": "Extend the booking data model to support 'number of rooms' (room quantity) and ensure `totalPrice` is computed based on nights × pricePerNight × roomQuantity (and persisted on the booking record).",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-24",
+      "summary": "Enable flexible hotel-managed payment methods: implement backend APIs `addPaymentMethod(name, details)` and `removePaymentMethod(index)` for activated hotels, persist them to the hotel profile, and expose them through existing hotel profile queries (e.g., `getHotels`, `getCallerHotelProfile`, `getHotelProfile`).",
+      "reqIds": [
+        "REQ-18"
       ],
       "status": "pending"
     }

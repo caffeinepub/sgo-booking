@@ -14,9 +14,9 @@ import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import InviteLinksModule "invite-links/invite-links-module";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   include MixinStorage();
 
@@ -751,3 +751,4 @@ actor {
     InviteLinksModule.getInviteCodes(inviteState);
   };
 };
+

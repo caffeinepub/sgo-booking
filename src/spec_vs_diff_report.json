@@ -1,62 +1,87 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T13:26:28.352Z",
-  "summary": "Diff introduces significant frontend UI changes (booking placeholders, profile completion gate, admin panels) and a backend state migration module. However, there is no visible evidence in the provided diff summary that the requested regression verification checklist was updated.",
+  "generatedAt": "2026-02-09T14:20:58.442Z",
+  "summary": "Frontend changes implement major parts of the booking flow UI (booking form on hotel detail, guest/hotel/admin bookings tables), hotel payment methods management UI, guest-facing payment/contact display, and regression checklist updates. However, the diff evidence is insufficient/truncated to confirm the required backend booking/payment/email APIs and booking data-model changes are implemented. Additionally, the guest/admin/hotel booking tables shown in the diff do not clearly include the required room-quantity (roomsCount) field in the displayed columns.",
   "missing_requirements": [
     {
-      "id": "REQ-11",
-      "requirement": "Add a focused regression check (manual or automated where applicable) using the existing `frontend/REGRESSION_CHECKLIST.md` flow to verify: hotel profile saving, room create/update with photos, guest browse hotel visibility, and admin hotel visibility toggles.",
-      "reason": "The diff summary lists many modified/added files but does not show any change to `frontend/REGRESSION_CHECKLIST.md` (or any regression-check documentation/test addition).",
+      "id": "REQ-13",
+      "requirement": "Implement backend booking APIs `createBooking(hotelId, roomId, checkIn, checkOut, guests, currency)`, `getBookings(filters)`, and `updateBookingStatus(bookingId, newStatus)` with correct authorization (guest/hotel/admin visibility and update restrictions).",
+      "reason": "The backend diff snippet shows type declarations (e.g., BookingStatus, BookingRequest, BookingQuery) but does not show implementations of `createBooking`, `getBookings`, or `updateBookingStatus`, nor the authorization logic required by the AC. Because `backend/main.mo` is truncated, there is not enough evidence these APIs exist and enforce the required access rules.",
       "evidence": [
-        "<file-diff> (no entry for frontend/REGRESSION_CHECKLIST.md)"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "Introduced/modified multiple booking-related UI panels/components as explicit placeholders stating booking functionality is unavailable.",
-      "reason": "BuildRequest non-goals explicitly say not to add new product features beyond fixing described regressions (and mentions no new booking logic). These UI additions/changes are not requested by any REQ and appear unrelated to fixing hotel profile saving and hotel visibility regressions.",
-      "evidence": [
-        "frontend/src/components/booking/BookingForm.tsx",
-        "frontend/src/components/booking/MyBookingsTable.tsx",
-        "frontend/src/components/admin/AdminBookingsPanel.tsx",
-        "frontend/src/components/hotel/HotelBookingsPanel.tsx",
-        "frontend/src/components/hotel/RecordStayPanel.tsx"
+        "backend/main.mo (truncated)",
+        "frontend/src/types/extended-backend.ts (interface expects booking methods)",
+        "frontend/src/hooks/useQueries.ts (mentions new booking management hooks, but truncated)"
       ]
     },
     {
-      "description": "Added a new profile-completion gating flow prompting users to create a profile before continuing.",
-      "reason": "Not requested by any REQ (REQs focus on backend API alignment, hotel profile saving, rooms CRUD, hotel listings/visibility, admin toggles, role/invite-token methods, and a regression checklist).",
+      "id": "REQ-14",
+      "requirement": "Extend booking model to support number of rooms (roomsCount) and compute/persist `totalPrice = nights × pricePerNight × roomsCount`; provide conditional migration if needed.",
+      "reason": "Frontend types include `roomsCount`, but the backend `BookingRequest` type shown in the diff does not include `roomsCount`, and there is no visible backend logic for total price calculation/persistence or any migration changes. With truncated backend content and no `backend/migration.mo` change, this requirement is not evidenced as implemented.",
       "evidence": [
-        "frontend/src/components/auth/ProfileCompletionGate.tsx"
+        "backend/main.mo (BookingRequest type shown without roomsCount)",
+        "frontend/src/types/extended-backend.ts (BookingRequest includes roomsCount)"
       ]
     },
     {
-      "description": "Added backend state migration module and changed backend to use a migration runner (with apparent data model shift from `hotelsMap` to `hotelsList`).",
-      "reason": "Backend migration and structural storage changes were not requested explicitly; requirements focus on restoring specific canister methods/signatures and behaviors, not adding a migration system or altering storage representation. (May be necessary, but it is still not a stated requirement.)",
+      "id": "REQ-15",
+      "requirement": "Guest portal My Bookings shows table loaded from `getBookings` with status, dates, room quantity (roomsCount), guests, total price/currency, and uses BookingDetailsDialog where appropriate.",
+      "reason": "`MyBookingsTable` is implemented and uses `useGetBookings` and `BookingDetailsDialog`, but the visible table headers/fields in the diff show columns for Guests/Total/Status etc. and do not show a roomsCount column. The truncated content prevents confirming roomsCount is displayed anywhere in the rows/details.",
       "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo (with migration = Migration.run)"
+        "frontend/src/components/booking/MyBookingsTable.tsx (table headers shown; no roomsCount visible)"
+      ]
+    },
+    {
+      "id": "REQ-16",
+      "requirement": "Hotel-side booking management lists bookings for caller hotel and includes action to confirm pending booking via `updateBookingStatus`, showing confirmed status and invalidating queries.",
+      "reason": "Hotel bookings UI and confirm action are present, but the visible table headers do not show room quantity (roomsCount). Also, because `useQueries.ts` is truncated, query invalidation behavior after confirmation cannot be confirmed from the diff evidence.",
+      "evidence": [
+        "frontend/src/components/hotel/HotelBookingsPanel.tsx (table headers shown; no roomsCount visible)",
+        "frontend/src/hooks/useQueries.ts (truncated; invalidation not fully evidenced)"
+      ]
+    },
+    {
+      "id": "REQ-17",
+      "requirement": "Admin bookings overview lists bookings across all hotels using `getBookings`, with status and key booking fields.",
+      "reason": "Admin bookings UI is present and uses `useGetBookings`, but the visible table headers do not show room quantity (roomsCount). Also, backend support for admin cross-hotel visibility is not evidenced due to truncated backend.",
+      "evidence": [
+        "frontend/src/components/admin/AdminBookingsPanel.tsx (table headers shown; no roomsCount visible)",
+        "backend/main.mo (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-18",
+      "requirement": "Backend APIs `addPaymentMethod(name, details)` and `removePaymentMethod(index)` for activated hotels, persisted to hotel profile and exposed via hotel profile queries; admin cannot manage these methods.",
+      "reason": "Frontend hooks/panels call `useAddPaymentMethod`/`useRemovePaymentMethod` and display payment methods from `getCallerHotelProfile`, but the backend diff snippet only shows the `PaymentMethod` type and that hotel data includes `paymentMethods`; it does not show the required backend methods or authorization constraints. Truncation prevents confirming implementation.",
+      "evidence": [
+        "backend/main.mo (PaymentMethod type and hotel data types include paymentMethods, but no method implementations shown)",
+        "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx (calls add/remove hooks)",
+        "frontend/src/types/extended-backend.ts (declares addPaymentMethod/removePaymentMethod)"
+      ]
+    },
+    {
+      "id": "REQ-20",
+      "requirement": "Hotel email entry persists end-to-end: profile save writes `contact.email` to backend; reads reflect it and guest-facing contact displays it.",
+      "reason": "Frontend hotel profile form now includes an email field and sends it in `updateHotelProfile`, and guest-facing contact display is implemented, but the backend update/read persistence for `contact.email` is not evidenced in the truncated backend diff.",
+      "evidence": [
+        "frontend/src/components/hotel/HotelProfilePanel.tsx (email field included in update)",
+        "frontend/src/components/payments/HotelPaymentMethodsList.tsx (displays email if present)",
+        "backend/main.mo (HotelContact includes email, but no persistence logic shown due to truncation)"
       ]
     }
   ],
+  "hallucinated_features": [],
   "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/buildInfo.ts",
+    "frontend/REGRESSION_CHECKLIST.md",
     "frontend/src/components/admin/AdminBookingsPanel.tsx",
-    "frontend/src/components/admin/HotelVisibilityPanel.tsx",
-    "frontend/src/components/admin/InviteTokensPanel.tsx",
-    "frontend/src/components/auth/ProfileCompletionGate.tsx",
     "frontend/src/components/booking/BookingForm.tsx",
     "frontend/src/components/booking/MyBookingsTable.tsx",
     "frontend/src/components/hotel/HotelBookingsPanel.tsx",
     "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
     "frontend/src/components/hotel/HotelProfilePanel.tsx",
-    "frontend/src/components/hotel/RecordStayPanel.tsx",
     "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
     "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/HotelDetailPage.tsx",

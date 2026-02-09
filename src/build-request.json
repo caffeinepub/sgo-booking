@@ -1,176 +1,211 @@
 {
   "kind": "build_request",
-  "title": "Fix backend API regressions for hotel profile saving and cross-portal hotel visibility",
+  "title": "Enable standard guest booking flow with cross-portal booking management and hotel-managed payment methods",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-4",
-      "text": "Align the backend canister Candid API with the frontend’s `ExtendedBackendInterface` so the runtime errors like `extendedActor.updateHotelProfile is not a function` and other missing-method errors cannot occur.",
-      "target": "backend",
+      "id": "REQ-12",
+      "text": "Replace the placeholder guest booking UI with a working standard hotel booking flow on the Hotel Detail page: guest selects a room, then can choose check-in date, check-out date, number of rooms, and number of guests, and submit a booking.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-3",
+          "msg-4",
+          "msg-6"
         ],
         "quotes": [
-          "ya sudah build ulang. Tolong jangan sampai gagal dan error."
+          "ya aktifka fitur booking nya. dan gunarkan alur standar hotel saja, bisa pilih kamar, jumlah kamar, jumlah orang dan tanggal booking."
         ]
       },
       "acceptanceCriteria": [
-        "From the hotel portal, clicking “Save Changes” on the Hotel Profile page no longer shows `extendedActor.updateHotelProfile is not a function`.",
-        "From the hotel portal, creating/updating a room no longer shows `extendedActor.createRoom is not a function` / `extendedActor.updateRoom is not a function`.",
-        "Frontend pages that call the backend via `ExtendedBackendInterface` (hotels list, hotel profile, rooms CRUD, admin visibility toggles) do not fail due to missing canister methods."
+        "On `/browse/$hotelId`, after selecting a room, the booking form collects: check-in date, check-out date, number of rooms, and number of guests.",
+        "Submitting the form creates a booking via the backend and shows a clear success state (e.g., booking ID and initial status).",
+        "Validation prevents invalid input (e.g., check-out <= check-in; rooms/guests < 1).",
+        "The previous 'Booking functionality coming soon/unavailable' placeholder messaging is no longer shown when booking is supported."
       ]
     },
     {
-      "id": "REQ-5",
-      "text": "Implement `updateHotelProfile(name, location, address, mapLink, whatsapp, email)` in `backend/main.mo` with the exact parameter order expected by the frontend, and persist the updated fields into the caller’s hotel record.",
+      "id": "REQ-13",
+      "text": "Implement backend booking APIs required by the frontend `ExtendedBackendInterface`: `createBooking(hotelId, roomId, checkIn, checkOut, guests, currency)`, `getBookings(filters)`, and `updateBookingStatus(bookingId, newStatus)` with correct authorization so bookings work for guest, hotel, and admin portals.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-3",
+          "msg-4",
+          "msg-6"
         ],
         "quotes": [
-          "Tolong jangan sampai gagal dan error."
+          "bookingan tamu harus masuk ke akun hotel dan akun admin juga. Dan Bookingan tamu setelah di konfirmasi pihak hotel, status nya harus confirm baik di akun tamu, akun admin dan akun hotel"
         ]
       },
       "acceptanceCriteria": [
-        "When an activated hotel updates fields (name/location/address/mapLink/whatsapp/email) and clicks Save, the call succeeds and a subsequent fetch (`getCallerHotelProfile`) returns the updated data.",
-        "If the caller is an activated hotel but has no existing record in `hotelsMap`, `updateHotelProfile` creates an initialized default hotel profile first (without losing any existing rooms already stored for that hotel).",
-        "The backend enforces that only the hotel owner (caller) can update its own profile (admin override allowed if already supported elsewhere)."
+        "A signed-in guest can create a booking for a selected hotel/room and receive a booking ID.",
+        "`getBookings` returns the correct bookings depending on caller context: guest sees own bookings; hotel sees bookings for its hotel; admin can query across hotels.",
+        "A hotel (owner) can confirm a booking by calling `updateBookingStatus` (mapped to an implemented status such as `#booked`), and the updated status is persisted and returned in subsequent queries.",
+        "Unauthorized callers cannot update other hotels’ bookings (except admin)."
       ]
     },
     {
-      "id": "REQ-6",
-      "text": "Fix/restore room APIs to match frontend signatures: implement `getRooms(filters: RoomQuery)`, `createRoom(roomNumber, roomType, pricePerNight, currency, pictures)`, and `updateRoom(roomId, roomNumber, roomType, pricePerNight, currency, pictures)` in `backend/main.mo`, ensuring they work for activated hotels.",
+      "id": "REQ-14",
+      "text": "Extend the booking data model to support 'number of rooms' (room quantity) and ensure `totalPrice` is computed based on nights × pricePerNight × roomQuantity (and persisted on the booking record).",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-3"
         ],
         "quotes": [
-          "Tolong jangan sampai gagal dan error."
+          "bisa pilih kamar, jumlah kamar, jumlah orang dan tanggal booking."
         ]
       },
       "acceptanceCriteria": [
-        "`getRooms(filters)` exists and accepts a `RoomQuery` record (including optional hotelId/minPrice/maxPrice/roomType/availableOnly), and returns a filtered list of `RoomView`.",
-        "`createRoom(...)` returns `RoomView` and persists the created room, including `pictures` URLs/data-URLs provided by the frontend.",
-        "`updateRoom(...)` returns `RoomView` and persists the updated room fields, including updated `pictures`.",
-        "Rooms created by a hotel are included in that hotel’s `HotelDataView.rooms` when fetched via `getCallerHotelProfile()` and `getHotels()`."
+        "Booking records persist a room quantity field (e.g., `roomsCount`) and it is returned from `getBookings`.",
+        "`totalPrice` reflects nights × room price per night × roomsCount.",
+        "If a schema/state change is required, a conditional `backend/migration.mo` update is provided to preserve existing state and initialize the new field safely."
       ]
     },
     {
-      "id": "REQ-7",
-      "text": "Ensure an activated hotel can create rooms and appear in admin/guest hotel lists even if their hotel profile record did not previously exist, by initializing and maintaining a consistent hotel record in storage (including a maintained list of room IDs).",
+      "id": "REQ-15",
+      "text": "Implement guest booking visibility in the Guest portal by replacing the placeholder 'My Bookings' UI with a real bookings table that loads from `getBookings`, shows status, dates, room quantity, guests, total price, and opens booking details using the existing booking details dialog where appropriate.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3",
+          "msg-4"
+        ],
+        "quotes": [
+          "bookingan tamu harus masuk ke akun hotel dan akun admin juga."
+        ]
+      },
+      "acceptanceCriteria": [
+        "`/my-bookings` (or the existing My Bookings page) displays bookings for the logged-in guest using backend data.",
+        "Each booking row shows at minimum: hotel, room, check-in/out, roomsCount, guests, totalPrice/currency, and status.",
+        "Booking status updates (after hotel confirmation) are reflected for the guest after refresh/reload (and ideally via React Query invalidation)."
+      ]
+    },
+    {
+      "id": "REQ-16",
+      "text": "Implement hotel-side booking management by replacing the placeholder Hotel Bookings panel with a list/table of bookings for the caller hotel, including an action to confirm a pending booking (calling `updateBookingStatus`).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "Dan Bookingan tamu setelah di konfirmasi pihak hotel, status nya harus confirm baik di akun tamu, akun admin dan akun hotel,"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Hotel Area → Bookings tab shows bookings belonging to the caller hotel.",
+        "Hotel can confirm a booking; after confirmation, the booking status is shown as confirmed (mapped to the backend status, e.g., `Booked`).",
+        "After confirming, relevant queries are invalidated so the UI updates without manual intervention beyond a normal refresh."
+      ]
+    },
+    {
+      "id": "REQ-17",
+      "text": "Implement admin-side bookings overview by replacing the placeholder Admin Bookings panel with a real bookings list that can display bookings across all hotels (using `getBookings`), including status and key booking fields.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3",
+          "msg-4"
+        ],
+        "quotes": [
+          "bookingan tamu harus masuk ke akun hotel dan akun admin juga."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin Panel → Bookings Overview shows bookings loaded from the backend.",
+        "Admin can see bookings across hotels (not limited to a single hotel).",
+        "Booking status displayed in admin matches guest/hotel views after confirmation."
+      ]
+    },
+    {
+      "id": "REQ-18",
+      "text": "Enable flexible hotel-managed payment methods: implement backend APIs `addPaymentMethod(name, details)` and `removePaymentMethod(index)` for activated hotels, persist them to the hotel profile, and expose them through existing hotel profile queries (e.g., `getHotels`, `getCallerHotelProfile`, `getHotelProfile`).",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-9"
         ],
         "quotes": [
-          "Tolong jangan sampai gagal dan error."
+          "Jadi jangan di buat baku di dalam sistem, biar pihak oleh yang memasukan metode pembayaran. Admin tidak mengatur metode pembayara.n."
         ]
       },
       "acceptanceCriteria": [
-        "If an activated hotel creates its first room before saving its profile, the backend automatically creates the hotel record and associates the new room with it.",
-        "After creating a room, the hotel is visible in the admin hotel list (`getHotels`) and guest browse list (subject to active/subscription rules).",
-        "`getCallerHotelProfile()` returns a hotel profile that includes the newly created room(s)."
+        "Activated hotel caller can add a payment method (name + details) and it persists on their hotel record.",
+        "Activated hotel caller can remove a payment method by index and it persists.",
+        "`getHotels` and hotel profile queries return the updated `paymentMethods` list so guests can view it on the hotel detail page.",
+        "Admin cannot edit/manage hotel payment methods via backend APIs (only the hotel owner, plus admin override only if already used elsewhere is explicitly intended)."
       ]
     },
     {
-      "id": "REQ-8",
-      "text": "Implement/restore `getHotels()` in `backend/main.mo` to return the hotel list used by both admin visibility tools and guest browsing, and ensure hotels marked active are returned so the guest Browse Hotels page does not show “No Hotels Available” incorrectly.",
-      "target": "backend",
+      "id": "REQ-19",
+      "text": "Replace the placeholder Hotel Payment Methods panel UI with an operational management UI: add payment method (name, details), list existing methods, and remove method actions; do not hardcode payment providers or countries.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-9"
         ],
         "quotes": [
-          "Tolong jangan sampai gagal dan error."
+          "Untuk metode pembayaran di buat simpel... Jadi jangan di buat baku di dalam sistem, biar pihak oleh yang memasukan metode pembayaran."
         ]
       },
       "acceptanceCriteria": [
-        "When at least one hotel exists with `active = true`, `getHotels()` returns a non-empty list including that hotel.",
-        "Guest Browse Hotels page (`BrowseHotelsPage`) shows returned hotels instead of “No Hotels Available” when active hotels exist.",
-        "Returned `HotelDataView` includes `rooms` with `pictures` so representative photos can render when available."
+        "Hotel Area → Payments tab allows adding payment methods (free-form name + details) and shows them immediately after save.",
+        "Hotel can remove an existing payment method and the list updates accordingly.",
+        "No fixed list of providers is enforced; fields accept arbitrary text."
       ]
     },
     {
-      "id": "REQ-9",
-      "text": "Implement admin hotel management APIs required by the existing admin UI: `setHotelActiveStatus(hotelId, active)` and `setHotelSubscriptionStatus(hotelId, status)` in `backend/main.mo`, enforcing admin-only access.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Tolong jangan sampai gagal dan error."
-        ]
-      },
-      "acceptanceCriteria": [
-        "From the Admin Panel > Hotel Visibility Control, toggling Active status succeeds and persists; refreshing the hotel list reflects the change.",
-        "From the Admin Panel > Hotel Visibility Control, changing Subscription status succeeds and persists; refreshing reflects the change.",
-        "Non-admin callers cannot call these methods successfully (backend rejects/traps)."
-      ]
-    },
-    {
-      "id": "REQ-10",
-      "text": "Restore/implement any additional backend methods referenced by the frontend hooks so authentication/role checks and invite token flow do not error at runtime (at minimum: `getCallerUserRole`, `isCallerAdmin`, `makeMeAdmin`, `validateInviteToken`).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Tolong jangan sampai gagal dan error."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Navigating the app with an authenticated user does not throw due to missing role/admin/token methods.",
-        "Hotel activation flow that validates and consumes invite tokens works without missing-method runtime errors.",
-        "Admin-only UI sections that depend on `isCallerAdmin` and `getCallerUserRole` can load without runtime exceptions."
-      ]
-    },
-    {
-      "id": "REQ-11",
-      "text": "Add a focused regression check (manual or automated where applicable) using the existing `frontend/REGRESSION_CHECKLIST.md` flow to verify: hotel profile saving, room create/update with photos, guest browse hotel visibility, and admin hotel visibility toggles.",
+      "id": "REQ-20",
+      "text": "Ensure hotel email entry is functional end-to-end: the Hotel Profile Save flow must persist the email field to the backend and reflect it in hotel profile reads and guest-facing contact sections where applicable.",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-9"
         ],
         "quotes": [
-          "Tolong jangan sampai gagal dan error."
+          "Dan ini juga di akun Hotel belum bisa menambahkan metode pembayaraan, memasukan email hotel. Masih belum aktif."
         ]
       },
       "acceptanceCriteria": [
-        "Hotel portal: profile Save succeeds and persists after refresh.",
-        "Hotel portal: create room + upload/add pictures succeeds; room persists after refresh.",
-        "Guest portal: Browse Hotels lists active hotels; can open a hotel detail page.",
-        "Admin portal: Hotel Visibility Control lists hotels and can toggle active/subscription status without errors."
+        "Saving hotel profile with an email updates the backend `contact.email` field.",
+        "After saving, the Hotel Profile panel reloads and displays the saved email.",
+        "Guest-facing hotel contact displays the email when present (no placeholder text)."
+      ]
+    },
+    {
+      "id": "REQ-21",
+      "text": "Add focused regression verification aligned with `frontend/REGRESSION_CHECKLIST.md` to confirm that enabling bookings and payment methods does not break existing flows (auth, browse hotels, hotel profile, rooms, admin hotel visibility).",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-10"
+        ],
+        "quotes": [
+          "bangun sekarang, jangan sampe error dan mengganggu fitur yang lain."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Document (in code comments or a short checklist update) the specific steps run to verify: hotel profile save, room create/update, guest hotel browsing, booking creation, booking confirmation, admin booking visibility, and payment methods management.",
+        "No runtime errors like missing actor methods occur for booking/payment/room/profile flows after deployment."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in `backend/main.mo` (no additional backend services).",
-    "Do not modify any files under `frontend/src/components/ui` (read-only components).",
-    "Do not edit immutable frontend paths listed in SYSTEM_CONTEXT (compose them instead)."
+    "Backend must remain a single Motoko actor in `backend/main.mo`; only add/update `backend/migration.mo` if a state/schema upgrade is required (conditional migration policy).",
+    "Do not edit any frontend files under `frontend/src/components/ui`, `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`. Compose these components/hooks instead.",
+    "Use English for all user-facing UI strings added/changed as part of this work.",
+    "Do not introduce hardcoded payment providers (e.g., Stripe-only, GoPay-only); payment methods must be free-form per hotel.",
+    "Do not break existing functionality in browsing hotels, hotel profile/rooms management, and admin hotel visibility tools."
   ],
   "nonGoals": [
-    "Adding new product features beyond fixing the described regressions (e.g., new booking logic, new payment providers, real-time updates).",
-    "Introducing external databases or third-party authentication providers."
+    "Implementing real online payment processing (e.g., Stripe checkout) or automatic payment verification.",
+    "Real-time notifications to hotel/admin/guest (no push, email, SMS, or websockets).",
+    "Adding third-party authentication providers beyond Internet Identity."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }
