@@ -10,6 +10,23 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface HotelContact {
+  'whatsapp' : [] | [string],
+  'email' : [] | [string],
+}
+export interface HotelDataView {
+  'id' : Principal,
+  'active' : boolean,
+  'contact' : HotelContact,
+  'mapLink' : string,
+  'bookings' : Array<bigint>,
+  'name' : string,
+  'subscriptionStatus' : SubscriptionStatus,
+  'address' : string,
+  'location' : string,
+  'paymentMethods' : Array<PaymentMethod>,
+  'rooms' : Array<RoomView>,
+}
 export interface InviteCode {
   'created' : Time,
   'code' : string,
@@ -24,12 +41,25 @@ export interface InviteToken {
   'issuedBy' : Principal,
   'maxUses' : bigint,
 }
+export interface PaymentMethod { 'name' : string, 'details' : string }
 export interface RSVP {
   'name' : string,
   'inviteCode' : string,
   'timestamp' : Time,
   'attending' : boolean,
 }
+export interface RoomView {
+  'id' : bigint,
+  'pricePerNight' : bigint,
+  'hotelId' : Principal,
+  'roomNumber' : string,
+  'currency' : string,
+  'pictures' : Array<string>,
+  'roomType' : string,
+}
+export type SubscriptionStatus = { 'paid' : null } |
+  { 'test' : null } |
+  { 'unpaid' : null };
 export type Time = bigint;
 export interface UserProfile {
   'name' : string,
@@ -73,16 +103,20 @@ export interface _SERVICE {
   'createInviteToken' : ActorMethod<[bigint, [] | [Principal]], InviteToken>,
   'generateInviteCode' : ActorMethod<[], string>,
   'getAllRSVPs' : ActorMethod<[], Array<RSVP>>,
+  'getCallerHotelProfile' : ActorMethod<[], [] | [HotelDataView]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getHotelProfile' : ActorMethod<[Principal], [] | [HotelDataView]>,
   'getInviteCodes' : ActorMethod<[], Array<InviteCode>>,
   'getInviteTokens' : ActorMethod<[], Array<InviteToken>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getValidHotelInviteTokens' : ActorMethod<[], Array<string>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'isCallerHotelActivated' : ActorMethod<[], boolean>,
   'isHotelActiveByDirectActivation' : ActorMethod<[Principal], boolean>,
+  'isValidHotelInviteToken' : ActorMethod<[Principal], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'submitRSVP' : ActorMethod<[string, boolean, string], undefined>,
-  'validateInviteToken' : ActorMethod<[string], boolean>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

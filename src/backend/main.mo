@@ -184,6 +184,43 @@ actor {
     isHardcodedAdmin(caller) or AccessControl.hasPermission(accessControlState, caller, requiredRole);
   };
 
+  // Helper function to check if a hotel is activated
+  private func isHotelActivated(hotelPrincipal : Principal) : Bool {
+    // Check direct activation first
+    let isDirectActive = switch (directHotelActivations.get(hotelPrincipal)) {
+      case (?directActivated) { directActivated };
+      case (null) { false };
+    };
+
+    if (isDirectActive) { 
+      return true;
+    };
+
+    // Check if there's a consumed invite token for this principal
+    switch (inviteTokens.get(hotelPrincipal.toText())) {
+      case (?inviteToken) { 
+        // Token exists and has been consumed (not active anymore means it was used)
+        not inviteToken.isActive and inviteToken.usageCount > 0
+      };
+      case (null) { false };
+    };
+  };
+
+  // Expose check for VALID hotel invite token (unused token)
+  public query ({ caller }) func isValidHotelInviteToken(hotelPrincipal : Principal) : async Bool {
+    let isDirectActive = switch (directHotelActivations.get(hotelPrincipal)) {
+      case (?directActivated) { directActivated };
+      case (null) { false };
+    };
+
+    if (isDirectActive) { true } else {
+      switch (inviteTokens.get(hotelPrincipal.toText())) {
+        case (?inviteToken) { inviteToken.isActive };
+        case (null) { false };
+      };
+    };
+  };
+
   // User profile management
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (hasPermissionOverride(caller, #user))) {
@@ -204,6 +241,117 @@ actor {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.add(caller, profile);
+  };
+
+  // Hotel profile management - needed for hotel activation flow
+  public query ({ caller }) func getCallerHotelProfile() : async ?HotelDataView {
+    // Check if caller is an activated hotel
+    if (not isHotelActivated(caller)) {
+      return null;
+    };
+
+    switch (hotelsMap.get(caller)) {
+      case (?hotel) {
+        let roomsArray = hotel.rooms.toArray().map(
+          func(roomId : Nat) : RoomView {
+            switch (roomsMap.get(roomId)) {
+              case (?room) {
+                {
+                  id = room.id;
+                  hotelId = room.hotelId;
+                  roomNumber = room.roomNumber;
+                  roomType = room.roomType;
+                  pricePerNight = room.pricePerNight;
+                  currency = room.currency;
+                  pictures = room.pictures;
+                };
+              };
+              case (null) {
+                {
+                  id = roomId;
+                  hotelId = caller;
+                  roomNumber = "";
+                  roomType = "";
+                  pricePerNight = 0;
+                  currency = "";
+                  pictures = [];
+                };
+              };
+            };
+          }
+        );
+
+        ?{
+          id = hotel.id;
+          name = hotel.name;
+          location = hotel.location;
+          address = hotel.address;
+          mapLink = hotel.mapLink;
+          active = hotel.active;
+          rooms = roomsArray;
+          bookings = hotel.bookings.toArray();
+          paymentMethods = hotel.paymentMethods.toArray();
+          contact = hotel.contact;
+          subscriptionStatus = hotel.subscriptionStatus;
+        };
+      };
+      case (null) { null };
+    };
+  };
+
+  public query ({ caller }) func getHotelProfile(hotelId : Principal) : async ?HotelDataView {
+    // Admins can view any hotel, hotels can view their own
+    if (not isAdminUser(caller) and caller != hotelId) {
+      Runtime.trap("Unauthorized: Can only view your own hotel profile");
+    };
+
+    switch (hotelsMap.get(hotelId)) {
+      case (?hotel) {
+        let roomsArray = hotel.rooms.toArray().map(
+          func(roomId : Nat) : RoomView {
+            switch (roomsMap.get(roomId)) {
+              case (?room) {
+                {
+                  id = room.id;
+                  hotelId = room.hotelId;
+                  roomNumber = room.roomNumber;
+                  roomType = room.roomType;
+                  pricePerNight = room.pricePerNight;
+                  currency = room.currency;
+                  pictures = room.pictures;
+                };
+              };
+              case (null) {
+                {
+                  id = roomId;
+                  hotelId = hotelId;
+                  roomNumber = "";
+                  roomType = "";
+                  pricePerNight = 0;
+                  currency = "";
+                  pictures = [];
+                };
+              };
+            };
+          }
+        );
+
+        ?{
+          id = hotel.id;
+          name = hotel.name;
+          location = hotel.location;
+          address = hotel.address;
+          mapLink = hotel.mapLink;
+          active = hotel.active;
+          rooms = roomsArray;
+          bookings = hotel.bookings.toArray();
+          paymentMethods = hotel.paymentMethods.toArray();
+          contact = hotel.contact;
+          subscriptionStatus = hotel.subscriptionStatus;
+        };
+      };
+      case (null) { null };
+    };
   };
 
   // Invite-links public methods
@@ -238,25 +386,27 @@ actor {
 
   // Hotel Invite Token functionality
   // ADMIN ONLY: Create hotel invite token
-  public shared ({ caller }) func createInviteToken(maxUses : Nat, boundPrincipal : ?Principal) : async InviteToken {
+  public shared ({ caller }) func createInviteToken(_maxUses : Nat, boundPrincipal : ?Principal) : async InviteToken {
     if (not isAdminUser(caller)) {
       Runtime.trap("Unauthorized: Only admins can create invite tokens");
     };
 
-    // Generate token logic
-    let token = "HOTEL_" # Time.now().toText() # maxUses.toText();
+    let principalText = switch (boundPrincipal) {
+      case (?principal) { principal.toText() };
+      case (null) { "unknown" };
+    };
 
     let newToken : InviteToken = {
-      token;
+      token = principalText;
       isActive = true;
       issuedBy = caller;
       issuedAt = Time.now();
-      maxUses;
+      maxUses = 1;
       usageCount = 0;
       boundPrincipal;
     };
 
-    inviteTokens.add(token, newToken);
+    inviteTokens.add(principalText, newToken);
     newToken;
   };
 
@@ -268,31 +418,55 @@ actor {
     inviteTokens.values().toArray();
   };
 
-  // Public: Validate invite token
-  public shared ({ caller }) func validateInviteToken(token : Text) : async Bool {
-    switch (inviteTokens.get(token)) {
-      case (?_token) {
-        true;
-      };
-      case (null) { false };
+  // ADMIN ONLY: Get valid hotel invite tokens
+  public query ({ caller }) func getValidHotelInviteTokens() : async [Text] {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view invite tokens");
     };
+    let tokens = inviteTokens.toArray();
+    tokens.filter(
+      func(pair) {
+        pair.1.isActive;
+      }
+    ).map(
+      func(pair) {
+        pair.0;
+      }
+    );
   };
 
-  // Public: Consume invite token (increments usage count)
+  // Public: Consume invite token (increments usage count and deactivates)
+  // AUTHORIZATION: Caller must match the boundPrincipal of the token
   public shared ({ caller }) func consumeInviteToken(token : Text) : async Bool {
     switch (inviteTokens.get(token)) {
       case (?inviteToken) {
-        if (inviteToken.isActive and inviteToken.usageCount < inviteToken.maxUses) {
+        // Verify caller matches the bound principal
+        switch (inviteToken.boundPrincipal) {
+          case (?boundPrincipal) {
+            if (not Principal.equal(caller, boundPrincipal)) {
+              Runtime.trap("Unauthorized: This invite token is bound to a different principal");
+            };
+          };
+          case (null) {
+            Runtime.trap("Invalid token: No bound principal");
+          };
+        };
+
+        if (inviteToken.isActive) {
           let updatedToken = {
-            inviteToken with
+            inviteToken with 
+            isActive = false;
             usageCount = inviteToken.usageCount + 1;
-            isActive = (inviteToken.usageCount + 1 < inviteToken.maxUses);
           };
           inviteTokens.add(token, updatedToken);
           true;
-        } else { false };
+        } else { 
+          Runtime.trap("Token already consumed or inactive");
+        };
       };
-      case (null) { false };
+      case (null) { 
+        Runtime.trap("Invalid token: Token not found");
+      };
     };
   };
 
@@ -306,10 +480,15 @@ actor {
     true;
   };
 
-  public query ({ caller }) func isHotelActiveByDirectActivation(_hotelPrincipal : Principal) : async Bool {
-    switch (directHotelActivations.get(caller)) {
-      case (?_status) { true };
+  public query ({ caller }) func isHotelActiveByDirectActivation(hotelPrincipal : Principal) : async Bool {
+    switch (directHotelActivations.get(hotelPrincipal)) {
+      case (?status) { status };
       case (null) { false };
     };
+  };
+
+  // Check if caller's hotel account is activated (either by token consumption or direct activation)
+  public query ({ caller }) func isCallerHotelActivated() : async Bool {
+    isHotelActivated(caller);
   };
 };

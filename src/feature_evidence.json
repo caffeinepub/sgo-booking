@@ -2,11 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-restore-the-topnav-links-and-labeling-to-match-the-screenshots-show-a-clear-home-link-browse-hotels-my-bookings-account-or-equivalent-account-page-label-matching-the-screenshot-and-hotel-area-when-permitted-keep-admin-panel-visible-only-for-admin-ensure-my-bookings-navigates-to-a-page-that-shows-the-user-s-bookings-list-reuse-the-existing-guestaccountpage-bookings-table",
-      "featureTitle": "Restore the TopNav links and labeling to match the screenshots: show a clear 'Home' link, 'Browse Hotels', 'My Bookings', 'Account' (or equivalent account page label matching the screenshot), and 'Hotel Area' (when permitted). Keep 'Admin Panel' visible only for admin. Ensure 'My Bookings' navigates to a page that shows the user’s bookings list (reuse the existing GuestAccountPage bookings table).",
+      "featureId": "feature-make-the-hotel-area-navigation-entry-visible-for-validated-hotel-accounts-matching-the-screenshot-behavior-when-logged-in-as-an-activated-hotel-user-show-the-hotel-area-link-in-the-top-navigation-and-allow-navigation-to-hotel",
+      "featureTitle": "Make the Hotel Area navigation entry visible for validated hotel accounts, matching the screenshot behavior: when logged in as an activated hotel user, show the 'Hotel Area' link in the top navigation and allow navigation to /hotel.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/nav/TopNav.tsx"
+        "frontend/src/components/auth/RequireRole.tsx",
+        "frontend/src/components/nav/TopNav.tsx",
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -24,13 +25,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-adjust-routing-so-there-is-an-explicit-route-for-my-bookings-e-g-bookings-that-renders-the-same-bookings-table-currently-shown-in-guestaccountpage-and-ensure-it-is-protected-by-authentication-and-profile-completion-gates-same-protection-level-as-the-current-account-route",
-      "featureTitle": "Add/adjust routing so there is an explicit route for 'My Bookings' (e.g., '/bookings') that renders the same bookings table currently shown in GuestAccountPage, and ensure it is protected by authentication and profile completion gates (same protection level as the current '/account' route).",
+      "featureId": "feature-ensure-the-hotel-management-dashboard-ui-for-hotel-accounts-matches-the-second-uploaded-screenshot-header-hotel-management-with-description-text-and-a-tabbed-interface-with-tabs-in-this-order-profile-rooms-payments-bookings-record-stays-subscription-rooms-tab-must-support-adding-rooms-and-uploading-room-photos",
+      "featureTitle": "Ensure the Hotel Management dashboard UI for hotel accounts matches the second uploaded screenshot: header 'Hotel Management' with description text and a tabbed interface with tabs in this order: Profile, Rooms, Payments, Bookings, Record Stays, Subscription; Rooms tab must support adding rooms and uploading room photos.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/booking/MyBookingsTable.tsx",
-        "frontend/src/pages/GuestAccountPage.tsx",
-        "frontend/src/pages/MyBookingsPage.tsx"
+        "frontend/src/components/hotel/RoomsPanel.tsx",
+        "frontend/src/pages/HotelAreaPage.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -48,10 +47,13 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-run-and-satisfy-the-existing-regression-checklist-items-relevant-to-this-fix-admin-invite-tokens-generation-role-based-navigation-guest-account-bookings-visibility-and-hotel-area-access-fix-any-discovered-regressions-that-prevent-the-app-from-matching-the-provided-screenshots-for-the-affected-flows",
-      "featureTitle": "Run and satisfy the existing regression checklist items relevant to this fix (Admin Invite Tokens generation, role-based navigation, Guest Account bookings visibility, and Hotel Area access). Fix any discovered regressions that prevent the app from matching the provided screenshots for the affected flows.",
+      "featureId": "feature-after-successful-hotel-validation-activation-via-invite-token-consumption-automatically-refresh-relevant-cached-queries-and-redirect-the-user-into-the-hotel-management-dashboard-so-the-change-is-immediately-visible-without-manual-refresh",
+      "featureTitle": "After successful hotel validation/activation via invite token consumption, automatically refresh relevant cached queries and redirect the user into the Hotel Management dashboard so the change is immediately visible without manual refresh.",
       "files": [
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/components/auth/AccessDeniedScreen.tsx",
+        "frontend/src/components/auth/HotelActivationForm.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AccountStatusPage.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",

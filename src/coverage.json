@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T23:22:18.921Z",
+  "generatedAt": "2026-02-09T01:13:53.089Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,59 +12,62 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Restore the backend Motoko API for hotel invite tokens so the frontend Admin Panel can successfully generate and list invite tokens without runtime errors. Implement (or re-introduce) the exact methods expected by the frontend extended backend interface: createInviteToken(maxUses, boundPrincipal), getInviteTokens(), validateInviteToken(token), and consumeInviteToken(token), with admin-only authorization for token creation/listing and appropriate authorization for validation/consumption.",
+        "summary": "Fix the hotel activation flow so that after an invite token is consumed, the authenticated hotel account becomes 'activated' and can load its hotel profile successfully (so the app treats the account as an activated hotel and shows the Hotel Management dashboard).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Ensure backend authorization aligns with the app’s role-gated UI: admin can access /admin and generate invite tokens; hotel users can access /hotel only when activated; guests cannot access /admin or /hotel. Fix any backend role/admin detection endpoints that the frontend relies on (e.g., isCallerAdmin and getCallerUserRole) so role-based navigation and guards are consistent and do not regress.",
+        "summary": "Ensure the backend exposes and/or restores all API methods that the current frontend uses for hotel activation and hotel-area gating (including role/admin checks and caller hotel profile retrieval), and that these methods do not trap for valid callers in expected flows.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Restore the TopNav links and labeling to match the screenshots: show a clear 'Home' link, 'Browse Hotels', 'My Bookings', 'Account' (or equivalent account page label matching the screenshot), and 'Hotel Area' (when permitted). Keep 'Admin Panel' visible only for admin. Ensure 'My Bookings' navigates to a page that shows the user’s bookings list (reuse the existing GuestAccountPage bookings table).",
+        "summary": "Make the Hotel Area navigation entry visible for validated hotel accounts, matching the screenshot behavior: when logged in as an activated hotel user, show the 'Hotel Area' link in the top navigation and allow navigation to /hotel.",
         "status": "implemented",
         "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
           "frontend/src/components/nav/TopNav.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/auth/RequireRole.tsx"
         ],
         "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
           "frontend/src/components/nav/TopNav.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/auth/RequireRole.tsx"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Add/adjust routing so there is an explicit route for 'My Bookings' (e.g., '/bookings') that renders the same bookings table currently shown in GuestAccountPage, and ensure it is protected by authentication and profile completion gates (same protection level as the current '/account' route).",
+        "summary": "Ensure the Hotel Management dashboard UI for hotel accounts matches the second uploaded screenshot: header 'Hotel Management' with description text and a tabbed interface with tabs in this order: Profile, Rooms, Payments, Bookings, Record Stays, Subscription; Rooms tab must support adding rooms and uploading room photos.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/MyBookingsPage.tsx",
-          "frontend/src/components/booking/MyBookingsTable.tsx",
-          "frontend/src/pages/GuestAccountPage.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/pages/HotelAreaPage.tsx",
+          "frontend/src/components/hotel/RoomsPanel.tsx",
+          "frontend/src/hooks/useRoomImageUpload.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/MyBookingsPage.tsx",
-          "frontend/src/components/booking/MyBookingsTable.tsx",
-          "frontend/src/pages/GuestAccountPage.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/pages/HotelAreaPage.tsx",
+          "frontend/src/components/hotel/RoomsPanel.tsx"
         ]
       },
       {
         "id": "REQ-5",
-        "summary": "Run and satisfy the existing regression checklist items relevant to this fix (Admin Invite Tokens generation, role-based navigation, Guest Account bookings visibility, and Hotel Area access). Fix any discovered regressions that prevent the app from matching the provided screenshots for the affected flows.",
+        "summary": "After successful hotel validation/activation via invite token consumption, automatically refresh relevant cached queries and redirect the user into the Hotel Management dashboard so the change is immediately visible without manual refresh.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/REGRESSION_CHECKLIST.md",
-          "frontend/src/components/auth/RequireRole.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/auth/HotelActivationForm.tsx",
+          "frontend/src/components/auth/AccessDeniedScreen.tsx",
+          "frontend/src/pages/AccountStatusPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/auth/HotelActivationForm.tsx",
+          "frontend/src/components/auth/AccessDeniedScreen.tsx",
+          "frontend/src/pages/AccountStatusPage.tsx"
         ]
       }
     ]
@@ -75,17 +78,21 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/booking/MyBookingsTable.tsx",
+    "frontend/src/buildInfo.ts",
+    "frontend/src/components/auth/AccessDeniedScreen.tsx",
+    "frontend/src/components/auth/HotelActivationForm.tsx",
+    "frontend/src/components/auth/RequireRole.tsx",
+    "frontend/src/components/hotel/RecordStayPanel.tsx",
+    "frontend/src/components/hotel/RoomsPanel.tsx",
+    "frontend/src/components/hotel/SubscriptionPanel.tsx",
     "frontend/src/components/nav/TopNav.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/GuestAccountPage.tsx",
-    "frontend/src/pages/MyBookingsPage.tsx",
-    "frontend/src/types/extended-backend.ts",
+    "frontend/src/pages/AccountStatusPage.tsx",
+    "frontend/src/pages/HotelAreaPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

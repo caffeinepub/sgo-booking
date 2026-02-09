@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { Key, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { useValidateInviteToken, useConsumeInviteToken } from '../../hooks/useQueries';
 import { toast } from 'sonner';
+import { useNavigate } from '@tanstack/react-router';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface HotelActivationFormProps {
   onSuccess?: () => void;
@@ -15,13 +17,14 @@ interface HotelActivationFormProps {
 export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
   const [token, setToken] = useState('');
   const [validationResult, setValidationResult] = useState<boolean | null>(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const validateMutation = useValidateInviteToken();
   const consumeMutation = useConsumeInviteToken();
 
   const handleTokenChange = (value: string) => {
     setToken(value);
-    // Clear validation result when token changes
     if (validationResult !== null) {
       setValidationResult(null);
     }
@@ -55,10 +58,22 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
 
     try {
       await consumeMutation.mutateAsync(token.trim());
-      toast.success('Hotel account activated successfully!');
-      if (onSuccess) {
-        setTimeout(() => onSuccess(), 1000);
-      }
+      toast.success('Hotel account activated successfully! Redirecting...');
+      
+      // Invalidate and refetch all relevant queries
+      await queryClient.invalidateQueries({ queryKey: ['callerUserRole'] });
+      await queryClient.invalidateQueries({ queryKey: ['isCurrentUserAdmin'] });
+      await queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+      
+      // Navigate to hotel area after a short delay
+      setTimeout(() => {
+        navigate({ to: '/hotel' });
+        if (onSuccess) {
+          onSuccess();
+        }
+      }, 1500);
     } catch (error: any) {
       toast.error('Activation failed: ' + (error.message || 'Unknown error'));
     }
@@ -86,14 +101,14 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
           <Input
             id="invite-token"
             type="text"
-            placeholder="e.g., 1-invite-1770546868497298151"
+            placeholder="Enter your invite token"
             value={token}
             onChange={(e) => handleTokenChange(e.target.value)}
             disabled={consumeMutation.isPending}
             className="font-mono"
           />
           <p className="text-sm text-muted-foreground">
-            The token should look like: <code className="text-xs bg-muted px-1 py-0.5 rounded">1-invite-xxxxx</code>
+            The token is your principal ID provided by the administrator
           </p>
         </div>
 

@@ -1,86 +1,88 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restore TopNav + add My Bookings route to match screenshots",
+  "title": "Restore activated hotel navigation and Hotel Management dashboard behavior",
   "requirements": [
     {
       "id": "REQ-3",
-      "summary": "Restore TopNav links/labels (Home, Browse Hotels, My Bookings, Account, Hotel Area; Admin Panel admin-only) and ensure My Bookings navigates to a working bookings view.",
+      "summary": "Show the Hotel Area navigation entry for activated hotel accounts and allow navigation to /hotel under existing access rules.",
       "acceptanceCriteria": [
-        "Top navigation includes a 'My Bookings' entry as shown in the screenshot and it leads to a working bookings view.",
-        "Top navigation includes a Home entry that routes to '/'.",
-        "The account link label matches the screenshot expectation (e.g., 'Account' instead of 'My Account') while still routing correctly.",
-        "Admin users see 'Admin Panel' in TopNav; non-admin users do not.",
-        "The 'Hotel Area' link appears for admin and activated hotel users as intended, consistent with guards."
+        "When authenticated as an activated hotel account, the TopNav displays a 'Hotel Area' link.",
+        "Clicking 'Hotel Area' navigates to /hotel and renders the hotel management view.",
+        "When authenticated as a non-activated hotel account, the TopNav does not show 'Hotel Area' (unless admin), consistent with existing access rules."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/nav/TopNav.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Update navigation structure to include explicit 'Home' and 'My Bookings' links, rename the account link label to 'Account' (keep routing to /account), and keep role-gated visibility for 'Admin Panel' and 'Hotel Area'. Use existing shadcn-ui Button styling and current auth/role query hooks; verify the component's usage instructions before implementing."
+          "description": "Add/adjust React Query support for hotel-area gating by introducing a dedicated query hook for backend activation state (using the existing backend capability) and ensuring its query keys are identity-scoped. This supports consistent TopNav and route-guard behavior. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/components/nav/TopNav.tsx",
           "operation": "modify",
-          "description": "Ensure any new nav destinations introduced in TopNav (notably /bookings) are registered in the router so links are not broken."
+          "description": "Update Hotel Area link visibility logic to use the activation-gating query (admin bypass preserved), so activated hotel users reliably see 'Hotel Area' in the top navigation. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/auth/RequireRole.tsx",
+          "operation": "modify",
+          "description": "Align /hotel access gating with the same activation signal used by TopNav (admin bypass preserved), while keeping existing loading/error handling. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Add a dedicated /bookings route that renders the same bookings list UI currently shown on GuestAccountPage, protected by the same auth + profile completion gates as /account.",
+      "summary": "Ensure /hotel renders the Hotel Management dashboard matching the screenshot (header + description + 6 tabs in order) and that the Rooms tab supports adding rooms and uploading room photos.",
       "acceptanceCriteria": [
-        "Visiting the 'My Bookings' route while logged out redirects to login/RequireAuth behavior (consistent with existing protected routes).",
-        "Visiting the 'My Bookings' route while logged in shows the bookings list and booking detail dialog without errors.",
-        "No existing routes (/account, /guest) break; they continue to function."
+        "/hotel renders the HotelAreaPage tab layout with the 6 tabs in the same labels and order as the screenshot: Profile, Rooms, Payments, Bookings, Record Stays, Subscription.",
+        "The Rooms tab allows creating a room and uploading at least one room photo using the existing upload flow (no broken image/failed save in normal use).",
+        "If hotel profile loading is in progress, a loading state is shown; if hotel profile is missing, a clear error card is shown (existing behavior is acceptable)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/MyBookingsPage.tsx",
-          "operation": "create",
-          "description": "Create a dedicated My Bookings page that renders the bookings table and booking details dialog using the same logic/queries as GuestAccountPage, with English user-facing text. Compose with existing UI components (shadcn-ui Card/Table/Button) and booking components; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/booking/MyBookingsTable.tsx",
-          "operation": "create",
-          "description": "Extract the bookings table + empty/loading states (including BookingDetailsDialog and BookingStatusBadge usage) into a shared component so it can be reused by both GuestAccountPage and MyBookingsPage without duplicating logic. Use existing shadcn-ui Table/Card primitives; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/GuestAccountPage.tsx",
+          "path": "frontend/src/pages/HotelAreaPage.tsx",
           "operation": "modify",
-          "description": "Refactor GuestAccountPage to reuse the new shared MyBookingsTable component for the bookings list section, keeping the rest of the account/CTA layout intact and all text in English. Verify the component's usage instructions before implementing."
+          "description": "Verify the Hotel Management header/description and the tab labels/order match the screenshot exactly, and keep/confirm existing loading and missing-profile states. Use the shadcn-ui Tabs components already in use for the tabbed interface. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
           "operation": "modify",
-          "description": "Register a new '/bookings' route that renders MyBookingsPage and wrap it with the same <RequireAuth> + <ProfileCompletionGate> wrappers used by '/account' so protection behavior matches."
+          "description": "Adjust the Rooms panel UI copy/empty-state/actions to match the screenshot wording and ensure the 'Add Room' workflow remains functional. Keep the existing room creation/editing flows wired to current query/mutation hooks. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useRoomImageUpload.ts",
+          "operation": "modify",
+          "description": "Confirm the room photo upload hook reliably returns usable image URLs and surfaces progress/errors for the RoomsPanel flow. This should continue using the blob-storage capability for handling image uploads/references. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-5",
-      "summary": "Satisfy the relevant frontend regression checklist items for navigation and bookings, and fix any UI regressions impacting the affected flows.",
+      "summary": "After successful invite token activation, refresh cached auth/role/hotel queries and redirect the user to /hotel so the dashboard and Hotel Area link appear immediately.",
       "acceptanceCriteria": [
-        "Admin flow: Invite Tokens section can generate tokens and displays them in the table.",
-        "Guest flow: Guest Account / bookings view shows booking rows (or an empty state) and does not crash.",
-        "Hotel flow: Hotel Area is reachable for activated hotel users and shows its tabbed UI.",
-        "Navigation links lead to the correct pages and are shown/hidden based on role as expected."
+        "After consuming a valid invite token, the UI invalidates/refetches role/admin/hotel-profile queries and redirects to /hotel.",
+        "Immediately after redirect, the HotelAreaPage does not show 'Hotel Profile Not Found' for the newly activated hotel user.",
+        "After redirect, the TopNav shows 'Hotel Area' for the activated hotel user."
       ],
       "file_operations": [
         {
-          "path": "frontend/REGRESSION_CHECKLIST.md",
-          "operation": "modify",
-          "description": "Update the checklist to explicitly include verification of the new 'My Bookings' TopNav entry and the dedicated '/bookings' route behavior (logged out vs logged in), aligning with the restored navigation expectations."
-        },
-        {
-          "path": "frontend/src/components/auth/RequireRole.tsx",
-          "operation": "modify",
-          "description": "If regression testing reveals role-guard loading or gating inconsistencies affecting TopNav link visibility or protected routes, adjust guard logic and loading/error handling to prevent infinite 'Checking permissions...' states and keep behavior consistent with role-based navigation."
-        },
-        {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "If regression testing reveals stale role/admin/hotel-activation states causing incorrect navigation/guard behavior after login/logout, adjust query keys/enabled flags/invalidation to ensure role-gated UI updates promptly and reliably without regressions."
+          "description": "Ensure the invite-token consumption mutation invalidates/refetches all relevant identity-scoped queries used for gating and hotel loading (role, admin, activation state, hotel profile, and any dependent hotel lists) so the UI updates without manual refresh. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/auth/HotelActivationForm.tsx",
+          "operation": "modify",
+          "description": "On successful activation, automatically trigger the necessary query invalidations and navigate to /hotel (and keep English user-facing messages). Ensure failures keep the user in place with clear error feedback. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/auth/AccessDeniedScreen.tsx",
+          "operation": "modify",
+          "description": "Align the activation success handling so that after token consumption the user is redirected to /hotel and the updated state is visible immediately (without requiring manual refresh). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/AccountStatusPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the existing 'consume invite token' flow invalidates/refetches the same gating queries (role/admin/activation/hotel profile) and redirects to /hotel promptly, without requiring an extra manual refresh. Keep user-facing text in English. Verify the component's usage instructions before implementing."
         }
       ]
     }

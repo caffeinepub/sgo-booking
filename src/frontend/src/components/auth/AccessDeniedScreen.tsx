@@ -33,9 +33,7 @@ export function AccessDeniedScreen({ currentRole, requiredRoles, isHotelActivate
   const needsActivation = isHotelRequired && !isHotelActivated && currentRole === UserRole.user;
 
   const handleActivationSuccess = () => {
-    setTimeout(() => {
-      navigate({ to: '/hotel' });
-    }, 1500);
+    // Navigation is handled by HotelActivationForm
   };
 
   return (

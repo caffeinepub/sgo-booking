@@ -2,9 +2,9 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import { useGetCallerHotelProfile } from '../../hooks/useQueries';
 import { SubscriptionStatus } from '../../types/extended-backend';
-import { CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 import { ContactPaymentInstructions } from '../payments/ContactPaymentInstructions';
 
 export function SubscriptionPanel() {
@@ -23,113 +23,94 @@ export function SubscriptionPanel() {
     );
   }
 
-  if (!hotelProfile) {
-    return (
-      <Card>
-        <CardContent className="py-8">
-          <p className="text-center text-muted-foreground">Hotel profile not found</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const subscriptionStatus = hotelProfile?.subscriptionStatus || SubscriptionStatus.unpaid;
+  const isActive = hotelProfile?.active || false;
 
   const getStatusBadge = () => {
-    switch (hotelProfile.subscriptionStatus) {
+    switch (subscriptionStatus) {
       case SubscriptionStatus.paid:
         return (
           <Badge variant="default" className="gap-1">
-            <CheckCircle className="h-3 w-3" />
+            <CheckCircle2 className="h-3 w-3" />
             Paid
-          </Badge>
-        );
-      case SubscriptionStatus.unpaid:
-        return (
-          <Badge variant="destructive" className="gap-1">
-            <XCircle className="h-3 w-3" />
-            Unpaid
           </Badge>
         );
       case SubscriptionStatus.test:
         return (
           <Badge variant="secondary" className="gap-1">
-            <AlertCircle className="h-3 w-3" />
+            <Clock className="h-3 w-3" />
             Test Mode
           </Badge>
         );
+      case SubscriptionStatus.unpaid:
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Unpaid
+          </Badge>
+        );
+      default:
+        return null;
     }
   };
 
-  const showContactCard =
-    !hotelProfile.active || hotelProfile.subscriptionStatus === SubscriptionStatus.unpaid;
+  const getStatusMessage = () => {
+    if (subscriptionStatus === SubscriptionStatus.paid && isActive) {
+      return {
+        variant: 'default' as const,
+        icon: <CheckCircle2 className="h-4 w-4" />,
+        title: 'Subscription Active',
+        description: 'Your hotel subscription is active and your hotel is visible to guests.',
+      };
+    }
+
+    if (subscriptionStatus === SubscriptionStatus.test) {
+      return {
+        variant: 'default' as const,
+        icon: <Clock className="h-4 w-4" />,
+        title: 'Test Mode',
+        description: 'Your hotel is in test mode. Contact admin to activate your subscription.',
+      };
+    }
+
+    return {
+      variant: 'destructive' as const,
+      icon: <AlertCircle className="h-4 w-4" />,
+      title: 'Subscription Required',
+      description: 'Your subscription is not active. Please contact the administrator to activate your subscription.',
+    };
+  };
+
+  const statusMessage = getStatusMessage();
+  const showContactCard = subscriptionStatus !== SubscriptionStatus.paid || !isActive;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Subscription Status</CardTitle>
-          <CardDescription>Your current subscription and hotel activation status</CardDescription>
+          <div className="flex items-center justify-between">
+            <CardTitle>Subscription Status</CardTitle>
+            {getStatusBadge()}
+          </div>
+          <CardDescription>Manage your hotel subscription and visibility</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Hotel Status</p>
-              {hotelProfile.active ? (
-                <Badge variant="default" className="gap-1">
-                  <CheckCircle className="h-3 w-3" />
-                  Active
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="gap-1">
-                  <XCircle className="h-3 w-3" />
-                  Inactive
-                </Badge>
-              )}
+          <Alert variant={statusMessage.variant}>
+            {statusMessage.icon}
+            <AlertTitle>{statusMessage.title}</AlertTitle>
+            <AlertDescription>{statusMessage.description}</AlertDescription>
+          </Alert>
+
+          <div className="grid grid-cols-2 gap-4 pt-4">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Subscription Status</p>
+              <p className="font-medium capitalize">{subscriptionStatus}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Subscription</p>
-              {getStatusBadge()}
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Hotel Visibility</p>
+              <p className="font-medium">{isActive ? 'Visible' : 'Hidden'}</p>
             </div>
           </div>
-
-          {hotelProfile.active && hotelProfile.subscriptionStatus === SubscriptionStatus.paid && (
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertTitle>All Set!</AlertTitle>
-              <AlertDescription>
-                Your hotel is active and your subscription is paid. Your hotel is visible to guests.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {hotelProfile.subscriptionStatus === SubscriptionStatus.test && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>Test Mode</AlertTitle>
-              <AlertDescription>
-                Your hotel is in test mode. It may be visible to guests for testing purposes.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {!hotelProfile.active && (
-            <Alert variant="destructive">
-              <XCircle className="h-4 w-4" />
-              <AlertTitle>Hotel Inactive</AlertTitle>
-              <AlertDescription>
-                Your hotel is currently inactive and not visible to guests. Contact admin for activation.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {hotelProfile.subscriptionStatus === SubscriptionStatus.unpaid && (
-            <Alert variant="destructive">
-              <XCircle className="h-4 w-4" />
-              <AlertTitle>Subscription Unpaid</AlertTitle>
-              <AlertDescription>
-                Your subscription is unpaid. Please contact admin to update your subscription status.
-              </AlertDescription>
-            </Alert>
-          )}
         </CardContent>
       </Card>
 

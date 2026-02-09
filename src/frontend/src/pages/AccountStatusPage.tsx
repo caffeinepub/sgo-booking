@@ -42,6 +42,7 @@ export function AccountStatusPage() {
       refetchHotelProfile(),
       queryClient.invalidateQueries({ queryKey: ['hotels'] }),
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] }),
+      queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] }),
     ]);
     toast.success('Account status refreshed');
   };
@@ -79,6 +80,14 @@ export function AccountStatusPage() {
       toast.success('Hotel access granted! Redirecting to Hotel Area...');
       setInviteToken('');
       setTokenValidation(null);
+      
+      // Invalidate all relevant queries
+      await queryClient.invalidateQueries({ queryKey: ['callerUserRole'] });
+      await queryClient.invalidateQueries({ queryKey: ['isCurrentUserAdmin'] });
+      await queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+      
       await handleRefresh();
       setTimeout(() => navigate({ to: '/hotel' }), 1500);
     } catch (error: any) {
@@ -214,102 +223,114 @@ export function AccountStatusPage() {
             </CardContent>
           </Card>
 
-          {isAuthenticated && isUser && !isAdmin && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Hotel Onboarding</CardTitle>
-                <CardDescription>Activate your hotel account to access management features</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isHotelActivated ? (
-                  <Alert>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <AlertTitle>Hotel Access Active</AlertTitle>
-                    <AlertDescription>
-                      Your hotel account is activated and ready to use. You can access the Hotel Area to manage your
-                      property.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <>
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Activation Required</AlertTitle>
-                      <AlertDescription>
-                        To activate your hotel account, you need an invite token from an administrator. Contact the
-                        admin and provide your Principal ID above to receive your activation token.
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="inviteToken">Invite Token</Label>
-                        <Input
-                          id="inviteToken"
-                          type="text"
-                          value={inviteToken}
-                          onChange={(e) => {
-                            setInviteToken(e.target.value);
-                            setTokenValidation(null);
-                          }}
-                          placeholder="Enter your invite token"
-                        />
-                      </div>
-
-                      {tokenValidation && (
-                        <Alert variant={tokenValidation.valid ? 'default' : 'destructive'}>
-                          {tokenValidation.valid ? (
-                            <CheckCircle2 className="h-4 w-4" />
-                          ) : (
-                            <AlertCircle className="h-4 w-4" />
-                          )}
-                          <AlertDescription>{tokenValidation.message}</AlertDescription>
-                        </Alert>
-                      )}
-
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleValidateToken}
-                          variant="outline"
-                          disabled={validateToken.isPending || !inviteToken.trim()}
-                          className="flex-1"
-                        >
-                          {validateToken.isPending ? 'Validating...' : 'Validate Token'}
-                        </Button>
-                        <Button
-                          onClick={handleConsumeToken}
-                          disabled={consumeToken.isPending || !inviteToken.trim()}
-                          className="flex-1"
-                        >
-                          {consumeToken.isPending ? 'Activating...' : 'Activate Hotel Account'}
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {isAuthenticated && (
+          {isAuthenticated && isUser && !isHotelActivated && (
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Wrench className="h-5 w-5 text-muted-foreground" />
-                  <CardTitle>Developer Tools</CardTitle>
+                  <Key className="h-5 w-5 text-primary" />
+                  <CardTitle>Hotel Onboarding</CardTitle>
                 </div>
-                <CardDescription>Advanced tools for testing and development</CardDescription>
+                <CardDescription>Activate your hotel account to start managing your property</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button onClick={handleMakeMeAdmin} disabled={makeMeAdmin.isPending} variant="outline" className="w-full">
-                  {makeMeAdmin.isPending ? 'Granting Admin Access...' : 'Make Me Admin'}
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2">
-                  This will grant you full administrative access to the system
-                </p>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Activation Required</AlertTitle>
+                  <AlertDescription>
+                    Your account has hotel role but is not yet activated. Enter an invite token from an administrator to
+                    activate your hotel account.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label htmlFor="token">Invite Token</Label>
+                  <Input
+                    id="token"
+                    value={inviteToken}
+                    onChange={(e) => {
+                      setInviteToken(e.target.value);
+                      setTokenValidation(null);
+                    }}
+                    placeholder="Enter your invite token"
+                    className="font-mono"
+                  />
+                </div>
+
+                {tokenValidation && (
+                  <Alert variant={tokenValidation.valid ? 'default' : 'destructive'}>
+                    {tokenValidation.valid ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4" />
+                    )}
+                    <AlertDescription>{tokenValidation.message}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleValidateToken}
+                    variant="outline"
+                    disabled={validateToken.isPending || !inviteToken.trim()}
+                    className="flex-1"
+                  >
+                    {validateToken.isPending ? 'Validating...' : 'Validate Token'}
+                  </Button>
+                  <Button
+                    onClick={handleConsumeToken}
+                    disabled={consumeToken.isPending || !inviteToken.trim()}
+                    className="flex-1"
+                  >
+                    {consumeToken.isPending ? 'Activating...' : 'Activate Hotel'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
+
+          {isAuthenticated && isUser && isHotelActivated && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CardTitle>Hotel Account Active</CardTitle>
+                </div>
+                <CardDescription>Your hotel account is activated and ready to use</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertDescription>
+                    You can now access the Hotel Area to manage your property, rooms, and bookings.
+                  </AlertDescription>
+                </Alert>
+                <Button onClick={() => navigate({ to: '/hotel' })} className="w-full mt-4">
+                  Go to Hotel Area
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Wrench className="h-5 w-5 text-primary" />
+                <CardTitle>Developer Tools</CardTitle>
+              </div>
+              <CardDescription>Advanced tools for testing and development</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  These tools are for development and testing purposes only. Use with caution.
+                </AlertDescription>
+              </Alert>
+              <Button onClick={handleMakeMeAdmin} disabled={makeMeAdmin.isPending} variant="outline" className="w-full">
+                {makeMeAdmin.isPending ? 'Processing...' : 'Make Me Admin (Dev Only)'}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -49,6 +49,24 @@ export function useIsCurrentUserAdmin() {
   });
 }
 
+export function useIsCallerHotelActivated() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const principalId = identity?.getPrincipal().toString() || 'anonymous';
+
+  return useQuery<boolean>({
+    queryKey: ['isCallerHotelActivated', principalId],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return await actor.isCallerHotelActivated();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    retry: 1,
+  });
+}
+
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
   const { identity } = useInternetIdentity();
@@ -128,10 +146,12 @@ export function useConsumeInviteToken() {
       return extendedActor.consumeInviteToken(token);
     },
     onSuccess: () => {
+      // Invalidate all identity-scoped queries
       queryClient.invalidateQueries({ queryKey: ['callerUserRole'] });
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
-      queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
       queryClient.invalidateQueries({ queryKey: ['isCurrentUserAdmin'] });
+      queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
+      queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['hotels'] });
     },
   });
 }
