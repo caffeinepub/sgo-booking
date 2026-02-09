@@ -39,8 +39,8 @@ export function ProfileCompletionGate({ children }: ProfileCompletionGateProps) 
     try {
       await saveProfile.mutateAsync({
         name: name.trim(),
-        email: email.trim() || null,
-        phone: phone.trim() || null,
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
       });
       toast.success('Profile created successfully!');
     } catch (err: any) {

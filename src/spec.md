@@ -1,13 +1,16 @@
 # Specification
 
 ## Summary
-**Goal:** Restore the validated/activated hotel account experience so that, after invite-token validation, the hotel profile loads and the UI shows the Hotel Area menu and Hotel Management dashboard (matching the provided screenshot).
+**Goal:** Fix backend canister API regressions so hotel profile saving, room CRUD, admin hotel visibility controls, and guest hotel browsing work without missing-method runtime errors.
 
 **Planned changes:**
-- Fix backend hotel activation so consuming an invite token sets and persists an “activated hotel account” state and returns a non-null caller hotel profile for that account.
-- Ensure backend methods used by the current frontend for hotel gating (get caller role, is caller admin, get caller hotel profile) are present and work without traps for valid users.
-- Update frontend navigation gating so “Hotel Area” appears in the TopNav for activated hotel accounts and routes to `/hotel`.
-- Ensure `/hotel` renders the Hotel Management dashboard with header/description and tabs in this order: Profile, Rooms, Payments, Bookings, Record Stays, Subscription; ensure Rooms supports adding rooms and uploading room photos via the existing upload flow.
-- After successful invite-token activation, automatically invalidate/refetch relevant cached queries (role/admin/hotel profile) and redirect to `/hotel` so the updated state is visible immediately.
+- Align the backend Candid API with the frontend `ExtendedBackendInterface` to eliminate missing method errors (e.g., `updateHotelProfile`, `createRoom`, `updateRoom`, and other referenced hooks).
+- Implement `updateHotelProfile(name, location, address, mapLink, whatsapp, email)` in `backend/main.mo` with the exact parameter order expected by the frontend, persisting updates to the caller’s hotel record (initializing a default record if missing).
+- Restore/implement room APIs in `backend/main.mo` to match frontend signatures: `getRooms(filters: RoomQuery)`, `createRoom(roomNumber, roomType, pricePerNight, currency, pictures)`, and `updateRoom(roomId, roomNumber, roomType, pricePerNight, currency, pictures)`, including persistence and returning `RoomView`.
+- Ensure consistent hotel record initialization/maintenance so activated hotels can create rooms and appear in admin/guest hotel lists even if the profile was never saved (including associating room IDs with the hotel).
+- Implement/restore `getHotels()` so active hotels appear in guest browsing and admin tools, including returning hotel rooms and their `pictures` for rendering.
+- Implement admin-only hotel management methods required by the existing admin UI: `setHotelActiveStatus(hotelId, active)` and `setHotelSubscriptionStatus(hotelId, status)`.
+- Restore/implement additional backend methods referenced by frontend auth/role/invite flows (at minimum: `getCallerUserRole`, `isCallerAdmin`, `makeMeAdmin`, `validateInviteToken`) to avoid runtime errors.
+- Run a focused regression check using `frontend/REGRESSION_CHECKLIST.md` covering hotel profile saving, room create/update with photos, guest browse visibility, and admin visibility toggles.
 
-**User-visible outcome:** After validating an invite token, a hotel user is immediately taken to the Hotel Management dashboard, sees the “Hotel Area” menu in the top navigation, and can manage hotel details including creating rooms and uploading room photos.
+**User-visible outcome:** Hotel owners can save their hotel profile and create/update rooms (including photos) without errors; guests can browse active hotels instead of seeing “No Hotels Available”; admins can view hotels and toggle active/subscription status successfully.

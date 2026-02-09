@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { PaymentMethod, HotelContact } from '../../types/extended-backend';
+import type { PaymentMethod, HotelContact } from '../../backend';
 import { Button } from '../ui/button';
 import { CreditCard, MessageCircle, Mail } from 'lucide-react';
 

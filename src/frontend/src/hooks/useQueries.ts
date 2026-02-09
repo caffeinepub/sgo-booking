@@ -1,17 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { UserRole } from '../backend';
+import type { backendInterface, UserRole, UserProfile, InviteToken, HotelDataView, RoomView, RoomQuery } from '../backend';
 import { Principal } from '@icp-sdk/core/principal';
 import { useInternetIdentity } from './useInternetIdentity';
-import type {
-  BookingQuery,
-  RoomQuery,
-  UserProfile,
-  BookingStatus,
-  SubscriptionStatus,
-  ExtendedBackendInterface,
-  InviteToken,
-} from '../types/extended-backend';
 
 export function useGetCallerUserRole() {
   const { actor, isFetching } = useActor();
@@ -76,8 +67,7 @@ export function useGetCallerUserProfile() {
     queryKey: ['currentUserProfile', principalId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.getCallerUserProfile();
+      return await actor.getCallerUserProfile();
     },
     enabled: !!actor && !actorFetching && !!identity,
     retry: false,
@@ -97,8 +87,7 @@ export function useSaveCallerUserProfile() {
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.saveCallerUserProfile(profile);
+      return await actor.saveCallerUserProfile(profile);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
@@ -113,8 +102,7 @@ export function useMakeMeAdmin() {
   return useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.makeMeAdmin();
+      return await actor.makeMeAdmin();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerUserRole'] });
@@ -129,8 +117,7 @@ export function useValidateInviteToken() {
   return useMutation({
     mutationFn: async (token: string) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.validateInviteToken(token);
+      return await actor.validateInviteToken(token);
     },
   });
 }
@@ -142,11 +129,9 @@ export function useConsumeInviteToken() {
   return useMutation({
     mutationFn: async (token: string) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.consumeInviteToken(token);
+      return await actor.consumeInviteToken(token);
     },
     onSuccess: () => {
-      // Invalidate all identity-scoped queries
       queryClient.invalidateQueries({ queryKey: ['callerUserRole'] });
       queryClient.invalidateQueries({ queryKey: ['isCurrentUserAdmin'] });
       queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
@@ -163,8 +148,7 @@ export function useCreateInviteToken() {
   return useMutation({
     mutationFn: async (params: { maxUses: bigint; boundPrincipal: Principal | null }) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.createInviteToken(params.maxUses, params.boundPrincipal);
+      return await actor.createHotelInviteToken(params.maxUses, params.boundPrincipal);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inviteTokens'] });
@@ -180,8 +164,7 @@ export function useGetInviteTokens() {
     queryKey: ['inviteTokens'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.getInviteTokens();
+      return await actor.getInviteTokens();
     },
     enabled: !!actor && !isFetching && !!identity,
     retry: 1,
@@ -191,12 +174,11 @@ export function useGetInviteTokens() {
 export function useGetHotels() {
   const { actor, isFetching } = useActor();
 
-  return useQuery({
+  return useQuery<HotelDataView[]>({
     queryKey: ['hotels'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.getHotels();
+      return await actor.getHotels();
     },
     enabled: !!actor && !isFetching,
     staleTime: 0,
@@ -211,19 +193,20 @@ export function useGetCallerHotelProfile(options?: { enabled?: boolean }) {
   const principalId = identity?.getPrincipal().toString() || 'anonymous';
   const enabled = options?.enabled !== undefined ? options.enabled : true;
 
-  return useQuery({
+  return useQuery<HotelDataView | null>({
     queryKey: ['callerHotelProfile', principalId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
       try {
-        const extendedActor = actor as unknown as ExtendedBackendInterface;
-        return await extendedActor.getCallerHotelProfile();
+        return await actor.getCallerHotelProfile();
       } catch (error) {
         console.log('Hotel profile query rejected, treating as not activated:', error);
         return null;
       }
     },
     enabled: !!actor && !isFetching && enabled && !!identity,
+    staleTime: 0,
+    refetchOnMount: 'always',
     retry: false,
   });
 }
@@ -240,13 +223,12 @@ export function useGetRooms(filters: RoomQuery, options?: { enabled?: boolean })
     availableOnly: filters.availableOnly || null,
   };
 
-  return useQuery({
+  return useQuery<RoomView[]>({
     queryKey: ['rooms', normalizedFilters],
     queryFn: async () => {
       if (!actor) return [];
       try {
-        const extendedActor = actor as unknown as ExtendedBackendInterface;
-        return await extendedActor.getRooms(filters);
+        return await actor.getRooms(filters);
       } catch (error) {
         console.error('Failed to fetch rooms:', error);
         throw error;
@@ -256,98 +238,6 @@ export function useGetRooms(filters: RoomQuery, options?: { enabled?: boolean })
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
-  });
-}
-
-export function useGetBookings(filters: BookingQuery) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery({
-    queryKey: ['bookings', filters],
-    queryFn: async () => {
-      if (!actor) return { bookings: [], totalCount: BigInt(0) };
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.getBookings(filters);
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useCreateBooking() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: {
-      hotelId: Principal;
-      roomId: bigint;
-      checkIn: bigint;
-      checkOut: bigint;
-      guests: bigint;
-      currency: string;
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.createBooking(
-        params.hotelId,
-        params.roomId,
-        params.checkIn,
-        params.checkOut,
-        params.guests,
-        params.currency
-      );
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
-    },
-  });
-}
-
-export function useSetPaymentProof() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: { bookingId: bigint; paymentProof: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.setPaymentProof(params.bookingId, params.paymentProof);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
-    },
-  });
-}
-
-export function useUpdateBookingStatus() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: { bookingId: bigint; newStatus: BookingStatus }) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.updateBookingStatus(params.bookingId, params.newStatus);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
-    },
-  });
-}
-
-export function useRecordStayCompletion() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (bookingId: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.recordStayCompletion(bookingId);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
-    },
   });
 }
 
@@ -365,8 +255,7 @@ export function useUpdateHotelProfile() {
       email: string | null;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.updateHotelProfile(
+      return await actor.updateHotelProfile(
         params.name,
         params.location,
         params.address,
@@ -378,6 +267,7 @@ export function useUpdateHotelProfile() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
       await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+      await queryClient.invalidateQueries({ queryKey: ['rooms'] });
     },
   });
 }
@@ -389,11 +279,11 @@ export function useSetHotelActiveStatus() {
   return useMutation({
     mutationFn: async (params: { hotelId: Principal; active: boolean }) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.setHotelActiveStatus(params.hotelId, params.active);
+      return await actor.setHotelActiveStatus(params.hotelId, params.active);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
     },
   });
 }
@@ -403,13 +293,19 @@ export function useSetHotelSubscriptionStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: { hotelId: Principal; status: SubscriptionStatus }) => {
+    mutationFn: async (params: { hotelId: Principal; status: string }) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.setHotelSubscriptionStatus(params.hotelId, params.status);
+      // Map string to SubscriptionStatus enum
+      const statusMap: Record<string, any> = {
+        paid: { paid: null },
+        unpaid: { unpaid: null },
+        test: { test: null },
+      };
+      return await actor.setHotelSubscriptionStatus(params.hotelId, statusMap[params.status] || { test: null });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
     },
   });
 }
@@ -421,44 +317,12 @@ export function useActivateHotelOwner() {
   return useMutation({
     mutationFn: async (hotelId: Principal) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.activateHotelOwner(hotelId);
+      return await actor.activateHotelDirectly(hotelId);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['hotels'] });
       await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-    },
-  });
-}
-
-export function useAddPaymentMethod() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: { name: string; details: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.addPaymentMethod(params.name, params.details);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-    },
-  });
-}
-
-export function useRemovePaymentMethod() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (index: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.removePaymentMethod(index);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
     },
   });
 }
@@ -476,8 +340,7 @@ export function useCreateRoom() {
       pictures: string[];
     }) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.createRoom(
+      return await actor.createRoom(
         params.roomNumber,
         params.roomType,
         params.pricePerNight,
@@ -488,6 +351,7 @@ export function useCreateRoom() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['rooms'] });
       await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
     },
   });
 }
@@ -506,8 +370,7 @@ export function useUpdateRoom() {
       pictures: string[];
     }) => {
       if (!actor) throw new Error('Actor not available');
-      const extendedActor = actor as unknown as ExtendedBackendInterface;
-      return extendedActor.updateRoom(
+      return await actor.updateRoom(
         params.roomId,
         params.roomNumber,
         params.roomType,
@@ -519,6 +382,7 @@ export function useUpdateRoom() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['rooms'] });
       await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
     },
   });
 }

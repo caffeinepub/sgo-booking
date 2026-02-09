@@ -104,22 +104,22 @@ export interface RoomQuery {
   availableOnly?: boolean | null;
 }
 
-// Extended backend interface with all methods
+// Extended backend interface matching actual backend.d.ts methods
 export interface ExtendedBackendInterface {
   // Auth & Profile
   getCallerUserProfile(): Promise<UserProfile | null>;
   saveCallerUserProfile(profile: UserProfile): Promise<void>;
   makeMeAdmin(): Promise<void>;
   
-  // Invite tokens - FIXED: createInviteToken returns InviteToken object, not just string
+  // Invite tokens
   validateInviteToken(token: string): Promise<boolean>;
   consumeInviteToken(token: string): Promise<boolean>;
-  createInviteToken(maxUses: bigint, boundPrincipal: Principal | null): Promise<InviteToken>;
+  createHotelInviteToken(maxUses: bigint, boundPrincipal: Principal | null): Promise<InviteToken>;
   getInviteTokens(): Promise<InviteToken[]>;
   
   // Hotels
   getHotels(): Promise<HotelDataView[]>;
-  getCallerHotelProfile(): Promise<HotelDataView>;
+  getCallerHotelProfile(): Promise<HotelDataView | null>;
   updateHotelProfile(
     name: string,
     location: string,
@@ -130,7 +130,7 @@ export interface ExtendedBackendInterface {
   ): Promise<void>;
   setHotelActiveStatus(hotelId: Principal, active: boolean): Promise<void>;
   setHotelSubscriptionStatus(hotelId: Principal, status: SubscriptionStatus): Promise<void>;
-  activateHotelOwner(hotelId: Principal): Promise<void>;
+  activateHotelDirectly(hotelPrincipal: Principal): Promise<boolean>;
   
   // Payment methods
   addPaymentMethod(name: string, details: string): Promise<void>;
@@ -144,7 +144,7 @@ export interface ExtendedBackendInterface {
     pricePerNight: bigint,
     currency: string,
     pictures: string[]
-  ): Promise<bigint>;
+  ): Promise<RoomView>;
   updateRoom(
     roomId: bigint,
     roomNumber: string,
@@ -152,7 +152,7 @@ export interface ExtendedBackendInterface {
     pricePerNight: bigint,
     currency: string,
     pictures: string[]
-  ): Promise<void>;
+  ): Promise<RoomView>;
   
   // Bookings
   getBookings(filters: BookingQuery): Promise<BookingQueryResult>;

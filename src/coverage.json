@@ -1,79 +1,78 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T01:13:53.089Z",
+  "generatedAt": "2026-02-09T13:26:28.355Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
-    "implemented": 3,
+    "total": 8,
+    "implemented": 0,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Fix the hotel activation flow so that after an invite token is consumed, the authenticated hotel account becomes 'activated' and can load its hotel profile successfully (so the app treats the account as an activated hotel and shows the Hotel Management dashboard).",
+        "id": "REQ-10",
+        "summary": "Restore/implement any additional backend methods referenced by the frontend hooks so authentication/role checks and invite token flow do not error at runtime (at minimum: `getCallerUserRole`, `isCallerAdmin`, `makeMeAdmin`, `validateInviteToken`).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-2",
-        "summary": "Ensure the backend exposes and/or restores all API methods that the current frontend uses for hotel activation and hotel-area gating (including role/admin checks and caller hotel profile retrieval), and that these methods do not trap for valid callers in expected flows.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Make the Hotel Area navigation entry visible for validated hotel accounts, matching the screenshot behavior: when logged in as an activated hotel user, show the 'Hotel Area' link in the top navigation and allow navigation to /hotel.",
-        "status": "implemented",
+        "id": "REQ-11",
+        "summary": "Add a focused regression check (manual or automated where applicable) using the existing `frontend/REGRESSION_CHECKLIST.md` flow to verify: hotel profile saving, room create/update with photos, guest browse hotel visibility, and admin hotel visibility toggles.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/nav/TopNav.tsx",
-          "frontend/src/components/auth/RequireRole.tsx"
+          "frontend/REGRESSION_CHECKLIST.md"
         ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/nav/TopNav.tsx",
-          "frontend/src/components/auth/RequireRole.tsx"
-        ]
+        "matchedFiles": []
       },
       {
         "id": "REQ-4",
-        "summary": "Ensure the Hotel Management dashboard UI for hotel accounts matches the second uploaded screenshot: header 'Hotel Management' with description text and a tabbed interface with tabs in this order: Profile, Rooms, Payments, Bookings, Record Stays, Subscription; Rooms tab must support adding rooms and uploading room photos.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/HotelAreaPage.tsx",
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/hooks/useRoomImageUpload.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/HotelAreaPage.tsx",
-          "frontend/src/components/hotel/RoomsPanel.tsx"
-        ]
+        "summary": "Align the backend canister Candid API with the frontend’s `ExtendedBackendInterface` so the runtime errors like `extendedActor.updateHotelProfile is not a function` and other missing-method errors cannot occur.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-5",
-        "summary": "After successful hotel validation/activation via invite token consumption, automatically refresh relevant cached queries and redirect the user into the Hotel Management dashboard so the change is immediately visible without manual refresh.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/auth/HotelActivationForm.tsx",
-          "frontend/src/components/auth/AccessDeniedScreen.tsx",
-          "frontend/src/pages/AccountStatusPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/auth/HotelActivationForm.tsx",
-          "frontend/src/components/auth/AccessDeniedScreen.tsx",
-          "frontend/src/pages/AccountStatusPage.tsx"
-        ]
+        "summary": "Implement `updateHotelProfile(name, location, address, mapLink, whatsapp, email)` in `backend/main.mo` with the exact parameter order expected by the frontend, and persist the updated fields into the caller’s hotel record.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-6",
+        "summary": "Fix/restore room APIs to match frontend signatures: implement `getRooms(filters: RoomQuery)`, `createRoom(roomNumber, roomType, pricePerNight, currency, pictures)`, and `updateRoom(roomId, roomNumber, roomType, pricePerNight, currency, pictures)` in `backend/main.mo`, ensuring they work for activated hotels.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-7",
+        "summary": "Ensure an activated hotel can create rooms and appear in admin/guest hotel lists even if their hotel profile record did not previously exist, by initializing and maintaining a consistent hotel record in storage (including a maintained list of room IDs).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-8",
+        "summary": "Implement/restore `getHotels()` in `backend/main.mo` to return the hotel list used by both admin visibility tools and guest browsing, and ensure hotels marked active are returned so the guest Browse Hotels page does not show “No Hotels Available” incorrectly.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-9",
+        "summary": "Implement admin hotel management APIs required by the existing admin UI: `setHotelActiveStatus(hotelId, active)` and `setHotelSubscriptionStatus(hotelId, status)` in `backend/main.mo`, enforcing admin-only access.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
@@ -81,18 +80,22 @@
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
     "frontend/src/buildInfo.ts",
-    "frontend/src/components/auth/AccessDeniedScreen.tsx",
-    "frontend/src/components/auth/HotelActivationForm.tsx",
-    "frontend/src/components/auth/RequireRole.tsx",
+    "frontend/src/components/admin/AdminBookingsPanel.tsx",
+    "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+    "frontend/src/components/admin/InviteTokensPanel.tsx",
+    "frontend/src/components/auth/ProfileCompletionGate.tsx",
+    "frontend/src/components/booking/BookingForm.tsx",
+    "frontend/src/components/booking/MyBookingsTable.tsx",
+    "frontend/src/components/hotel/HotelBookingsPanel.tsx",
+    "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
+    "frontend/src/components/hotel/HotelProfilePanel.tsx",
     "frontend/src/components/hotel/RecordStayPanel.tsx",
-    "frontend/src/components/hotel/RoomsPanel.tsx",
-    "frontend/src/components/hotel/SubscriptionPanel.tsx",
-    "frontend/src/components/nav/TopNav.tsx",
+    "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AccountStatusPage.tsx",
-    "frontend/src/pages/HotelAreaPage.tsx",
+    "frontend/src/pages/HotelDetailPage.tsx",
+    "frontend/src/types/extended-backend.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

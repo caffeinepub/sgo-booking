@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Plus, Copy, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Principal } from '@icp-sdk/core/principal';
+import type { InviteToken } from '../../backend';
 
 export function InviteTokensPanel() {
   const { data: tokens, isLoading } = useGetInviteTokens();
@@ -66,6 +67,8 @@ export function InviteTokensPanel() {
     navigator.clipboard.writeText(token);
     toast.success('Token copied to clipboard');
   };
+
+  const tokensList: InviteToken[] = tokens || [];
 
   return (
     <Card>
@@ -130,7 +133,7 @@ export function InviteTokensPanel() {
             <div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">Loading tokens...</p>
           </div>
-        ) : !tokens || tokens.length === 0 ? (
+        ) : tokensList.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>No invite tokens yet. Generate one to get started.</p>
           </div>
@@ -147,7 +150,7 @@ export function InviteTokensPanel() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tokens.map((token) => (
+                {tokensList.map((token) => (
                   <TableRow key={token.token}>
                     <TableCell className="font-mono text-sm max-w-xs truncate">{token.token}</TableCell>
                     <TableCell className="font-mono text-xs max-w-xs truncate">

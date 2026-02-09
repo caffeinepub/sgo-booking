@@ -7,6 +7,13 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface RoomQuery {
+    hotelId?: Principal;
+    maxPrice?: bigint;
+    availableOnly?: boolean;
+    minPrice?: bigint;
+    roomType?: string;
+}
 export type Time = bigint;
 export interface HotelContact {
     whatsapp?: string;
@@ -77,21 +84,32 @@ export interface backendInterface {
     activateHotelDirectly(hotelPrincipal: Principal): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     consumeInviteToken(token: string): Promise<boolean>;
-    createInviteToken(_maxUses: bigint, boundPrincipal: Principal | null): Promise<InviteToken>;
+    createHotelInviteToken(_maxUses: bigint, boundPrincipal: Principal | null): Promise<InviteToken>;
+    createHotelProfile(name: string, location: string, address: string, mapLink: string, whatsapp: string | null, email: string | null): Promise<void>;
+    createRoom(roomNumber: string, roomType: string, pricePerNight: bigint, currency: string, pictures: Array<string>): Promise<RoomView>;
     generateInviteCode(): Promise<string>;
     getAllRSVPs(): Promise<Array<RSVP>>;
     getCallerHotelProfile(): Promise<HotelDataView | null>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getHotelProfile(hotelId: Principal): Promise<HotelDataView | null>;
+    getHotels(): Promise<Array<HotelDataView>>;
     getInviteCodes(): Promise<Array<InviteCode>>;
     getInviteTokens(): Promise<Array<InviteToken>>;
+    getRooms(filters: RoomQuery): Promise<Array<RoomView>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getValidHotelInviteTokens(): Promise<Array<string>>;
     isCallerAdmin(): Promise<boolean>;
     isCallerHotelActivated(): Promise<boolean>;
     isHotelActiveByDirectActivation(hotelPrincipal: Principal): Promise<boolean>;
+    isHotelOwner(callerPrincipal: Principal, hotelId: Principal): Promise<boolean>;
     isValidHotelInviteToken(hotelPrincipal: Principal): Promise<boolean>;
+    makeMeAdmin(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    setHotelActiveStatus(hotelId: Principal, active: boolean): Promise<void>;
+    setHotelSubscriptionStatus(hotelId: Principal, status: SubscriptionStatus): Promise<void>;
     submitRSVP(name: string, attending: boolean, inviteCode: string): Promise<void>;
+    updateHotelProfile(name: string, location: string, address: string, mapLink: string, whatsapp: string | null, email: string | null): Promise<void>;
+    updateRoom(roomId: bigint, roomNumber: string, roomType: string, pricePerNight: bigint, currency: string, pictures: Array<string>): Promise<RoomView>;
+    validateInviteToken(token: string): Promise<boolean>;
 }

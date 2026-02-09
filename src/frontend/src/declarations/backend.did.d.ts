@@ -48,6 +48,13 @@ export interface RSVP {
   'timestamp' : Time,
   'attending' : boolean,
 }
+export interface RoomQuery {
+  'hotelId' : [] | [Principal],
+  'maxPrice' : [] | [bigint],
+  'availableOnly' : [] | [boolean],
+  'minPrice' : [] | [bigint],
+  'roomType' : [] | [string],
+}
 export interface RoomView {
   'id' : bigint,
   'pricePerNight' : bigint,
@@ -100,23 +107,52 @@ export interface _SERVICE {
   'activateHotelDirectly' : ActorMethod<[Principal], boolean>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'consumeInviteToken' : ActorMethod<[string], boolean>,
-  'createInviteToken' : ActorMethod<[bigint, [] | [Principal]], InviteToken>,
+  'createHotelInviteToken' : ActorMethod<
+    [bigint, [] | [Principal]],
+    InviteToken
+  >,
+  'createHotelProfile' : ActorMethod<
+    [string, string, string, string, [] | [string], [] | [string]],
+    undefined
+  >,
+  'createRoom' : ActorMethod<
+    [string, string, bigint, string, Array<string>],
+    RoomView
+  >,
   'generateInviteCode' : ActorMethod<[], string>,
   'getAllRSVPs' : ActorMethod<[], Array<RSVP>>,
   'getCallerHotelProfile' : ActorMethod<[], [] | [HotelDataView]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getHotelProfile' : ActorMethod<[Principal], [] | [HotelDataView]>,
+  'getHotels' : ActorMethod<[], Array<HotelDataView>>,
   'getInviteCodes' : ActorMethod<[], Array<InviteCode>>,
   'getInviteTokens' : ActorMethod<[], Array<InviteToken>>,
+  'getRooms' : ActorMethod<[RoomQuery], Array<RoomView>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getValidHotelInviteTokens' : ActorMethod<[], Array<string>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerHotelActivated' : ActorMethod<[], boolean>,
   'isHotelActiveByDirectActivation' : ActorMethod<[Principal], boolean>,
+  'isHotelOwner' : ActorMethod<[Principal, Principal], boolean>,
   'isValidHotelInviteToken' : ActorMethod<[Principal], boolean>,
+  'makeMeAdmin' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'setHotelActiveStatus' : ActorMethod<[Principal, boolean], undefined>,
+  'setHotelSubscriptionStatus' : ActorMethod<
+    [Principal, SubscriptionStatus],
+    undefined
+  >,
   'submitRSVP' : ActorMethod<[string, boolean, string], undefined>,
+  'updateHotelProfile' : ActorMethod<
+    [string, string, string, string, [] | [string], [] | [string]],
+    undefined
+  >,
+  'updateRoom' : ActorMethod<
+    [bigint, string, string, bigint, string, Array<string>],
+    RoomView
+  >,
+  'validateInviteToken' : ActorMethod<[string], boolean>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

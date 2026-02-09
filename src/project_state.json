@@ -1,65 +1,122 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 3,
-  "summary": "Build and fix the validated hotel account experience so that hotel users see a Hotel Dashboard and Hotel Area menu matching the provided screenshot, including hotel data management and room photo uploads.",
+  "projectStateVersion": 5,
+  "summary": "Fix backend regressions preventing hotel profile saving and cross-portal visibility (hotel/admin/guest), including missing canister API methods for hotel profile updates and listing, and ensuring room/photo data and hotel data persist and are readable across all portals.",
   "architectural_notes": [
-    "Implement role/permission + validation-gated UI routing so validated hotel accounts land on Hotel Dashboard and see Hotel Area navigation."
+    "Backend must expose a working createRoom function (previously existed) for saving room data including photo upload; client currently calls extendedActor.createRoom.",
+    "Frontend is calling a hotel profile update API (error reported: `extendedActor.updateHotelProfile is not a function`); backend Candid/actor must expose the expected hotel profile save/update methods.",
+    "Hotel visibility across portals depends on backend listing/filtering (e.g., active/published/approved/subscription/token-used status) and persisted hotel records; ensure admin/guest listings source from correct storage and criteria."
   ],
   "known_issues": [
-    "Validated hotel accounts currently do not show the Hotel Dashboard and Hotel Area features as expected."
+    "Regression: hotel cannot save room data (including room photo upload). Error shown: “extendedActor.createRoom is not a function” and all room fields fail to save.",
+    "Regression: Hotel profile Save does not work; runtime error reported: `extendedActor.updateHotelProfile is not a function`.",
+    "Hotels do not appear in admin and guest portals (shows 'No Hotels Available') even after hotel profile is filled and marked active / token used."
   ],
   "isFixRequest": true,
-  "existing_features": [
-    {
-      "id": "feature-make-the-hotel-area-navigation-entry-visible-for-validated-hotel-accounts-matching-the-screenshot-behavior-when-logged-in-as-an-activated-hotel-user-show-the-hotel-area-link-in-the-top-navigation-and-allow-navigation-to-hotel",
-      "title": "Make the Hotel Area navigation entry visible for validated hotel accounts, matching the screenshot behavior: when logged in as an activated hotel user, show the 'Hotel Area' link in the top navigation and allow navigation to /hotel.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-the-hotel-management-dashboard-ui-for-hotel-accounts-matches-the-second-uploaded-screenshot-header-hotel-management-with-description-text-and-a-tabbed-interface-with-tabs-in-this-order-profile-rooms-payments-bookings-record-stays-subscription-rooms-tab-must-support-adding-rooms-and-uploading-room-photos",
-      "title": "Ensure the Hotel Management dashboard UI for hotel accounts matches the second uploaded screenshot: header 'Hotel Management' with description text and a tabbed interface with tabs in this order: Profile, Rooms, Payments, Bookings, Record Stays, Subscription; Rooms tab must support adding rooms and uploading room photos.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-after-successful-hotel-validation-activation-via-invite-token-consumption-automatically-refresh-relevant-cached-queries-and-redirect-the-user-into-the-hotel-management-dashboard-so-the-change-is-immediately-visible-without-manual-refresh",
-      "title": "After successful hotel validation/activation via invite token consumption, automatically refresh relevant cached queries and redirect the user into the Hotel Management dashboard so the change is immediately visible without manual refresh.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    }
-  ],
+  "existing_features": [],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "After hotel account validation, show Hotel Dashboard + Hotel Area menu exactly like screenshot (tabs: Profile, Rooms, Payments, Bookings, Record Stays, Subscription) including hotel data entry and room photo upload.",
-      "reqIds": [],
-      "status": "in_progress"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Fix the hotel activation flow so that after an invite token is consumed, the authenticated hotel account becomes 'activated' and can load its hotel profile successfully (so the app treats the account as an activated hotel and shows the Hotel Management dashboard).",
+      "summary": "Restore the backend canister API methods required by the current frontend to save hotel room data, specifically implementing `createRoom`, `updateRoom`, and `getRooms` in `backend/main.mo` with signatures compatible with the frontend’s `ExtendedBackendInterface` so the runtime error `extendedActor.createRoom is not a function` no longer occurs.",
       "reqIds": [
         "REQ-1"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-3",
-      "summary": "Ensure the backend exposes and/or restores all API methods that the current frontend uses for hotel activation and hotel-area gating (including role/admin checks and caller hotel profile retrieval), and that these methods do not trap for valid callers in expected flows.",
+      "id": "AR-2",
+      "summary": "Ensure an activated hotel caller can successfully save rooms even if their hotel profile record does not yet exist in `hotelsMap` by creating/initializing a default hotel profile on-demand (e.g., during `createRoom`) and maintaining the `rooms` list in the hotel profile so `getCallerHotelProfile()` returns the newly created rooms in `HotelDataView.rooms`.",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Align the backend’s exposed Candid interface with the frontend expectations so the generated actor used by the app includes the restored room APIs (no missing-method runtime errors).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Restore/implement backend canister API methods required by the frontend to save/update hotel profile data (e.g., `updateHotelProfile` / equivalent) with signatures compatible with the frontend actor, fixing the runtime error `extendedActor.updateHotelProfile is not a function` and making the Hotel Profile Save button functional.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Fix backend logic and queries so hotels that have completed/activated profiles (and used tokens / are marked active) are returned to admin and guest portals (no more 'No Hotels Available'), including ensuring hotel records exist in storage and are included in the public/admin listing APIs.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Align the backend canister Candid API with the frontend’s `ExtendedBackendInterface` so the runtime errors like `extendedActor.updateHotelProfile is not a function` and other missing-method errors cannot occur.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Implement `updateHotelProfile(name, location, address, mapLink, whatsapp, email)` in `backend/main.mo` with the exact parameter order expected by the frontend, and persist the updated fields into the caller’s hotel record.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Fix/restore room APIs to match frontend signatures: implement `getRooms(filters: RoomQuery)`, `createRoom(roomNumber, roomType, pricePerNight, currency, pictures)`, and `updateRoom(roomId, roomNumber, roomType, pricePerNight, currency, pictures)` in `backend/main.mo`, ensuring they work for activated hotels.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Ensure an activated hotel can create rooms and appear in admin/guest hotel lists even if their hotel profile record did not previously exist, by initializing and maintaining a consistent hotel record in storage (including a maintained list of room IDs).",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Implement/restore `getHotels()` in `backend/main.mo` to return the hotel list used by both admin visibility tools and guest browsing, and ensure hotels marked active are returned so the guest Browse Hotels page does not show “No Hotels Available” incorrectly.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Implement admin hotel management APIs required by the existing admin UI: `setHotelActiveStatus(hotelId, active)` and `setHotelSubscriptionStatus(hotelId, status)` in `backend/main.mo`, enforcing admin-only access.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Restore/implement any additional backend methods referenced by the frontend hooks so authentication/role checks and invite token flow do not error at runtime (at minimum: `getCallerUserRole`, `isCallerAdmin`, `makeMeAdmin`, `validateInviteToken`).",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Add a focused regression check (manual or automated where applicable) using the existing `frontend/REGRESSION_CHECKLIST.md` flow to verify: hotel profile saving, room create/update with photos, guest browse hotel visibility, and admin hotel visibility toggles.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "status": "pending"
     }
   ],
-  "projectName": "Restore validated hotel account: show Hotel Area menu + Hotel Management dashboard (match screenshot)",
+  "projectName": "Fix backend regression: restore room create/update APIs so hotel room data (including photo URLs) can be saved",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

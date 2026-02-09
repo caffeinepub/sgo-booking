@@ -160,7 +160,7 @@ export default function HotelDetailPage() {
         <div className="lg:col-span-1">
           {selectedRoom ? (
             <div className="sticky top-4">
-              <BookingForm room={selectedRoom} />
+              <BookingForm />
             </div>
           ) : (
             <Card>

@@ -1,88 +1,22 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restore activated hotel navigation and Hotel Management dashboard behavior",
+  "title": "Add focused frontend regression checklist for hotel profile/rooms/browsing/admin visibility",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Show the Hotel Area navigation entry for activated hotel accounts and allow navigation to /hotel under existing access rules.",
+      "id": "REQ-11",
+      "summary": "Add a focused regression check section to the existing frontend regression checklist covering hotel profile save, room create/update with photos, guest hotel browsing visibility, and admin hotel visibility toggles.",
       "acceptanceCriteria": [
-        "When authenticated as an activated hotel account, the TopNav displays a 'Hotel Area' link.",
-        "Clicking 'Hotel Area' navigates to /hotel and renders the hotel management view.",
-        "When authenticated as a non-activated hotel account, the TopNav does not show 'Hotel Area' (unless admin), consistent with existing access rules."
+        "Hotel portal: profile Save succeeds and persists after refresh.",
+        "Hotel portal: create room + upload/add pictures succeeds; room persists after refresh.",
+        "Guest portal: Browse Hotels lists active hotels; can open a hotel detail page.",
+        "Admin portal: Hotel Visibility Control lists hotels and can toggle active/subscription status without errors."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/REGRESSION_CHECKLIST.md",
           "operation": "modify",
-          "description": "Add/adjust React Query support for hotel-area gating by introducing a dedicated query hook for backend activation state (using the existing backend capability) and ensuring its query keys are identity-scoped. This supports consistent TopNav and route-guard behavior. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/nav/TopNav.tsx",
-          "operation": "modify",
-          "description": "Update Hotel Area link visibility logic to use the activation-gating query (admin bypass preserved), so activated hotel users reliably see 'Hotel Area' in the top navigation. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/auth/RequireRole.tsx",
-          "operation": "modify",
-          "description": "Align /hotel access gating with the same activation signal used by TopNav (admin bypass preserved), while keeping existing loading/error handling. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Ensure /hotel renders the Hotel Management dashboard matching the screenshot (header + description + 6 tabs in order) and that the Rooms tab supports adding rooms and uploading room photos.",
-      "acceptanceCriteria": [
-        "/hotel renders the HotelAreaPage tab layout with the 6 tabs in the same labels and order as the screenshot: Profile, Rooms, Payments, Bookings, Record Stays, Subscription.",
-        "The Rooms tab allows creating a room and uploading at least one room photo using the existing upload flow (no broken image/failed save in normal use).",
-        "If hotel profile loading is in progress, a loading state is shown; if hotel profile is missing, a clear error card is shown (existing behavior is acceptable)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/HotelAreaPage.tsx",
-          "operation": "modify",
-          "description": "Verify the Hotel Management header/description and the tab labels/order match the screenshot exactly, and keep/confirm existing loading and missing-profile states. Use the shadcn-ui Tabs components already in use for the tabbed interface. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
-          "operation": "modify",
-          "description": "Adjust the Rooms panel UI copy/empty-state/actions to match the screenshot wording and ensure the 'Add Room' workflow remains functional. Keep the existing room creation/editing flows wired to current query/mutation hooks. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useRoomImageUpload.ts",
-          "operation": "modify",
-          "description": "Confirm the room photo upload hook reliably returns usable image URLs and surfaces progress/errors for the RoomsPanel flow. This should continue using the blob-storage capability for handling image uploads/references. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "After successful invite token activation, refresh cached auth/role/hotel queries and redirect the user to /hotel so the dashboard and Hotel Area link appear immediately.",
-      "acceptanceCriteria": [
-        "After consuming a valid invite token, the UI invalidates/refetches role/admin/hotel-profile queries and redirects to /hotel.",
-        "Immediately after redirect, the HotelAreaPage does not show 'Hotel Profile Not Found' for the newly activated hotel user.",
-        "After redirect, the TopNav shows 'Hotel Area' for the activated hotel user."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Ensure the invite-token consumption mutation invalidates/refetches all relevant identity-scoped queries used for gating and hotel loading (role, admin, activation state, hotel profile, and any dependent hotel lists) so the UI updates without manual refresh. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/auth/HotelActivationForm.tsx",
-          "operation": "modify",
-          "description": "On successful activation, automatically trigger the necessary query invalidations and navigate to /hotel (and keep English user-facing messages). Ensure failures keep the user in place with clear error feedback. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/auth/AccessDeniedScreen.tsx",
-          "operation": "modify",
-          "description": "Align the activation success handling so that after token consumption the user is redirected to /hotel and the updated state is visible immediately (without requiring manual refresh). Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/AccountStatusPage.tsx",
-          "operation": "modify",
-          "description": "Ensure the existing 'consume invite token' flow invalidates/refetches the same gating queries (role/admin/activation/hotel profile) and redirects to /hotel promptly, without requiring an extra manual refresh. Keep user-facing text in English. Verify the component's usage instructions before implementing."
+          "description": "Add/refresh a dedicated, high-signal regression subsection (manual checks) that explicitly validates: (1) HotelProfilePanel Save Changes persists and survives refresh, (2) RoomsPanel create/update with multiple photos (data URLs) persists and survives refresh, (3) BrowseHotelsPage shows active hotels and can navigate into HotelDetailPage, and (4) Admin HotelVisibilityPanel can toggle active/subscription and changes persist after refetch/refresh."
         }
       ]
     }

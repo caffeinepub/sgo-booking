@@ -1,112 +1,176 @@
 {
   "kind": "build_request",
-  "title": "Restore validated hotel account: show Hotel Area menu + Hotel Management dashboard (match screenshot)",
-  "priority": "normal",
+  "title": "Fix backend API regressions for hotel profile saving and cross-portal hotel visibility",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Fix the hotel activation flow so that after an invite token is consumed, the authenticated hotel account becomes 'activated' and can load its hotel profile successfully (so the app treats the account as an activated hotel and shows the Hotel Management dashboard).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-user-1"
-        ],
-        "quotes": [
-          "fokus ke akun hotel, setelah di validasi, dashboard hotel tidak ada dan fitur Hotel area juga tidak ada di akun hotel."
-        ]
-      },
-      "acceptanceCriteria": [
-        "After calling the existing frontend flow that consumes an invite token, subsequent calls to the backend method used by the frontend to fetch the caller's hotel profile return a non-null hotel profile for that principal.",
-        "The activation state persists across refresh/re-login.",
-        "Consuming an invite token for activation does not only increment token usage; it results in an activated hotel account state that the frontend can detect."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Ensure the backend exposes and/or restores all API methods that the current frontend uses for hotel activation and hotel-area gating (including role/admin checks and caller hotel profile retrieval), and that these methods do not trap for valid callers in expected flows.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-user-1"
-        ],
-        "quotes": [
-          "setelah di validasi, dashboard hotel tidak ada dan fitur Hotel area juga tidak ada di akun hotel."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Frontend React Query hooks for: (a) get caller role, (b) is caller admin, and (c) get caller hotel profile can all execute without runtime 'method not found' or unexpected traps in normal use.",
-        "A non-admin hotel user can load their own hotel profile after activation; a guest cannot load a hotel profile (frontend should receive null/denied behavior consistent with current guard handling)."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Make the Hotel Area navigation entry visible for validated hotel accounts, matching the screenshot behavior: when logged in as an activated hotel user, show the 'Hotel Area' link in the top navigation and allow navigation to /hotel.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-user-1"
-        ],
-        "quotes": [
-          "fitur hotel area di akun hotel. lihat screnshot",
-          "iya persis seperti screenshot kedua."
-        ]
-      },
-      "acceptanceCriteria": [
-        "When authenticated as an activated hotel account, the TopNav displays a 'Hotel Area' link.",
-        "Clicking 'Hotel Area' navigates to /hotel and renders the hotel management view.",
-        "When authenticated as a non-activated hotel account, the TopNav does not show 'Hotel Area' (unless admin), consistent with existing access rules."
-      ]
-    },
-    {
       "id": "REQ-4",
-      "text": "Ensure the Hotel Management dashboard UI for hotel accounts matches the second uploaded screenshot: header 'Hotel Management' with description text and a tabbed interface with tabs in this order: Profile, Rooms, Payments, Bookings, Record Stays, Subscription; Rooms tab must support adding rooms and uploading room photos.",
-      "target": "frontend",
+      "text": "Align the backend canister Candid API with the frontend’s `ExtendedBackendInterface` so the runtime errors like `extendedActor.updateHotelProfile is not a function` and other missing-method errors cannot occur.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-1"
         ],
         "quotes": [
-          "harus ada dashboard hotel seperti screnshot... termasuk upload foto kamar.",
-          "iya persis seperti screenshot kedua."
+          "ya sudah build ulang. Tolong jangan sampai gagal dan error."
         ]
       },
       "acceptanceCriteria": [
-        "/hotel renders the HotelAreaPage tab layout with the 6 tabs in the same labels and order as the screenshot: Profile, Rooms, Payments, Bookings, Record Stays, Subscription.",
-        "The Rooms tab allows creating a room and uploading at least one room photo using the existing upload flow (no broken image/failed save in normal use).",
-        "If hotel profile loading is in progress, a loading state is shown; if hotel profile is missing, a clear error card is shown (existing behavior is acceptable)."
+        "From the hotel portal, clicking “Save Changes” on the Hotel Profile page no longer shows `extendedActor.updateHotelProfile is not a function`.",
+        "From the hotel portal, creating/updating a room no longer shows `extendedActor.createRoom is not a function` / `extendedActor.updateRoom is not a function`.",
+        "Frontend pages that call the backend via `ExtendedBackendInterface` (hotels list, hotel profile, rooms CRUD, admin visibility toggles) do not fail due to missing canister methods."
       ]
     },
     {
       "id": "REQ-5",
-      "text": "After successful hotel validation/activation via invite token consumption, automatically refresh relevant cached queries and redirect the user into the Hotel Management dashboard so the change is immediately visible without manual refresh.",
-      "target": "frontend",
+      "text": "Implement `updateHotelProfile(name, location, address, mapLink, whatsapp, email)` in `backend/main.mo` with the exact parameter order expected by the frontend, and persist the updated fields into the caller’s hotel record.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "msg-1"
         ],
         "quotes": [
-          "setelah di validasi, dashboard hotel tidak ada dan fitur Hotel area juga tidak ada di akun hotel."
+          "Tolong jangan sampai gagal dan error."
         ]
       },
       "acceptanceCriteria": [
-        "After consuming a valid invite token, the UI invalidates/refetches role/admin/hotel-profile queries and redirects to /hotel.",
-        "Immediately after redirect, the HotelAreaPage does not show 'Hotel Profile Not Found' for the newly activated hotel user.",
-        "After redirect, the TopNav shows 'Hotel Area' for the activated hotel user."
+        "When an activated hotel updates fields (name/location/address/mapLink/whatsapp/email) and clicks Save, the call succeeds and a subsequent fetch (`getCallerHotelProfile`) returns the updated data.",
+        "If the caller is an activated hotel but has no existing record in `hotelsMap`, `updateHotelProfile` creates an initialized default hotel profile first (without losing any existing rooms already stored for that hotel).",
+        "The backend enforces that only the hotel owner (caller) can update its own profile (admin override allowed if already supported elsewhere)."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Fix/restore room APIs to match frontend signatures: implement `getRooms(filters: RoomQuery)`, `createRoom(roomNumber, roomType, pricePerNight, currency, pictures)`, and `updateRoom(roomId, roomNumber, roomType, pricePerNight, currency, pictures)` in `backend/main.mo`, ensuring they work for activated hotels.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Tolong jangan sampai gagal dan error."
+        ]
+      },
+      "acceptanceCriteria": [
+        "`getRooms(filters)` exists and accepts a `RoomQuery` record (including optional hotelId/minPrice/maxPrice/roomType/availableOnly), and returns a filtered list of `RoomView`.",
+        "`createRoom(...)` returns `RoomView` and persists the created room, including `pictures` URLs/data-URLs provided by the frontend.",
+        "`updateRoom(...)` returns `RoomView` and persists the updated room fields, including updated `pictures`.",
+        "Rooms created by a hotel are included in that hotel’s `HotelDataView.rooms` when fetched via `getCallerHotelProfile()` and `getHotels()`."
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Ensure an activated hotel can create rooms and appear in admin/guest hotel lists even if their hotel profile record did not previously exist, by initializing and maintaining a consistent hotel record in storage (including a maintained list of room IDs).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Tolong jangan sampai gagal dan error."
+        ]
+      },
+      "acceptanceCriteria": [
+        "If an activated hotel creates its first room before saving its profile, the backend automatically creates the hotel record and associates the new room with it.",
+        "After creating a room, the hotel is visible in the admin hotel list (`getHotels`) and guest browse list (subject to active/subscription rules).",
+        "`getCallerHotelProfile()` returns a hotel profile that includes the newly created room(s)."
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "text": "Implement/restore `getHotels()` in `backend/main.mo` to return the hotel list used by both admin visibility tools and guest browsing, and ensure hotels marked active are returned so the guest Browse Hotels page does not show “No Hotels Available” incorrectly.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Tolong jangan sampai gagal dan error."
+        ]
+      },
+      "acceptanceCriteria": [
+        "When at least one hotel exists with `active = true`, `getHotels()` returns a non-empty list including that hotel.",
+        "Guest Browse Hotels page (`BrowseHotelsPage`) shows returned hotels instead of “No Hotels Available” when active hotels exist.",
+        "Returned `HotelDataView` includes `rooms` with `pictures` so representative photos can render when available."
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "text": "Implement admin hotel management APIs required by the existing admin UI: `setHotelActiveStatus(hotelId, active)` and `setHotelSubscriptionStatus(hotelId, status)` in `backend/main.mo`, enforcing admin-only access.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Tolong jangan sampai gagal dan error."
+        ]
+      },
+      "acceptanceCriteria": [
+        "From the Admin Panel > Hotel Visibility Control, toggling Active status succeeds and persists; refreshing the hotel list reflects the change.",
+        "From the Admin Panel > Hotel Visibility Control, changing Subscription status succeeds and persists; refreshing reflects the change.",
+        "Non-admin callers cannot call these methods successfully (backend rejects/traps)."
+      ]
+    },
+    {
+      "id": "REQ-10",
+      "text": "Restore/implement any additional backend methods referenced by the frontend hooks so authentication/role checks and invite token flow do not error at runtime (at minimum: `getCallerUserRole`, `isCallerAdmin`, `makeMeAdmin`, `validateInviteToken`).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Tolong jangan sampai gagal dan error."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Navigating the app with an authenticated user does not throw due to missing role/admin/token methods.",
+        "Hotel activation flow that validates and consumes invite tokens works without missing-method runtime errors.",
+        "Admin-only UI sections that depend on `isCallerAdmin` and `getCallerUserRole` can load without runtime exceptions."
+      ]
+    },
+    {
+      "id": "REQ-11",
+      "text": "Add a focused regression check (manual or automated where applicable) using the existing `frontend/REGRESSION_CHECKLIST.md` flow to verify: hotel profile saving, room create/update with photos, guest browse hotel visibility, and admin hotel visibility toggles.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Tolong jangan sampai gagal dan error."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Hotel portal: profile Save succeeds and persists after refresh.",
+        "Hotel portal: create room + upload/add pictures succeeds; room persists after refresh.",
+        "Guest portal: Browse Hotels lists active hotels; can open a hotel detail page.",
+        "Admin portal: Hotel Visibility Control lists hotels and can toggle active/subscription status without errors."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; add backend/migration.mo only if an actual stable-state migration is required.",
-    "Do not edit any files under frontend/src/components/ui or any other paths listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
-    "Use English for any user-facing text changed/added as part of this build request."
+    "Backend must remain a single Motoko actor in `backend/main.mo` (no additional backend services).",
+    "Do not modify any files under `frontend/src/components/ui` (read-only components).",
+    "Do not edit immutable frontend paths listed in SYSTEM_CONTEXT (compose them instead)."
   ],
   "nonGoals": [
-    "Redesigning the overall site theme or layout beyond making the hotel dashboard/Hotel Area match the provided screenshot behavior.",
-    "Adding third-party authentication providers (only Internet Identity is supported).",
-    "Adding external databases or non-IC backend services."
+    "Adding new product features beyond fixing the described regressions (e.g., new booking logic, new payment providers, real-time updates).",
+    "Introducing external databases or third-party authentication providers."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

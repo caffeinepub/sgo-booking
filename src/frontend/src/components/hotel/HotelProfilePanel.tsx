@@ -5,10 +5,10 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useGetCallerHotelProfile, useUpdateHotelProfile } from '../../hooks/useQueries';
 import { toast } from 'sonner';
-import { Building2, MapPin, MapPinned, Link as LinkIcon, MessageCircle, Mail } from 'lucide-react';
+import { Building2, MapPin, MapPinned, Link as LinkIcon, MessageCircle, Mail, Loader2 } from 'lucide-react';
 
 export function HotelProfilePanel() {
-  const { data: hotelProfile } = useGetCallerHotelProfile();
+  const { data: hotelProfile, isLoading: profileLoading, refetch } = useGetCallerHotelProfile();
   const updateProfile = useUpdateHotelProfile();
 
   const [name, setName] = useState('');
@@ -30,26 +30,50 @@ export function HotelProfilePanel() {
   }, [hotelProfile]);
 
   const validateMapLink = (url: string): boolean => {
-    if (!url) return true; // Optional field
+    if (!url) return true;
     try {
-      new URL(url);
-      return true;
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
     } catch {
       return false;
     }
   };
 
-  const validateEmail = (email: string): boolean => {
-    if (!email) return true; // Optional field
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const validateWhatsApp = (number: string): boolean => {
+    if (!number) return true;
+    const cleaned = number.replace(/\D/g, '');
+    return cleaned.length >= 10 && cleaned.length <= 15;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateEmail = (emailAddr: string): boolean => {
+    if (!emailAddr) return true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(emailAddr);
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) {
+      toast.error('Hotel name is required');
+      return;
+    }
+
+    if (!location.trim()) {
+      toast.error('Location is required');
+      return;
+    }
+
+    if (!address.trim()) {
+      toast.error('Address is required');
+      return;
+    }
 
     if (mapLink && !validateMapLink(mapLink)) {
-      toast.error('Please enter a valid URL for the map link');
+      toast.error('Please enter a valid map link (must start with http:// or https://)');
+      return;
+    }
+
+    if (whatsapp && !validateWhatsApp(whatsapp)) {
+      toast.error('Please enter a valid WhatsApp number (10-15 digits)');
       return;
     }
 
@@ -60,18 +84,33 @@ export function HotelProfilePanel() {
 
     try {
       await updateProfile.mutateAsync({
-        name,
-        location,
-        address,
-        mapLink,
+        name: name.trim(),
+        location: location.trim(),
+        address: address.trim(),
+        mapLink: mapLink.trim() || '',
         whatsapp: whatsapp.trim() || null,
         email: email.trim() || null,
       });
+      
       toast.success('Hotel profile updated successfully');
+      
+      // Refetch to ensure UI is in sync
+      await refetch();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
+      console.error('Failed to update hotel profile:', error);
+      toast.error(error?.message || 'Failed to update hotel profile');
     }
   };
+
+  if (profileLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -79,115 +118,123 @@ export function HotelProfilePanel() {
         <CardTitle>Hotel Profile</CardTitle>
         <CardDescription>Update your hotel information and contact details</CardDescription>
       </CardHeader>
-      <CardContent>
-        {hotelProfile ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="name" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Hotel Name
-              </Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Hotel Name
+          </Label>
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Hotel Dummy"
+            required
+          />
+        </div>
 
-            <div>
-              <Label htmlFor="location" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Location
+        <div className="space-y-2">
+          <Label htmlFor="location" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Location
+          </Label>
+          <Input
+            id="location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Indonesia"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="address" className="flex items-center gap-2">
+            <MapPinned className="h-4 w-4" />
+            Address
+          </Label>
+          <Input
+            id="address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="J. Raya Pajajaran Bogor"
+            required
+          />
+          <p className="text-sm text-muted-foreground">Complete address for guests to find your hotel</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="mapLink" className="flex items-center gap-2">
+            <LinkIcon className="h-4 w-4" />
+            Map Link (Optional)
+          </Label>
+          <Input
+            id="mapLink"
+            value={mapLink}
+            onChange={(e) => setMapLink(e.target.value)}
+            placeholder="https://www.google.com/maps/place/..."
+          />
+          <p className="text-sm text-muted-foreground">
+            Link to Google Maps or other map service for easy navigation
+          </p>
+        </div>
+
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">Contact Information for Guests</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            These contact details will be shown to guests when they book your hotel
+          </p>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="whatsapp" className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp Number (Optional)
               </Label>
               <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                required
-                placeholder="e.g., Bali, Indonesia"
+                id="whatsapp"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder="e.g., 628123456789"
               />
-            </div>
-
-            <div>
-              <Label htmlFor="address" className="flex items-center gap-2">
-                <MapPinned className="h-4 w-4" />
-                Address
-              </Label>
-              <Input
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Full street address"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Complete address for guests to find your hotel</p>
-            </div>
-
-            <div>
-              <Label htmlFor="mapLink" className="flex items-center gap-2">
-                <LinkIcon className="h-4 w-4" />
-                Map Link (Optional)
-              </Label>
-              <Input
-                id="mapLink"
-                value={mapLink}
-                onChange={(e) => setMapLink(e.target.value)}
-                placeholder="https://maps.google.com/..."
-                type="url"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Link to Google Maps or other map service for easy navigation
+              <p className="text-sm text-muted-foreground">
+                Include country code without + or spaces (e.g., 628123456789)
               </p>
             </div>
 
-            <div className="border-t pt-4 space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Contact Information for Guests</h3>
-                <p className="text-xs text-muted-foreground mb-4">
-                  These contact details will be shown to guests when they book your hotel
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="whatsapp" className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  WhatsApp Number (Optional)
-                </Label>
-                <Input
-                  id="whatsapp"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="e.g., 628123456789"
-                  type="tel"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Include country code without + or spaces (e.g., 628123456789)
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Email Address (Optional)
-                </Label>
-                <Input
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="hotel@example.com"
-                  type="email"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Email address for guest inquiries and booking confirmations
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email Address (Optional)
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="hotel@example.com"
+              />
+              <p className="text-sm text-muted-foreground">
+                Email address for guest inquiries and booking confirmations
+              </p>
             </div>
-
-            <Button type="submit" disabled={updateProfile.isPending} className="w-full">
-              {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </form>
-        ) : (
-          <div className="text-center py-8">
-            <div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Loading hotel profile...</p>
           </div>
-        )}
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={updateProfile.isPending}
+          className="w-full"
+          size="lg"
+        >
+          {updateProfile.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Changes'
+          )}
+        </Button>
       </CardContent>
     </Card>
   );
