@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Provide an admin-only backend maintenance capability to permanently remove specific legacy/stale room photo data and undeletable payment method entries for a targeted hotel, without impacting normal app behavior for other hotels.
+**Goal:** Purge all room data for the single hotel named “HOTEL DUMMY” (photos + all room details) and prevent “ghost” rooms from appearing due to stale room references.
 
 **Planned changes:**
-- Add an admin-only maintenance method in `backend/main.mo` that accepts a hotel principal and runs a one-off cleanup for that hotel.
-- When invoked, permanently remove the identified legacy room photo references for the target hotel so they no longer appear in guest/admin browsing or hotel room listings.
-- When invoked, permanently remove legacy/undeletable payment method entries for the target hotel (including the “GOPAY” entry and the email stored as a payment method) so they do not reappear.
-- Ensure hotel email remains only in the hotel profile contact email field and is not duplicated/derived into `paymentMethods` during reads or writes.
+- Add an admin-only backend maintenance operation that fully deletes every room record belonging to a specified hotel and removes those room IDs from the hotel’s stored room list so the hotel ends with zero rooms.
+- Run a safe, one-time backend upgrade cleanup that finds the hotel named “HOTEL DUMMY”, performs the full room purge, and persists a flag so it is not re-run on subsequent upgrades.
+- Update hotel-to-room view construction so missing/orphan room IDs are excluded from room results (no placeholder/empty rooms returned) across `getCallerHotelProfile()`, `getHotelProfile(hotelId)`, and `getHotels()`.
+- Perform and record a targeted regression verification pass (manual acceptable) using relevant sections of `frontend/REGRESSION_CHECKLIST.md` to ensure unrelated flows still work.
 
-**User-visible outcome:** After an admin runs the maintenance method for the affected hotel, stale room photos and the legacy “GOPAY”/email payment method entries no longer show up in guest/admin/hotel views, while all existing booking/profile/room/admin flows continue to work as before.
+**User-visible outcome:** After deployment, “HOTEL DUMMY” shows zero rooms everywhere in the UI (no empty “No photos available” room cards), other hotels’ room data remains intact, and normal browsing/admin flows continue to work.

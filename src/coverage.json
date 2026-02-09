@@ -1,59 +1,63 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T20:34:17.216Z",
+  "generatedAt": "2026-02-09T21:51:33.538Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 4,
-    "implemented": 0,
+    "implemented": 1,
     "items": [
       {
-        "id": "REQ-32",
-        "summary": "Add an admin-only backend maintenance API to permanently remove legacy/stale hotel data that is still visible in Guest/Admin browsing but should no longer appear anywhere, without changing normal product behavior for other hotels.",
+        "id": "REQ-41",
+        "summary": "Implement an admin-only backend maintenance operation to purge **all room data** for a single specified hotel without affecting any other hotels. The purge must delete every room record belonging to the target hotel (including all fields such as room number/type/price/currency/pictures) and must also remove those room IDs from the hotel’s stored room list so the hotel ends up with **zero rooms**.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-33",
-        "summary": "When the admin maintenance API is run for the affected hotel, delete the legacy room photo data (reported ~5 old room photos) so those images no longer appear in Guest Browse Hotels, Admin hotel browsing, or the Hotel Detail room cards.",
+        "id": "REQ-42",
+        "summary": "Make the cleanup for the specific hotel named **\"HOTEL DUMMY\"** run as part of a safe, one-time backend upgrade cleanup (so it does not require any manual admin UI actions). The upgrade cleanup must locate the hotel record by name match \"HOTEL DUMMY\" and then perform the full room purge described in REQ-41, and persist a flag so the purge is not re-run on every upgrade.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-34",
-        "summary": "When the admin maintenance API is run for the affected hotel, remove the legacy payment method entries that cannot be deleted (including the 'GOPAY' entry and the old email stored as a payment method), and ensure they do not reappear.",
+        "id": "REQ-43",
+        "summary": "Prevent ghost/placeholder rooms from appearing when a hotel’s stored room ID list references missing room records. Update hotel-to-room view construction so that room IDs that do not exist in `roomsMap` are excluded from `rooms` results (do not synthesize empty rooms with blank fields).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-35",
-        "summary": "Ensure the hotel email is only represented via the hotel profile contact email field and not duplicated/derived into payment methods during reads or writes, so guests/admins do not see email displayed as a payment method.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "id": "REQ-44",
+        "summary": "Add a targeted regression verification pass (manual is acceptable) to confirm the HOTEL DUMMY purge and ghost-room fix did not break unrelated flows, using the relevant portions of `frontend/REGRESSION_CHECKLIST.md` (auth, browse hotels, hotel profile, rooms, admin hotel visibility). Record results as a short checklist in the PR description or release notes.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/REGRESSION_CHECKLIST.md",
+          "frontend/RELEASE_NOTES.md"
+        ],
+        "matchedFiles": [
+          "frontend/REGRESSION_CHECKLIST.md",
+          "frontend/RELEASE_NOTES.md"
+        ]
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
+    "frontend/REGRESSION_CHECKLIST.md",
+    "frontend/RELEASE_NOTES.md",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/admin/DataCleanupPanel.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
-    "frontend/src/pages/AdminPanelPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

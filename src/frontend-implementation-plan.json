@@ -1,6 +1,29 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Clean up legacy room photos and undeletable payment method entries without affecting existing flows (frontend-only)",
-  "requirements": []
+  "title": "Regression verification checklist updates for HOTEL DUMMY room purge and ghost-room prevention",
+  "requirements": [
+    {
+      "id": "REQ-44",
+      "summary": "Update frontend regression checklist and add a short release-notes checklist template to verify HOTEL DUMMY purge + ghost-room fix did not break key flows.",
+      "acceptanceCriteria": [
+        "Guest Browse Hotels still loads and shows other active hotels correctly.",
+        "Hotel Area → Rooms still works for a different (non-dummy) hotel: rooms can be created/updated and displayed.",
+        "Admin panel still loads and hotel visibility toggles still work.",
+        "HOTEL DUMMY no longer shows any rooms anywhere in the UI after the upgrade cleanup runs."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/REGRESSION_CHECKLIST.md",
+          "operation": "modify",
+          "description": "Add a targeted manual regression verification section for the HOTEL DUMMY one-time purge and ghost/placeholder room prevention, explicitly covering: Guest Browse Hotels, Hotel Detail room list, Hotel Area → Rooms for a non-dummy hotel, and Admin panel hotel visibility toggles. Keep all new checklist text in English."
+        },
+        {
+          "path": "frontend/RELEASE_NOTES.md",
+          "operation": "create",
+          "description": "Create a short release-notes checklist template for recording the REQ-44 verification results (intended to be copied into PR description or used as release notes), including explicit checkboxes confirming HOTEL DUMMY shows zero rooms and other key flows remain working; keep text in English."
+        }
+      ]
+    }
+  ]
 }

@@ -1,4 +1,27 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-add-a-targeted-regression-verification-pass-manual-is-acceptable-to-confirm-the-hotel-dummy-purge-and-ghost-room-fix-did-not-break-unrelated-flows-using-the-relevant-portions-of-frontend-regression-checklist-md-auth-browse-hotels-hotel-profile-rooms-admin-hotel-visibility-record-results-as-a-short-checklist-in-the-pr-description-or-release-notes",
+      "featureTitle": "Add a targeted regression verification pass (manual is acceptable) to confirm the HOTEL DUMMY purge and ghost-room fix did not break unrelated flows, using the relevant portions of `frontend/REGRESSION_CHECKLIST.md` (auth, browse hotels, hotel profile, rooms, admin hotel visibility). Record results as a short checklist in the PR description or release notes.",
+      "files": [
+        "frontend/REGRESSION_CHECKLIST.md",
+        "frontend/RELEASE_NOTES.md"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-44"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

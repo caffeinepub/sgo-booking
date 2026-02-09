@@ -1,95 +1,93 @@
 {
   "kind": "build_request",
-  "title": "Clean up legacy room photos and undeletable payment method entries without affecting existing flows",
+  "title": "Purge all room data (photos + details) for HOTEL DUMMY only and prevent ghost rooms after cleanup",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-32",
-      "text": "Add an admin-only backend maintenance API to permanently remove legacy/stale hotel data that is still visible in Guest/Admin browsing but should no longer appear anywhere, without changing normal product behavior for other hotels.",
+      "id": "REQ-41",
+      "text": "Implement an admin-only backend maintenance operation to purge **all room data** for a single specified hotel without affecting any other hotels. The purge must delete every room record belonging to the target hotel (including all fields such as room number/type/price/currency/pictures) and must also remove those room IDs from the hotel’s stored room list so the hotel ends up with **zero rooms**.",
       "target": "backend",
       "source": {
         "messageIds": [
           "recent-messages"
         ],
         "quotes": [
-          "tapi itu masih ada sisa-sisa sampah di backend yang bekas lama dan masih terbawa. Bisa anda bersihkan? supaya tidak tampil di akun tamu, akun admin dan di akun hotel?"
+          "foto dari satu hotel saja bukan semua hote. pokoknya semua foto berikut deskripsi kamar nya, harga nya, tipe nya. Ya anda reset saja semua database foto kamar berikut deskripsi kamar nya",
+          "YA SUDAH ADA RESET DAN LAKUKAN PEMBERSIHAN DATABASE,"
         ]
       },
       "acceptanceCriteria": [
-        "A new admin-only method exists in `backend/main.mo` that can be invoked to clean legacy data for a specific hotel (input: hotel principal).",
-        "The method is protected so only an admin (hardcoded admin or AccessControl admin) can call it; non-admin callers are rejected.",
-        "No existing public/guest/hotel workflows are changed by default; cleanup happens only when the admin explicitly calls the new maintenance method.",
-        "The canister still compiles and deploys with the single-actor architecture (all logic in `backend/main.mo`)."
+        "When the purge is executed for the target hotel, `getCallerHotelProfile()` and `getHotels()` return the hotel with an empty `rooms` array (length = 0).",
+        "After purge, no room cards appear for the target hotel in Guest Browse Hotels and on the Hotel Detail page (the screenshot case must no longer show multiple rooms with 'No photos available' placeholders).",
+        "No rooms are deleted/modified for any other hotel principals."
       ]
     },
     {
-      "id": "REQ-33",
-      "text": "When the admin maintenance API is run for the affected hotel, delete the legacy room photo data (reported ~5 old room photos) so those images no longer appear in Guest Browse Hotels, Admin hotel browsing, or the Hotel Detail room cards.",
+      "id": "REQ-42",
+      "text": "Make the cleanup for the specific hotel named **\"HOTEL DUMMY\"** run as part of a safe, one-time backend upgrade cleanup (so it does not require any manual admin UI actions). The upgrade cleanup must locate the hotel record by name match \"HOTEL DUMMY\" and then perform the full room purge described in REQ-41, and persist a flag so the purge is not re-run on every upgrade.",
       "target": "backend",
       "source": {
         "messageIds": [
           "recent-messages"
         ],
         "quotes": [
-          "di  aku tamu dan akun admin di fitur browsing hotel masih ada sampah foto-foto kamar yang dulu yang masih tampil tapi di akun hotel tidak ada.",
-          "seluruh foto kamar yang lama di hapus. Kalau tidak ada salah ada 5 foto kamar yang lama. hapus. saja."
+          "HOTEK DUMMY",
+          "HOTEL DUMMY",
+          "YA SUDAH ADA RESET DAN LAKUKAN PEMBERSIHAN DATABASE,"
         ]
       },
       "acceptanceCriteria": [
-        "After running the maintenance API for the target hotel, `getHotels()` and `getRooms({ hotelId = targetHotel })` do not return the legacy room photo URLs/data that previously appeared in Guest/Admin browsing screenshots.",
-        "The cleanup removes legacy photo references at the source of truth (room records / stored image references) rather than relying on frontend filtering.",
-        "Current/non-legacy room photos for that hotel remain intact unless they are part of the identified legacy set.",
-        "No other hotel’s rooms/photos are modified by this cleanup."
+        "After deploying the upgrade, \"HOTEL DUMMY\" has zero rooms in all portals without requiring an admin to run `adminRemoveLegacyRoomPhotos` per-room.",
+        "The one-time cleanup is idempotent: subsequent upgrades do not repeatedly modify state once the purge has already been applied."
       ]
     },
     {
-      "id": "REQ-34",
-      "text": "When the admin maintenance API is run for the affected hotel, remove the legacy payment method entries that cannot be deleted (including the 'GOPAY' entry and the old email stored as a payment method), and ensure they do not reappear.",
+      "id": "REQ-43",
+      "text": "Prevent ghost/placeholder rooms from appearing when a hotel’s stored room ID list references missing room records. Update hotel-to-room view construction so that room IDs that do not exist in `roomsMap` are excluded from `rooms` results (do not synthesize empty rooms with blank fields).",
       "target": "backend",
       "source": {
         "messageIds": [
           "recent-messages"
         ],
         "quotes": [
-          "di metode pembayaran itu ada gopay dan email  lama yang tidak bisa di hapus. Saya ingin hapus dan mengganti metode pembayaran yang baru.",
-          "Cukup di fitur profile. Ini saya kirim screenshot nya biar anda bisa lihat. Dan di fitur jangan di ganggu, karena sudah berjalan normal. Cukup di metode pembayaran saja yang ada teks GOPAY  di hapus."
+          "ini ok foto kamar sudah terhapus tapi cuma foto doang, sedang deskripsi kamar tidak ikut terhapus, seperti tipe kamar, nama kamar dan lain-lain nya. Ini saya kirim screnshot nya supaya anda bisa melihat"
         ]
       },
       "acceptanceCriteria": [
-        "After running the maintenance API for the target hotel, `getCallerHotelProfile()` and `getHotels()` show the hotel with payment methods that no longer include the legacy 'GOPAY' entry or the old email-as-payment-method entry.",
-        "The cleanup is persistent (data is actually removed from backend state).",
-        "The hotel can still add new payment methods via the existing add method flow after cleanup (no method is auto-added by the cleanup).",
-        "No other hotel’s payment methods are modified by this cleanup."
+        "If a hotel’s room list contains stale/orphan room IDs, `getCallerHotelProfile()`, `getHotelProfile(hotelId)`, and `getHotels()` do not return placeholder rooms with empty fields; they only return rooms that exist in `roomsMap`.",
+        "The change does not break normal room display for hotels with valid room records."
       ]
     },
     {
-      "id": "REQ-35",
-      "text": "Ensure the hotel email is only represented via the hotel profile contact email field and not duplicated/derived into payment methods during reads or writes, so guests/admins do not see email displayed as a payment method.",
-      "target": "backend",
+      "id": "REQ-44",
+      "text": "Add a targeted regression verification pass (manual is acceptable) to confirm the HOTEL DUMMY purge and ghost-room fix did not break unrelated flows, using the relevant portions of `frontend/REGRESSION_CHECKLIST.md` (auth, browse hotels, hotel profile, rooms, admin hotel visibility). Record results as a short checklist in the PR description or release notes.",
+      "target": "both",
       "source": {
         "messageIds": [
           "recent-messages"
         ],
         "quotes": [
-          "Dan untuk email sudah ada kolom nya di fitur profile jadi tidak usah ada lagi di metode pembayaran. Cukup di fitur profile."
+          "YA SUDAH ADA RESET DAN LAKUKAN PEMBERSIHAN DATABASE,"
         ]
       },
       "acceptanceCriteria": [
-        "Backend does not automatically add or retain payment method entries that are only an email address when the hotel already has `contact.email` set.",
-        "`getHotels()` and `getCallerHotelProfile()` continue to expose `contact.email` as before, but do not include email-only entries in `paymentMethods` for the cleaned hotel.",
-        "No changes break the existing frontend payment methods UI (add/remove continues to work as before)."
+        "Guest Browse Hotels still loads and shows other active hotels correctly.",
+        "Hotel Area → Rooms still works for a different (non-dummy) hotel: rooms can be created/updated and displayed.",
+        "Admin panel still loads and hotel visibility toggles still work.",
+        "HOTEL DUMMY no longer shows any rooms anywhere in the UI after the upgrade cleanup runs."
       ]
     }
   ],
   "constraints": [
-    "Do not modify or break existing features that are currently working (bookings, cancellation flows, hotel profile, rooms management, admin panels, auth).",
-    "Backend must remain a single-actor Motoko canister; keep all logic in `backend/main.mo`.",
-    "All user-facing text must remain in English."
+    "Use English for any user-facing text introduced by this change.",
+    "Backend must remain a single-actor Motoko canister (all logic in `backend/main.mo`).",
+    "Do not edit files under `frontend/src/components/ui`, `frontend/src/hooks/useInternetIdentity.ts(x)`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`.",
+    "The purge must only affect the single hotel \"HOTEL DUMMY\"; do not delete data for other hotels."
   ],
   "nonGoals": [
-    "Adding a new UI for cleanup actions in guest/admin/hotel portals.",
-    "Introducing new authentication providers or any external database/services.",
-    "Changing booking/payment business logic beyond removing the specified legacy/stale data."
+    "Do not add new booking/payment features as part of this request.",
+    "Do not redesign the UI; only ensure the data cleanup result is reflected correctly.",
+    "Do not delete the entire HOTEL DUMMY hotel profile unless explicitly required; only reset/purge room data."
   ],
   "imageRequirements": {
     "required": [],
@@ -98,7 +96,9 @@
   "userProfileUpdate": {
     "goalsToAdd": [],
     "goalsToRemove": [],
-    "preferencesToAdd": [],
+    "preferencesToAdd": [
+      "Use English for user-facing text."
+    ],
     "preferencesToRemove": [],
     "miscToAdd": [],
     "miscToRemove": [],

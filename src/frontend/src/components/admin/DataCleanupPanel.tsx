@@ -8,7 +8,7 @@ import { Separator } from '../ui/separator';
 import { useActor } from '../../hooks/useActor';
 import { useQueryClient } from '@tanstack/react-query';
 import { Principal } from '@icp-sdk/core/principal';
-import { Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Trash2, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function DataCleanupPanel() {
@@ -92,17 +92,30 @@ export function DataCleanupPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Data Cleanup Utility</CardTitle>
+        <CardTitle>Legacy Data Cleanup Utility</CardTitle>
         <CardDescription>
-          Admin-only tool to remove legacy data (old room photos and payment methods) without affecting current features
+          Remove ghost room photos and undeletable legacy payment methods (GOPAY, email-as-payment-method) without affecting current hotel data
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Warning:</strong> This is a one-time cleanup utility. Use with caution. 
-            Make sure you have the correct hotel principal ID before proceeding.
+            <strong>Warning:</strong> This utility removes legacy data that cannot be deleted through normal UI flows. 
+            Verify the hotel principal ID before proceeding. Active hotel token: <code className="text-xs">HOTEL_17705984310722985941</code>
+          </AlertDescription>
+        </Alert>
+
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Verification Steps After Cleanup:</strong>
+            <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+              <li>Guest Browse Hotels: Verify NO ghost room photos appear</li>
+              <li>Hotel Detail Page: Verify ONLY current room photos are shown</li>
+              <li>Hotel Area → Payments: Verify GOPAY and email-as-payment-method are removed</li>
+              <li>Hotel Area → Rooms: Verify current rooms and photos remain intact</li>
+            </ul>
           </AlertDescription>
         </Alert>
 
@@ -111,19 +124,22 @@ export function DataCleanupPanel() {
             <Label htmlFor="hotelPrincipal">Hotel Principal ID *</Label>
             <Input
               id="hotelPrincipal"
-              placeholder="e.g., xxxxx-xxxxx-xxxxx-xxxxx-xxx"
+              placeholder="e.g., opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae"
               value={hotelPrincipal}
               onChange={(e) => setHotelPrincipal(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              The principal ID of the hotel that needs cleanup
+              The principal ID of the hotel with legacy data. Find this in Admin Panel → Invite Tokens (Bound Principal column).
             </p>
           </div>
 
           <Separator />
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm">Remove Legacy Room Photos</h3>
+            <h3 className="font-semibold text-sm">Remove Ghost Room Photos</h3>
+            <p className="text-xs text-muted-foreground">
+              Use this to remove old room photos that still appear in Guest/Admin views but are not visible in Hotel Portal.
+            </p>
             <div className="space-y-2">
               <Label htmlFor="roomId">Room ID</Label>
               <Input
@@ -134,7 +150,7 @@ export function DataCleanupPanel() {
                 onChange={(e) => setRoomId(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                The ID of the room with legacy photos. Repeat for each room with old photos.
+                The ID of the room with ghost photos. Repeat this action for each affected room.
               </p>
             </div>
             <Button
@@ -144,16 +160,17 @@ export function DataCleanupPanel() {
               size="sm"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              {isCleaningPhotos ? 'Removing Photos...' : 'Remove Room Photos'}
+              {isCleaningPhotos ? 'Removing Photos...' : 'Remove Ghost Room Photos'}
             </Button>
           </div>
 
           <Separator />
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm">Remove All Legacy Payment Methods</h3>
+            <h3 className="font-semibold text-sm">Remove Legacy Payment Methods</h3>
             <p className="text-xs text-muted-foreground">
-              This will remove ALL payment methods from the hotel. The hotel can add new ones afterward.
+              This removes ALL payment methods including undeletable legacy entries (GOPAY, email-as-payment-method). 
+              The hotel can add new payment methods afterward via Hotel Area → Payments tab.
             </p>
             <Button
               onClick={handleCleanLegacyPaymentMethods}
@@ -190,10 +207,11 @@ export function DataCleanupPanel() {
         )}
 
         <Alert>
-          <AlertCircle className="h-4 w-4" />
+          <Info className="h-4 w-4" />
           <AlertDescription>
-            <strong>Note:</strong> After cleanup, the hotel owner can add new payment methods via the Hotel Area → Payments tab.
-            Room photos can be managed via Hotel Area → Rooms tab.
+            <strong>Post-Cleanup Actions:</strong> After running cleanup, re-check Guest Browse Hotels, Admin views, and Hotel Area → Payments 
+            to confirm ghost photos and legacy payment methods (GOPAY, email-as-payment-method) are no longer visible. 
+            Hotel owners can add new payment methods via Hotel Area → Payments tab.
           </AlertDescription>
         </Alert>
       </CardContent>

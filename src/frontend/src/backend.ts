@@ -220,6 +220,7 @@ export interface backendInterface {
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     activateHotelDirectly(hotelPrincipal: Principal): Promise<boolean>;
+    adminDeleteAllRoomsForHotel(hotelId: Principal): Promise<void>;
     adminDeleteHotelData(hotelId: Principal): Promise<void>;
     adminRemoveLegacyPaymentMethods(hotelId: Principal): Promise<void>;
     adminRemoveLegacyRoomPhotos(hotelId: Principal, roomId: bigint): Promise<void>;
@@ -371,6 +372,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.activateHotelDirectly(arg0);
+            return result;
+        }
+    }
+    async adminDeleteAllRoomsForHotel(arg0: Principal): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.adminDeleteAllRoomsForHotel(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.adminDeleteAllRoomsForHotel(arg0);
             return result;
         }
     }

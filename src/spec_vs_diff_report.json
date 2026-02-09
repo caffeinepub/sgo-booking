@@ -1,71 +1,64 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T20:34:17.213Z",
-  "summary": "The diff adds a new frontend Admin “Data Cleanup Utility” panel and a backend migration module hookup, but the provided backend diff snippet does not show implementation of the required admin-only maintenance API in `backend/main.mo` nor the specific cleanup logic for legacy room photos/payment methods/email-as-payment-method. The new UI also conflicts with the explicit non-goal of not adding a new UI for cleanup actions.",
+  "generatedAt": "2026-02-09T21:51:33.534Z",
+  "summary": "Based on the provided (truncated) diff summary, there is not enough concrete evidence that the required backend purge operation, one-time upgrade cleanup for HOTEL DUMMY, or the ghost-room filtering change were implemented in backend/main.mo. The diff does add a release-notes template/checklist file, but it does not show completed verification results as required.",
   "missing_requirements": [
     {
-      "id": "REQ-32",
-      "requirement": "Add an admin-only backend maintenance API in `backend/main.mo` to clean legacy data for a specific hotel principal, rejected for non-admin callers, with no default workflow changes.",
-      "reason": "The diff shows a new HARDCODED_ADMIN constant and a migration include, but does not show any new admin-only maintenance method definition or authorization checks for it in the truncated `backend/main.mo` snippet. The frontend calls `adminRemoveLegacyRoomPhotos` / `adminRemoveLegacyPaymentMethods`, but corresponding backend methods are not evidenced in the diff summary.",
+      "id": "REQ-41",
+      "requirement": "Implement an admin-only backend maintenance operation to purge all room data for a single specified hotel (delete room records + remove room IDs from the hotel’s room list) without affecting other hotels.",
+      "reason": "The backend diff snippet only shows type definitions/state variables (e.g., hasRunUpgradeCleanup) and does not show any new admin-only purge method or logic that deletes room records and clears the hotel’s stored room list.",
       "evidence": [
-        "backend/main.mo",
-        "frontend/src/components/admin/DataCleanupPanel.tsx"
+        "backend/main.mo (truncated)"
       ]
     },
     {
-      "id": "REQ-33",
-      "requirement": "When the admin maintenance API is run for a target hotel, delete legacy room photo data at the source of truth so `getHotels()` and `getRooms({hotelId})` no longer return those legacy photos, without affecting other hotels or non-legacy photos.",
-      "reason": "No backend logic is shown that mutates room records/pictures to remove legacy photos. Only a frontend action calling `adminRemoveLegacyRoomPhotos` is shown; the actual backend deletion and scoping to the target hotel is not evidenced.",
+      "id": "REQ-42",
+      "requirement": "Run a safe, one-time upgrade cleanup that finds the hotel named \"HOTEL DUMMY\" and performs the full room purge, persisting a flag so it is not re-run on subsequent upgrades.",
+      "reason": "Although a flag variable (hasRunUpgradeCleanup) appears in the truncated snippet, the diff summary does not show any upgrade hook (e.g., postupgrade) or name-based lookup for \"HOTEL DUMMY\" nor the actual purge being invoked and the flag being persisted/idempotent.",
       "evidence": [
-        "frontend/src/components/admin/DataCleanupPanel.tsx",
-        "backend/main.mo"
+        "backend/main.mo (truncated)"
       ]
     },
     {
-      "id": "REQ-34",
-      "requirement": "When the admin maintenance API is run for a target hotel, remove legacy payment method entries (including 'GOPAY' and email-as-payment-method) persistently and ensure they do not reappear, without modifying other hotels and without auto-adding methods.",
-      "reason": "No backend state cleanup code is shown for paymentMethods. The frontend calls `adminRemoveLegacyPaymentMethods`, but the corresponding persistent backend removal and prevention of reappearance is not evidenced in the diff summary.",
+      "id": "REQ-43",
+      "requirement": "Prevent ghost/placeholder rooms by excluding hotel room IDs that are missing from roomsMap when constructing rooms results for getCallerHotelProfile(), getHotelProfile(hotelId), and getHotels().",
+      "reason": "The diff summary does not show changes to hotel-to-room view construction or any filtering of orphan room IDs; only general type/state context is visible due to truncation.",
       "evidence": [
-        "frontend/src/components/admin/DataCleanupPanel.tsx",
-        "backend/main.mo"
+        "backend/main.mo (truncated)"
       ]
     },
     {
-      "id": "REQ-35",
-      "requirement": "Ensure hotel email is represented only in `contact.email` and is not duplicated/derived into `paymentMethods` during reads or writes.",
-      "reason": "The diff does not show changes to backend read/write paths (e.g., `getHotels()`, `getCallerHotelProfile()`, or payment-method add/update flows) that would prevent adding/retaining email-only entries in paymentMethods when `contact.email` is set.",
+      "id": "REQ-44",
+      "requirement": "Add a targeted regression verification pass and record results as a short checklist in the PR description or release notes, using relevant parts of frontend/REGRESSION_CHECKLIST.md.",
+      "reason": "The added frontend/RELEASE_NOTES.md contains an unchecked template, but there is no evidence of recorded (completed) verification results, nor evidence that results were added to PR description (not part of diff).",
       "evidence": [
-        "backend/main.mo"
+        "frontend/RELEASE_NOTES.md"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added a new frontend Admin UI panel for performing cleanup actions (DataCleanupPanel) with inputs and buttons to remove legacy photos/payment methods.",
-      "reason": "The BuildRequest explicitly lists as a non-goal: “Adding a new UI for cleanup actions in guest/admin/hotel portals.” The diff adds such a UI and wires it into the Admin Panel page.",
+      "description": "Added a release notes template file (frontend/RELEASE_NOTES.md) rather than recording actual completed regression results.",
+      "reason": "REQ-44 asks to record verification results in PR description or release notes; adding a reusable template is not explicitly requested and does not itself satisfy the acceptance criteria of recorded results.",
       "evidence": [
-        "frontend/src/components/admin/DataCleanupPanel.tsx",
-        "frontend/src/pages/AdminPanelPage.tsx"
+        "frontend/RELEASE_NOTES.md"
       ]
     },
     {
-      "description": "Introduced a backend migration module (`backend/migration.mo`) and hooked it into `backend/main.mo` via `(with migration = Migration.run)`.",
-      "reason": "The BuildRequest constraints require keeping logic in `backend/main.mo` and do not request adding a migration system/module. This appears to be additional unrequested infrastructure.",
+      "description": "Updated project_state.json summary/existing feature metadata.",
+      "reason": "The BuildRequest does not request changes to project_state.json; this appears to be project bookkeeping rather than a specified requirement.",
       "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo"
+        "project_state.json (truncated)"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.55,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/admin/DataCleanupPanel.tsx",
-    "frontend/src/pages/AdminPanelPage.tsx",
+    "frontend/REGRESSION_CHECKLIST.md",
+    "frontend/RELEASE_NOTES.md",
     "project_state.json"
   ]
 }

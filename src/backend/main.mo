@@ -14,9 +14,7 @@ import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import InviteLinksModule "invite-links/invite-links-module";
-import Migration "migration";
 
-(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -94,6 +92,11 @@ actor {
     pictures : [Text];
   };
 
+  public type CancellableBookingResult = {
+    #canceledByGuest;
+    #canceledByHotel;
+  };
+
   public type BookingRequest = {
     id : Nat;
     status : BookingStatus;
@@ -159,12 +162,8 @@ actor {
     availableOnly : ?Bool;
   };
 
-  public type CancellableBookingResult = {
-    #canceledByGuest;
-    #canceledByHotel;
-  };
-
   var nextBookingId = 0;
+  var hasRunUpgradeCleanup = false;
 
   let hotelsList = List.empty<HotelData>();
   let roomsMap = Map.empty<Nat, Room>();
@@ -348,40 +347,7 @@ actor {
     };
 
     switch (getHotelData(caller)) {
-      case (?hotel) {
-        let roomsArray = hotel.rooms.toArray().map(
-          func(roomId : Nat) : RoomView {
-            switch (roomsMap.get(roomId)) {
-              case (?room) { toRoomView(room) };
-              case (null) {
-                {
-                  id = roomId;
-                  hotelId = caller;
-                  roomNumber = "";
-                  roomType = "";
-                  pricePerNight = 0;
-                  currency = "";
-                  pictures = [];
-                };
-              };
-            };
-          }
-        );
-
-        ?{
-          id = hotel.id;
-          name = hotel.name;
-          location = hotel.location;
-          address = hotel.address;
-          mapLink = hotel.mapLink;
-          active = hotel.active;
-          rooms = roomsArray;
-          bookings = hotel.bookings.toArray();
-          paymentMethods = hotel.paymentMethods.toArray();
-          contact = hotel.contact;
-          subscriptionStatus = hotel.subscriptionStatus;
-        };
-      };
+      case (?hotel) { ?toHotelDataView(hotel) };
       case (null) { null };
     };
   };
@@ -392,81 +358,80 @@ actor {
     };
 
     switch (getHotelData(hotelId)) {
-      case (?hotel) {
-        let roomsArray = hotel.rooms.toArray().map(
-          func(roomId : Nat) : RoomView {
-            switch (roomsMap.get(roomId)) {
-              case (?room) { toRoomView(room) };
-              case (null) {
-                {
-                  id = roomId;
-                  hotelId = hotelId;
-                  roomNumber = "";
-                  roomType = "";
-                  pricePerNight = 0;
-                  currency = "";
-                  pictures = [];
-                };
-              };
-            };
-          }
-        );
-
-        ?{
-          id = hotel.id;
-          name = hotel.name;
-          location = hotel.location;
-          address = hotel.address;
-          mapLink = hotel.mapLink;
-          active = hotel.active;
-          rooms = roomsArray;
-          bookings = hotel.bookings.toArray();
-          paymentMethods = hotel.paymentMethods.toArray();
-          contact = hotel.contact;
-          subscriptionStatus = hotel.subscriptionStatus;
-        };
-      };
+      case (?hotel) { ?toHotelDataView(hotel) };
       case (null) { null };
+    };
+  };
+
+  func toHotelDataView(hotel : HotelData) : HotelDataView {
+    let filteredRoomIds = hotel.rooms.toArray().filter(
+      func(roomId) {
+        roomsMap.containsKey(roomId);
+      }
+    );
+
+    let roomsArray = filteredRoomIds.map(
+      func(roomId : Nat) : RoomView {
+        switch (roomsMap.get(roomId)) {
+          case (?room) { toRoomView(room) };
+          case (null) {
+            {
+              id = roomId;
+              hotelId = hotel.id;
+              roomNumber = "";
+              roomType = "";
+              pricePerNight = 0;
+              currency = "";
+              pictures = [];
+            };
+          };
+        };
+      }
+    );
+
+    {
+      id = hotel.id;
+      name = hotel.name;
+      location = hotel.location;
+      address = hotel.address;
+      mapLink = hotel.mapLink;
+      active = hotel.active;
+      rooms = roomsArray;
+      bookings = hotel.bookings.toArray();
+      paymentMethods = hotel.paymentMethods.toArray();
+      contact = hotel.contact;
+      subscriptionStatus = hotel.subscriptionStatus;
     };
   };
 
   public query func getHotels() : async [HotelDataView] {
     let activeHotels = hotelsList.toArray().filter(func(h) { h.active });
-    
-    activeHotels.map(func(hotel) {
-      let roomsArray = hotel.rooms.toArray().map(
-        func(roomId : Nat) : RoomView {
-          switch (roomsMap.get(roomId)) {
-            case (?room) { toRoomView(room) };
-            case (null) {
-              {
-                id = roomId;
-                hotelId = hotel.id;
-                roomNumber = "";
-                roomType = "";
-                pricePerNight = 0;
-                currency = "";
-                pictures = [];
-              };
-            };
-          };
-        }
-      );
+    activeHotels.map(toHotelDataView);
+  };
 
-      {
-        id = hotel.id;
-        name = hotel.name;
-        location = hotel.location;
-        address = hotel.address;
-        mapLink = hotel.mapLink;
-        active = hotel.active;
-        rooms = roomsArray;
-        bookings = hotel.bookings.toArray();
-        paymentMethods = hotel.paymentMethods.toArray();
-        contact = hotel.contact;
-        subscriptionStatus = hotel.subscriptionStatus;
+  // Remove all rooms belonging to a specific hotel (admin only)
+  public shared ({ caller }) func adminDeleteAllRoomsForHotel(hotelId : Principal) : async () {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can delete all rooms for a hotel");
+    };
+
+    let roomsToDelete = roomsMap.toArray().filter(
+      func((_, room)) { room.hotelId == hotelId }
+    );
+
+    for ((roomId, _) in roomsToDelete.vals()) {
+      roomsMap.remove(roomId);
+    };
+
+    switch (getHotelData(hotelId)) {
+      case (?hotel) {
+        let updatedHotel = { hotel with rooms = List.empty<Nat>(); };
+        updateHotelData(updatedHotel);
       };
-    });
+      case (null) {
+        Runtime.trap("Hotel not found");
+      };
+    };
   };
 
   // Admin hotel management

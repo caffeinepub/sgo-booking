@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 15,
-  "summary": "Fix backend regressions and complete booking/payment/cancellation flows, and additionally clean up legacy/stale backend data causing ghost room photos in guest/admin browsing and undeletable legacy payment method entries (e.g., GoPay/email) in hotel payment methods—without impacting other working features.",
+  "projectStateVersion": 19,
+  "summary": "Fix backend regressions and complete booking/payment/cancellation flows, and additionally perform safe backend cleanup/migration to remove stale/legacy hotel room data causing ghost content—now including a requested full reset/purge of all room data (photos + descriptions/prices/types) for the specific hotel \"HOTEL DUMMY\" without impacting other hotels or working features.",
   "architectural_notes": [
     "Backend must expose a working createRoom function (previously existed) for saving room data including photo upload; client currently calls extendedActor.createRoom.",
     "Frontend is calling a hotel profile update API (error reported: `extendedActor.updateHotelProfile is not a function`); backend Candid/actor must expose the expected hotel profile save/update methods.",
@@ -23,7 +23,8 @@
     "Build/deploy pipeline is failing repeatedly due to platform/tooling error (Caffeine unable to complete build), blocking verification and release of booking fixes.",
     "Booking still fails at runtime with message \"Booking functionality not yet available in backend\", indicating backend booking APIs are not active/implemented.",
     "Stale legacy room photos still appear in Guest/Admin hotel browsing even though the Hotel portal no longer shows them (ghost/orphaned data).",
-    "Hotel payment methods contain a legacy 'GOPAY' (and old email) entry that cannot be deleted via the current UI; requires backend cleanup/removal without breaking other features."
+    "Hotel payment methods contain a legacy 'GOPAY' (and old email) entry that cannot be deleted via the current UI; requires backend cleanup/removal without breaking other features.",
+    "Post-deploy (v38) legacy room photos still appear in Guest/Admin views and legacy GOPAY payment method still appears in Hotel payment methods; indicates backend legacy-data cleanup did not fully remove old token-linked data."
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -104,6 +105,22 @@
       "title": "Add a hotel-side Cancel action in the Hotel bookings UI so that hotel users can cancel bookings for their hotel when the booking is `pendingTransfer` or `booked`. The cancel action must call the existing `useUpdateBookingStatus` mutation with `BookingStatus.canceled`, refresh the bookings list, and show success/error feedback in English.",
       "reqIds": [
         "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-verify-targeted-regression-that-existing-working-features-are-not-changed-while-performing-the-legacy-cleanup-and-that-the-cleanup-fixes-the-reported-visibility-issues-across-roles",
+      "title": "Verify (targeted regression) that existing working features are not changed while performing the legacy cleanup, and that the cleanup fixes the reported visibility issues across roles.",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-targeted-regression-verification-pass-manual-is-acceptable-to-confirm-the-hotel-dummy-purge-and-ghost-room-fix-did-not-break-unrelated-flows-using-the-relevant-portions-of-frontend-regression-checklist-md-auth-browse-hotels-hotel-profile-rooms-admin-hotel-visibility-record-results-as-a-short-checklist-in-the-pr-description-or-release-notes",
+      "title": "Add a targeted regression verification pass (manual is acceptable) to confirm the HOTEL DUMMY purge and ghost-room fix did not break unrelated flows, using the relevant portions of `frontend/REGRESSION_CHECKLIST.md` (auth, browse hotels, hotel profile, rooms, admin hotel visibility). Record results as a short checklist in the PR description or release notes.",
+      "reqIds": [
+        "REQ-44"
       ],
       "version": 1
     }
@@ -360,6 +377,74 @@
       "summary": "Ensure the hotel email is only represented via the hotel profile contact email field and not duplicated/derived into payment methods during reads or writes, so guests/admins do not see email displayed as a payment method.",
       "reqIds": [
         "REQ-35"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-41",
+      "summary": "Perform targeted backend data cleanup to remove all legacy data linked to the old invite token `1-invite-1770546868497298151` (legacy rooms/photos + payment methods including GOPAY and any legacy email stored as a payment method) while explicitly preserving the active hotel/token `HOTEL_17705984310722985941` and all current/new room photo data visible in the Hotel portal; do not change other working features.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-42",
+      "summary": "Add an admin-only backend maintenance function to permanently purge all legacy data associated with the old invite token `1-invite-1770546868497298151`, while explicitly preserving the active hotel associated with token `HOTEL_17705984310722985941` and preserving all current/new room photo data for that active hotel.",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-43",
+      "summary": "Ensure legacy/ghost room photos no longer appear in Guest and Admin views by adding an admin-only backend cleanup operation that can remove room pictures for rooms that are leaking legacy photos, without affecting newly uploaded room pictures for the active hotel.",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-44",
+      "summary": "Remove undeletable legacy payment method entries (including `GOPAY` and any old email that was stored as a payment method) from backend storage for the active hotel, and prevent email from being represented as a payment method going forward (email must only come from `HotelContact.email`).",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-45",
+      "summary": "Implement a safe, conditional migration in `backend/migration.mo` (only if needed for existing deployed state) to remove legacy token-linked data and legacy payment methods that were persisted in older state so that the cleanup actually takes effect after upgrade and does not leave ghost data in stable storage.",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-46",
+      "summary": "Perform a backend-side total reset/purge of all room data for the single specified hotel \"HOTEL DUMMY\" (delete all rooms and associated room photos plus all room fields like name/type/price/description), so the hotel has zero rooms after cleanup; must not affect any other hotels’ data and does not require admin UI actions.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-47",
+      "summary": "Implement an admin-only backend maintenance operation to purge **all room data** for a single specified hotel without affecting any other hotels. The purge must delete every room record belonging to the target hotel (including all fields such as room number/type/price/currency/pictures) and must also remove those room IDs from the hotel’s stored room list so the hotel ends up with **zero rooms**.",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-48",
+      "summary": "Make the cleanup for the specific hotel named **\"HOTEL DUMMY\"** run as part of a safe, one-time backend upgrade cleanup (so it does not require any manual admin UI actions). The upgrade cleanup must locate the hotel record by name match \"HOTEL DUMMY\" and then perform the full room purge described in REQ-41, and persist a flag so the purge is not re-run on every upgrade.",
+      "reqIds": [
+        "REQ-42"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-49",
+      "summary": "Prevent ghost/placeholder rooms from appearing when a hotel’s stored room ID list references missing room records. Update hotel-to-room view construction so that room IDs that do not exist in `roomsMap` are excluded from `rooms` results (do not synthesize empty rooms with blank fields).",
+      "reqIds": [
+        "REQ-43"
       ],
       "status": "pending"
     }

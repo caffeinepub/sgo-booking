@@ -120,6 +120,7 @@ export enum UserRole {
 }
 export interface backendInterface {
     activateHotelDirectly(hotelPrincipal: Principal): Promise<boolean>;
+    adminDeleteAllRoomsForHotel(hotelId: Principal): Promise<void>;
     adminDeleteHotelData(hotelId: Principal): Promise<void>;
     adminRemoveLegacyPaymentMethods(hotelId: Principal): Promise<void>;
     adminRemoveLegacyRoomPhotos(hotelId: Principal, roomId: bigint): Promise<void>;

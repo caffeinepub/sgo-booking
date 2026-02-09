@@ -101,6 +101,110 @@ This checklist must be completed before each production deployment to ensure cri
   - Verify email is displayed in contact section
   - Verify email link works (mailto:)
 
+## HOTEL DUMMY One-Time Purge Verification (CRITICAL - V40+)
+**Context:** This release includes a one-time backend cleanup that removes ALL room data (photos, descriptions, prices, types) for HOTEL DUMMY only. The cleanup runs automatically during canister upgrade and is idempotent (safe to run multiple times).
+
+### Pre-Deployment Verification
+- [ ] **Confirm target hotel**
+  - Verify the hotel name "HOTEL DUMMY" is correct
+  - Verify this is the only hotel that should have rooms purged
+  - Verify no other hotels will be affected
+
+### Post-Deployment Verification
+- [ ] **HOTEL DUMMY shows zero rooms**
+  - Log in as guest → Browse Hotels
+  - Locate HOTEL DUMMY in the hotel list
+  - Verify HOTEL DUMMY shows "0 rooms available" or similar empty state
+  - Navigate to HOTEL DUMMY detail page
+  - Verify NO room cards are displayed
+  - Verify "No rooms available" or similar message is shown
+
+- [ ] **HOTEL DUMMY hotel profile intact**
+  - Log in as admin or HOTEL DUMMY owner
+  - Navigate to Hotel Area (if owner) or Admin Panel → Hotel Visibility (if admin)
+  - Verify HOTEL DUMMY hotel profile still exists
+  - Verify hotel name, location, address, contact info are preserved
+  - Verify only the rooms array is empty
+
+- [ ] **Other hotels unaffected**
+  - Log in as guest → Browse Hotels
+  - Verify all other hotels still display their rooms correctly
+  - Select a non-HOTEL DUMMY hotel
+  - Verify room photos, descriptions, prices, and types are intact
+  - Verify booking flow still works for other hotels
+
+### Ghost Room Prevention Verification
+- [ ] **No placeholder rooms appear**
+  - Log in as guest → Browse Hotels
+  - Verify NO rooms with empty fields (blank room number, $0 price, "No photos available") appear for any hotel
+  - Navigate to multiple hotel detail pages
+  - Verify all displayed rooms have valid data (room number, type, price, photos)
+
+- [ ] **Hotel Area → Rooms (non-HOTEL DUMMY)**
+  - Log in as a different hotel owner (not HOTEL DUMMY)
+  - Navigate to Hotel Area → Rooms tab
+  - Verify all rooms are displayed correctly
+  - Verify room editing and photo upload still work
+  - Verify no ghost/placeholder rooms appear
+
+- [ ] **Admin panel hotel visibility**
+  - Log in as admin → Admin Panel → Hotel Visibility
+  - Verify all hotels are listed
+  - Verify hotel visibility toggles still work
+  - Verify subscription status updates still work
+
+### Idempotency Check
+- [ ] **Subsequent upgrades safe**
+  - After initial deployment, trigger another canister upgrade (or wait for next deployment)
+  - Verify HOTEL DUMMY still shows zero rooms (no errors)
+  - Verify other hotels remain unaffected
+  - Verify no duplicate cleanup operations occur
+
+## Legacy Data Cleanup Verification (V39)
+**Context:** This release includes backend cleanup to remove ghost room photos and legacy payment methods (GOPAY, email-as-payment-method) that were reported as undeletable. The active hotel token is `HOTEL_17705984310722985941` and must remain intact.
+
+- [ ] **Ghost room photos removed**
+  - Log in as guest → Browse Hotels
+  - Verify NO old/ghost room photos appear in hotel cards
+  - Navigate to hotel detail page for the active hotel
+  - Verify ONLY current room photos (uploaded via Hotel Portal) are displayed
+  - Verify room cards do not show duplicate or legacy photos
+
+- [ ] **Admin view - ghost photos removed**
+  - Log in as admin → Admin Panel → Bookings Overview
+  - Browse hotel listings
+  - Verify NO old/ghost room photos appear in any hotel view
+  - Verify hotel data is consistent with guest view
+
+- [ ] **Legacy payment methods removed**
+  - Log in as hotel owner (token `HOTEL_17705984310722985941`)
+  - Navigate to Hotel Area → Payments tab
+  - Verify GOPAY payment method is NOT present
+  - Verify email is NOT listed as a payment method
+  - Verify payment methods list is empty or contains only newly added methods
+
+- [ ] **Active hotel data preserved**
+  - Log in as hotel owner (token `HOTEL_17705984310722985941`)
+  - Navigate to Hotel Area → Rooms tab
+  - Verify ALL current rooms and their photos are present and correct
+  - Verify room editing and photo upload still work
+  - Navigate to Profile tab
+  - Verify hotel profile data (name, location, address, contact) is intact
+
+- [ ] **Hotel can add new payment methods**
+  - Log in as hotel owner
+  - Navigate to Hotel Area → Payments tab
+  - Add a new payment method (e.g., "Bank Transfer", "BCA 1234567890")
+  - Verify payment method is saved and displayed
+  - Log out → log in as guest → view hotel detail
+  - Verify new payment method appears in guest view
+
+- [ ] **Legacy token cleanup**
+  - Log in as admin → Admin Panel → Invite Tokens
+  - Verify legacy token `1-invite-1770546868497298151` is marked as "Used" or "Unbound (Legacy)"
+  - Verify it does NOT appear in active/valid token lists
+  - Verify no data from this legacy token appears anywhere in the app
+
 ## Runtime Error Prevention
 - [ ] **Missing backend method handling**
   - Verify booking/payment method hooks gracefully handle missing backend methods
@@ -128,4 +232,5 @@ This checklist must be completed before each production deployment to ensure cri
 - This checklist should be updated whenever new critical functionality is added
 - Any failed check must be resolved before deployment
 - Document any known issues or workarounds in this section
-</markdown>
+- **V39 Note:** If ghost photos or legacy payment methods still appear after deployment, use Admin Panel → Data Cleanup Utility to manually remove them by hotel principal and room ID
+- **V40+ Note:** The HOTEL DUMMY purge is a one-time operation that runs automatically during upgrade. If HOTEL DUMMY still shows rooms after deployment, contact the development team immediately.

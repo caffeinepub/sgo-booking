@@ -139,6 +139,7 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'activateHotelDirectly' : ActorMethod<[Principal], boolean>,
+  'adminDeleteAllRoomsForHotel' : ActorMethod<[Principal], undefined>,
   'adminDeleteHotelData' : ActorMethod<[Principal], undefined>,
   'adminRemoveLegacyPaymentMethods' : ActorMethod<[Principal], undefined>,
   'adminRemoveLegacyRoomPhotos' : ActorMethod<[Principal, bigint], undefined>,
