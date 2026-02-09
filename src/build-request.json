@@ -1,93 +1,51 @@
 {
   "kind": "build_request",
-  "title": "Purge all room data (photos + details) for HOTEL DUMMY only and prevent ghost rooms after cleanup",
+  "title": "Retry build/deploy and force a fresh release version to recover missing Publish URL",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-41",
-      "text": "Implement an admin-only backend maintenance operation to purge **all room data** for a single specified hotel without affecting any other hotels. The purge must delete every room record belonging to the target hotel (including all fields such as room number/type/price/currency/pictures) and must also remove those room IDs from the hotel’s stored room list so the hotel ends up with **zero rooms**.",
-      "target": "backend",
+      "id": "REQ-1",
+      "text": "Force a fresh deployment attempt by bumping the frontend build version string, then run build + deploy so Caffeine attempts a new publish and shows the Publish URL / “Open App” link.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-20"
         ],
         "quotes": [
-          "foto dari satu hotel saja bukan semua hote. pokoknya semua foto berikut deskripsi kamar nya, harga nya, tipe nya. Ya anda reset saja semua database foto kamar berikut deskripsi kamar nya",
-          "YA SUDAH ADA RESET DAN LAKUKAN PEMBERSIHAN DATABASE,"
+          "coba sekali lagi di build dan deploy. mudah-mudahan server caffeine sudah tidak error. dan bisa menampilam URL nya. tapi jika gagal kita tunda dulu sampe besok."
         ]
       },
       "acceptanceCriteria": [
-        "When the purge is executed for the target hotel, `getCallerHotelProfile()` and `getHotels()` return the hotel with an empty `rooms` array (length = 0).",
-        "After purge, no room cards appear for the target hotel in Guest Browse Hotels and on the Hotel Detail page (the screenshot case must no longer show multiple rooms with 'No photos available' placeholders).",
-        "No rooms are deleted/modified for any other hotel principals."
+        "`frontend/src/buildInfo.ts` BUILD_VERSION is incremented from its current value to a new value (e.g., v33) to trigger a new build artifact.",
+        "A new build+deploy is executed after the version bump.",
+        "The resulting Caffeine deploy output includes a visible Publish URL / “Open App” link; if it is still missing, record the deploy attempt outcome for follow-up (error message or confirmation that deploy succeeded but URL did not appear)."
       ]
     },
     {
-      "id": "REQ-42",
-      "text": "Make the cleanup for the specific hotel named **\"HOTEL DUMMY\"** run as part of a safe, one-time backend upgrade cleanup (so it does not require any manual admin UI actions). The upgrade cleanup must locate the hotel record by name match \"HOTEL DUMMY\" and then perform the full room purge described in REQ-41, and persist a flag so the purge is not re-run on every upgrade.",
-      "target": "backend",
+      "id": "REQ-2",
+      "text": "Add a short admin-facing note in the app (Admin Panel) explaining that if the Caffeine platform UI fails to show the Publish URL / “Open App” after a successful deploy, it is a platform issue and the team will pause and retry later, without implying an application bug.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-20"
         ],
         "quotes": [
-          "HOTEK DUMMY",
-          "HOTEL DUMMY",
-          "YA SUDAH ADA RESET DAN LAKUKAN PEMBERSIHAN DATABASE,"
+          "tapi jika gagal kita tunda dulu sampe besok."
         ]
       },
       "acceptanceCriteria": [
-        "After deploying the upgrade, \"HOTEL DUMMY\" has zero rooms in all portals without requiring an admin to run `adminRemoveLegacyRoomPhotos` per-room.",
-        "The one-time cleanup is idempotent: subsequent upgrades do not repeatedly modify state once the purge has already been applied."
-      ]
-    },
-    {
-      "id": "REQ-43",
-      "text": "Prevent ghost/placeholder rooms from appearing when a hotel’s stored room ID list references missing room records. Update hotel-to-room view construction so that room IDs that do not exist in `roomsMap` are excluded from `rooms` results (do not synthesize empty rooms with blank fields).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "recent-messages"
-        ],
-        "quotes": [
-          "ini ok foto kamar sudah terhapus tapi cuma foto doang, sedang deskripsi kamar tidak ikut terhapus, seperti tipe kamar, nama kamar dan lain-lain nya. Ini saya kirim screnshot nya supaya anda bisa melihat"
-        ]
-      },
-      "acceptanceCriteria": [
-        "If a hotel’s room list contains stale/orphan room IDs, `getCallerHotelProfile()`, `getHotelProfile(hotelId)`, and `getHotels()` do not return placeholder rooms with empty fields; they only return rooms that exist in `roomsMap`.",
-        "The change does not break normal room display for hotels with valid room records."
-      ]
-    },
-    {
-      "id": "REQ-44",
-      "text": "Add a targeted regression verification pass (manual is acceptable) to confirm the HOTEL DUMMY purge and ghost-room fix did not break unrelated flows, using the relevant portions of `frontend/REGRESSION_CHECKLIST.md` (auth, browse hotels, hotel profile, rooms, admin hotel visibility). Record results as a short checklist in the PR description or release notes.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "recent-messages"
-        ],
-        "quotes": [
-          "YA SUDAH ADA RESET DAN LAKUKAN PEMBERSIHAN DATABASE,"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Guest Browse Hotels still loads and shows other active hotels correctly.",
-        "Hotel Area → Rooms still works for a different (non-dummy) hotel: rooms can be created/updated and displayed.",
-        "Admin panel still loads and hotel visibility toggles still work.",
-        "HOTEL DUMMY no longer shows any rooms anywhere in the UI after the upgrade cleanup runs."
+        "Admin Panel contains a concise English notice about the potential Caffeine deploy UI issue (missing Publish URL / Open App) and the plan to retry later if it happens.",
+        "The notice does not change any business logic and does not block normal app usage."
       ]
     }
   ],
   "constraints": [
-    "Use English for any user-facing text introduced by this change.",
-    "Backend must remain a single-actor Motoko canister (all logic in `backend/main.mo`).",
-    "Do not edit files under `frontend/src/components/ui`, `frontend/src/hooks/useInternetIdentity.ts(x)`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`.",
-    "The purge must only affect the single hotel \"HOTEL DUMMY\"; do not delete data for other hotels."
+    "Do not modify any files under `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`, or anything in `frontend/src/components/ui` (compose instead).",
+    "Do not change backend logic as part of this request; this is a deploy retry and release bump only."
   ],
   "nonGoals": [
-    "Do not add new booking/payment features as part of this request.",
-    "Do not redesign the UI; only ensure the data cleanup result is reflected correctly.",
-    "Do not delete the entire HOTEL DUMMY hotel profile unless explicitly required; only reset/purge room data."
+    "Implementing the previously discussed admin feature to delete a room along with its metadata (photo + description/price/type) is out of scope for this build request.",
+    "Fixing legacy room data/photo cleanup behavior is out of scope for this build request."
   ],
   "imageRequirements": {
     "required": [],
@@ -96,9 +54,7 @@
   "userProfileUpdate": {
     "goalsToAdd": [],
     "goalsToRemove": [],
-    "preferencesToAdd": [
-      "Use English for user-facing text."
-    ],
+    "preferencesToAdd": [],
     "preferencesToRemove": [],
     "miscToAdd": [],
     "miscToRemove": [],

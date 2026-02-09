@@ -4,6 +4,7 @@ import { InviteTokensPanel } from '../components/admin/InviteTokensPanel';
 import { HotelVisibilityPanel } from '../components/admin/HotelVisibilityPanel';
 import { AdminBookingsPanel } from '../components/admin/AdminBookingsPanel';
 import { DataCleanupPanel } from '../components/admin/DataCleanupPanel';
+import { CaffeineDeployUiNotice } from '../components/admin/CaffeineDeployUiNotice';
 import { Separator } from '../components/ui/separator';
 import { Shield } from 'lucide-react';
 
@@ -17,6 +18,8 @@ export default function AdminPanelPage() {
           <p className="text-muted-foreground">Manage hotels, invites, bookings, and system data</p>
         </div>
       </div>
+
+      <CaffeineDeployUiNotice />
 
       <InviteTokensPanel />
       

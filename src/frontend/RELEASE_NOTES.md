@@ -4,6 +4,43 @@ Use this template to document verification results for each release. Copy the re
 
 ---
 
+## Release V33 - Deploy Retry & UI Notice
+
+**Release Date:** [YYYY-MM-DD]  
+**Deployed By:** [Name]  
+**Canister Version:** [Version]
+
+### Summary
+This release bumps the frontend build version to v33 to force a fresh build artifact and adds an admin-facing notice about the Caffeine deploy UI sometimes not showing the Publish URL / Open App link.
+
+### Deploy Outcome
+- [ ] Caffeine showed the Publish URL / "Open App" link after deployment
+- [ ] If URL was missing: Recorded error message or confirmation that deploy succeeded but URL did not appear
+- [ ] App is accessible and functional (verified by manual testing)
+
+### Verification Results
+- [ ] Admin Panel loads correctly
+- [ ] CaffeineDeployUiNotice appears at the top of Admin Panel
+- [ ] Notice is informational only and does not block any admin tools
+- [ ] Build version v33 is visible in the app footer
+
+### Known Issues
+- Caffeine platform may intermittently fail to display the Publish URL / Open App link after successful deploys (platform issue, not app issue)
+
+### Rollback Plan
+If critical issues are discovered:
+1. Revert to previous canister version (v32)
+2. Investigate root cause
+3. Apply hotfix if needed
+4. Re-deploy with fix
+
+### Notes
+- This release does not change any business logic or app functionality
+- The CaffeineDeployUiNotice is purely informational for admins
+- If the Publish URL is missing, try refreshing the page or switching between Draft/Live tabs
+
+---
+
 ## Release V40+ - HOTEL DUMMY One-Time Purge & Ghost Room Prevention
 
 **Release Date:** [YYYY-MM-DD]  

@@ -1,7 +1,7 @@
 {
   "frontend/src/App.tsx": "Main application component with TanStack Router setup including all routes (/, /browse, /browse/$hotelId, /bookings, /guest, /account, /account-status, /hotel, /admin) with proper auth/role guards and QueryClientProvider, using default import for AdminPanelPage.",
   "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations including new useCancelBooking hook that calls the backend cancelBooking method and invalidates bookings cache on success.",
-  "frontend/src/buildInfo.ts": "Build version constant set to 'v32' for deployment verification.",
+  "frontend/src/buildInfo.ts": "Build version constant set to 'v33' for deployment verification.",
   "frontend/src/index.css": "Global styles with OKLCH color system using white background, subtle gray borders, and amber/orange accent color (avoiding blue/purple), with support for both light and dark modes.",
   "frontend/index.html": "HTML entry point with SGO-Booking title, favicon reference, and meta description.",
   "frontend/src/i18n/LocaleContext.tsx": "Locale context provider managing language selection state (currently English only) with localStorage persistence.",
@@ -16,7 +16,7 @@
   "frontend/src/pages/GuestAccountPage.tsx": "Guest account dashboard showing My Bookings section using the shared MyBookingsTable component, with quick-action cards for browsing hotels and viewing account status.",
   "frontend/src/pages/AccountStatusPage.tsx": "Account status page with build version, principal ID, role display, hotel onboarding section with invite token activation, and developer tools, invalidating all relevant queries including isCallerHotelActivated on token consumption.",
   "frontend/src/pages/HotelAreaPage.tsx": "Hotel management dashboard with 6 tabs (Profile, Rooms, Payments, Bookings, Record Stays, Subscription) matching screenshot layout, showing loading state during profile fetch and error card with navigation options when profile not found, with all panel components fetching their own data.",
-  "frontend/src/pages/AdminPanelPage.tsx": "Admin panel page with sections for invite token management, hotel visibility control, bookings overview, and data cleanup utility, all separated by visual dividers.",
+  "frontend/src/pages/AdminPanelPage.tsx": "Admin panel page with sections for invite token management, hotel visibility control, bookings overview, data cleanup utility, and CaffeineDeployUiNotice at the top, all separated by visual dividers.",
   "frontend/src/components/booking/BookingForm.tsx": "Complete booking form component accepting hotel and room props, collecting check-in/out dates, room count, and guest count with validation, calculating total price, creating bookings via backend, and displaying success state with the full BookingRequest object returned from createBooking.",
   "frontend/src/components/booking/BookingStatusBadge.tsx": "Status badge component displaying booking status with appropriate variant styling using BookingStatus string enum values from backend.d.ts.",
   "frontend/src/components/payments/ContactPaymentInstructions.tsx": "Admin contact card explicitly scoped to hotel activation/subscription context only with clear documentation comment preventing misuse in guest booking flows.",
@@ -50,5 +50,6 @@
   "frontend/src/pages/MyBookingsPage.tsx": "Dedicated My Bookings page rendering the shared MyBookingsTable component with quick-action cards for browsing hotels and viewing account status.",
   "frontend/src/components/booking/MyBookingsTable.tsx": "Guest bookings table component with Cancel button for pendingTransfer bookings, confirmation dialog, and proper error handling using the useCancelBooking hook.",
   "frontend/src/components/admin/DataCleanupPanel.tsx": "Admin-only utility panel for removing legacy data (ghost room photos and undeletable payment methods like GOPAY/email-as-payment-method) with enhanced verification guidance, explicit instructions for post-cleanup checks, and contextual alerts referencing the reported issues.",
-  "frontend/RELEASE_NOTES.md": "Release notes template for documenting verification results with pre-filled sections for V40+ HOTEL DUMMY purge, V39 legacy data cleanup, and a generic template for future releases, including explicit checkboxes for all critical verification points and rollback procedures."
+  "frontend/RELEASE_NOTES.md": "Release notes template for documenting verification results with new V33 deploy retry section, pre-filled sections for V40+ HOTEL DUMMY purge, V39 legacy data cleanup, and a generic template for future releases, including explicit checkboxes for all critical verification points and rollback procedures.",
+  "frontend/src/components/admin/CaffeineDeployUiNotice.tsx": "Admin-facing informational notice component about the Caffeine deploy UI sometimes not showing the Publish URL / Open App link, using shadcn-ui Alert component with amber styling."
 }

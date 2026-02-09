@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Purge all room data for the single hotel named “HOTEL DUMMY” (photos + all room details) and prevent “ghost” rooms from appearing due to stale room references.
+**Goal:** Retry build/deploy by forcing a new frontend release version so Caffeine generates a fresh publish artifact and (ideally) shows the Publish URL / “Open App” link, and add a small admin-facing note clarifying potential platform UI issues.
 
 **Planned changes:**
-- Add an admin-only backend maintenance operation that fully deletes every room record belonging to a specified hotel and removes those room IDs from the hotel’s stored room list so the hotel ends with zero rooms.
-- Run a safe, one-time backend upgrade cleanup that finds the hotel named “HOTEL DUMMY”, performs the full room purge, and persists a flag so it is not re-run on subsequent upgrades.
-- Update hotel-to-room view construction so missing/orphan room IDs are excluded from room results (no placeholder/empty rooms returned) across `getCallerHotelProfile()`, `getHotelProfile(hotelId)`, and `getHotels()`.
-- Perform and record a targeted regression verification pass (manual acceptable) using relevant sections of `frontend/REGRESSION_CHECKLIST.md` to ensure unrelated flows still work.
+- Increment `frontend/src/buildInfo.ts` `BUILD_VERSION` to a new value to force a fresh frontend build artifact.
+- Run build + deploy again so Caffeine attempts a new publish and can display the Publish URL / “Open App” link.
+- Add a concise English notice in the Admin Panel explaining that a missing Publish URL / “Open App” after a successful deploy is a Caffeine platform UI issue and the team will pause and retry later; the notice must not affect business logic or block usage.
 
-**User-visible outcome:** After deployment, “HOTEL DUMMY” shows zero rooms everywhere in the UI (no empty “No photos available” room cards), other hotels’ room data remains intact, and normal browsing/admin flows continue to work.
+**User-visible outcome:** Admins see a brief notice in the Admin Panel about the possible Caffeine Publish URL UI issue, and a new deployment attempt is triggered via a frontend build version bump so the platform can (hopefully) show an “Open App” / Publish URL link.

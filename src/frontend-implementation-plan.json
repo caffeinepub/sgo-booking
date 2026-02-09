@@ -1,27 +1,46 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Regression verification checklist updates for HOTEL DUMMY room purge and ghost-room prevention",
+  "title": "Fresh deploy retry via frontend build version bump + admin note about missing Publish URL",
   "requirements": [
     {
-      "id": "REQ-44",
-      "summary": "Update frontend regression checklist and add a short release-notes checklist template to verify HOTEL DUMMY purge + ghost-room fix did not break key flows.",
+      "id": "REQ-1",
+      "summary": "Bump the frontend build version string to force a new build artifact and document the deploy retry outcome regarding the Publish URL / Open App link.",
       "acceptanceCriteria": [
-        "Guest Browse Hotels still loads and shows other active hotels correctly.",
-        "Hotel Area → Rooms still works for a different (non-dummy) hotel: rooms can be created/updated and displayed.",
-        "Admin panel still loads and hotel visibility toggles still work.",
-        "HOTEL DUMMY no longer shows any rooms anywhere in the UI after the upgrade cleanup runs."
+        "`frontend/src/buildInfo.ts` BUILD_VERSION is incremented from its current value to a new value (e.g., v33) to trigger a new build artifact.",
+        "A new build+deploy is executed after the version bump.",
+        "The resulting Caffeine deploy output includes a visible Publish URL / “Open App” link; if it is still missing, record the deploy attempt outcome for follow-up (error message or confirmation that deploy succeeded but URL did not appear)."
       ],
       "file_operations": [
         {
-          "path": "frontend/REGRESSION_CHECKLIST.md",
+          "path": "frontend/src/buildInfo.ts",
           "operation": "modify",
-          "description": "Add a targeted manual regression verification section for the HOTEL DUMMY one-time purge and ghost/placeholder room prevention, explicitly covering: Guest Browse Hotels, Hotel Detail room list, Hotel Area → Rooms for a non-dummy hotel, and Admin panel hotel visibility toggles. Keep all new checklist text in English."
+          "description": "Increment BUILD_VERSION (currently 'v32') to a new value to force a fresh frontend build artifact for the next deploy attempt."
         },
         {
           "path": "frontend/RELEASE_NOTES.md",
+          "operation": "modify",
+          "description": "Add a short section/template to record the deploy retry outcome, including whether Caffeine showed a Publish URL / “Open App” link and any relevant deploy output if it remains missing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add a concise admin-facing notice in the Admin Panel about the Caffeine UI sometimes not showing the Publish URL / Open App link after successful deploys.",
+      "acceptanceCriteria": [
+        "Admin Panel contains a concise English notice about the potential Caffeine deploy UI issue (missing Publish URL / Open App) and the plan to retry later if it happens.",
+        "The notice does not change any business logic and does not block normal app usage."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
           "operation": "create",
-          "description": "Create a short release-notes checklist template for recording the REQ-44 verification results (intended to be copied into PR description or used as release notes), including explicit checkboxes confirming HOTEL DUMMY shows zero rooms and other key flows remain working; keep text in English."
+          "description": "Create a small, admin-facing informational notice component. Use shadcn-ui (compose via existing UI primitives like Card/typography) to display a non-blocking message; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/AdminPanelPage.tsx",
+          "operation": "modify",
+          "description": "Render the new CaffeineDeployUiNotice near the top of the Admin Panel (above existing panels), ensuring it is informational only and does not affect any admin tools or app flows."
         }
       ]
     }

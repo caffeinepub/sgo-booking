@@ -1,64 +1,57 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T21:51:33.534Z",
-  "summary": "Based on the provided (truncated) diff summary, there is not enough concrete evidence that the required backend purge operation, one-time upgrade cleanup for HOTEL DUMMY, or the ghost-room filtering change were implemented in backend/main.mo. The diff does add a release-notes template/checklist file, but it does not show completed verification results as required.",
+  "generatedAt": "2026-02-09T23:40:06.823Z",
+  "summary": "Implemented the frontend build version bump to v33 and added an admin-facing Caffeine deploy UI notice to the Admin Panel. However, the diff cannot evidence that a build+deploy was executed or that the deploy output included (or still lacked) the Publish URL/Open App link, and the notice text does not clearly state the “pause and retry later” plan requested.",
   "missing_requirements": [
     {
-      "id": "REQ-41",
-      "requirement": "Implement an admin-only backend maintenance operation to purge all room data for a single specified hotel (delete room records + remove room IDs from the hotel’s room list) without affecting other hotels.",
-      "reason": "The backend diff snippet only shows type definitions/state variables (e.g., hasRunUpgradeCleanup) and does not show any new admin-only purge method or logic that deletes room records and clears the hotel’s stored room list.",
+      "id": "REQ-1",
+      "requirement": "Run a new build+deploy after the version bump and record whether Caffeine shows a Publish URL / “Open App” link (or capture the missing-URL outcome/error for follow-up).",
+      "reason": "The diff shows BUILD_VERSION was bumped, but there is no verifiable evidence in the provided file changes that an actual build+deploy was executed, nor any recorded deploy output/outcome as required by the acceptance criteria.",
       "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-42",
-      "requirement": "Run a safe, one-time upgrade cleanup that finds the hotel named \"HOTEL DUMMY\" and performs the full room purge, persisting a flag so it is not re-run on subsequent upgrades.",
-      "reason": "Although a flag variable (hasRunUpgradeCleanup) appears in the truncated snippet, the diff summary does not show any upgrade hook (e.g., postupgrade) or name-based lookup for \"HOTEL DUMMY\" nor the actual purge being invoked and the flag being persisted/idempotent.",
-      "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-43",
-      "requirement": "Prevent ghost/placeholder rooms by excluding hotel room IDs that are missing from roomsMap when constructing rooms results for getCallerHotelProfile(), getHotelProfile(hotelId), and getHotels().",
-      "reason": "The diff summary does not show changes to hotel-to-room view construction or any filtering of orphan room IDs; only general type/state context is visible due to truncation.",
-      "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-44",
-      "requirement": "Add a targeted regression verification pass and record results as a short checklist in the PR description or release notes, using relevant parts of frontend/REGRESSION_CHECKLIST.md.",
-      "reason": "The added frontend/RELEASE_NOTES.md contains an unchecked template, but there is no evidence of recorded (completed) verification results, nor evidence that results were added to PR description (not part of diff).",
-      "evidence": [
+        "frontend/src/buildInfo.ts",
         "frontend/RELEASE_NOTES.md"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Admin Panel notice should explain that if Publish URL / “Open App” is missing after a successful deploy, it’s a platform issue and the team will pause and retry later.",
+      "reason": "A notice was added, but its copy focuses on refreshing/switching tabs and states it’s a platform UI issue; it does not clearly communicate the requested “pause and retry later” plan.",
+      "evidence": [
+        "frontend/src/components/admin/CaffeineDeployUiNotice.tsx"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added a release notes template file (frontend/RELEASE_NOTES.md) rather than recording actual completed regression results.",
-      "reason": "REQ-44 asks to record verification results in PR description or release notes; adding a reusable template is not explicitly requested and does not itself satisfy the acceptance criteria of recorded results.",
+      "description": "Added a release notes template file with sections unrelated to this deploy-retry request (e.g., V40+ backend cleanup / HOTEL DUMMY purge content).",
+      "reason": "The BuildRequest is scoped to a deploy retry/release bump and an Admin Panel notice, and explicitly says not to change backend logic; adding extensive release note templates referencing backend cleanup is not requested by the requirements.",
       "evidence": [
         "frontend/RELEASE_NOTES.md"
       ]
     },
     {
-      "description": "Updated project_state.json summary/existing feature metadata.",
-      "reason": "The BuildRequest does not request changes to project_state.json; this appears to be project bookkeeping rather than a specified requirement.",
+      "description": "Updated/added project tracking metadata (project_state.json) including references to out-of-scope admin delete-room feature and other state fields.",
+      "reason": "Project-state tracking files were not requested by REQ-1 or REQ-2 and are outside the stated deploy retry + UI notice scope.",
       "evidence": [
-        "project_state.json (truncated)"
+        "project_state.json"
+      ]
+    },
+    {
+      "description": "Modified autogenerated/summary documentation file frontend-file-summaries.txt.",
+      "reason": "This file change is not part of the requested requirements (version bump + admin notice) and appears to be ancillary documentation.",
+      "evidence": [
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.55,
+  "confidence": 0.74,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/REGRESSION_CHECKLIST.md",
     "frontend/RELEASE_NOTES.md",
+    "frontend/src/buildInfo.ts",
+    "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
+    "frontend/src/pages/AdminPanelPage.tsx",
     "project_state.json"
   ]
 }
