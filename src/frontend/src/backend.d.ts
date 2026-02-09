@@ -23,6 +23,25 @@ export interface PaymentMethod {
     name: string;
     details: string;
 }
+export interface BookingRequest {
+    id: bigint;
+    status: BookingStatus;
+    checkIn: bigint;
+    userId: Principal;
+    hotelId?: Principal;
+    roomsCount: bigint;
+    paymentProof?: string;
+    currency: string;
+    timestamp: bigint;
+    checkOut: bigint;
+    roomId: bigint;
+    totalPrice: bigint;
+    guests: bigint;
+}
+export interface BookingQueryResult {
+    bookings: Array<BookingRequest>;
+    totalCount: bigint;
+}
 export interface InviteCode {
     created: Time;
     code: string;
@@ -33,6 +52,14 @@ export interface RSVP {
     inviteCode: string;
     timestamp: Time;
     attending: boolean;
+}
+export interface BookingQuery {
+    status?: BookingStatus;
+    hotelId?: Principal;
+    maxPrice?: bigint;
+    toDate?: bigint;
+    fromDate?: bigint;
+    minPrice?: bigint;
 }
 export interface HotelDataView {
     id: Principal;
@@ -70,6 +97,17 @@ export interface UserProfile {
     email?: string;
     phone?: string;
 }
+export enum BookingStatus {
+    canceled = "canceled",
+    booked = "booked",
+    checkedIn = "checkedIn",
+    pendingTransfer = "pendingTransfer",
+    paymentFailed = "paymentFailed"
+}
+export enum CancellableBookingResult {
+    canceledByHotel = "canceledByHotel",
+    canceledByGuest = "canceledByGuest"
+}
 export enum SubscriptionStatus {
     paid = "paid",
     test = "test",
@@ -82,13 +120,20 @@ export enum UserRole {
 }
 export interface backendInterface {
     activateHotelDirectly(hotelPrincipal: Principal): Promise<boolean>;
+    adminDeleteHotelData(hotelId: Principal): Promise<void>;
+    adminRemoveLegacyPaymentMethods(hotelId: Principal): Promise<void>;
+    adminRemoveLegacyRoomPhotos(hotelId: Principal, roomId: bigint): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    cancelBooking(bookingId: bigint): Promise<CancellableBookingResult>;
     consumeInviteToken(token: string): Promise<boolean>;
+    createBooking(hotelId: Principal, roomId: bigint, checkIn: bigint, checkOut: bigint, guests: bigint, roomsCount: bigint, currency: string): Promise<BookingRequest>;
     createHotelInviteToken(_maxUses: bigint, boundPrincipal: Principal | null): Promise<InviteToken>;
     createHotelProfile(name: string, location: string, address: string, mapLink: string, whatsapp: string | null, email: string | null): Promise<void>;
     createRoom(roomNumber: string, roomType: string, pricePerNight: bigint, currency: string, pictures: Array<string>): Promise<RoomView>;
     generateInviteCode(): Promise<string>;
     getAllRSVPs(): Promise<Array<RSVP>>;
+    getBooking(bookingId: bigint): Promise<BookingRequest | null>;
+    getBookings(filters: BookingQuery): Promise<BookingQueryResult>;
     getCallerHotelProfile(): Promise<HotelDataView | null>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -109,6 +154,7 @@ export interface backendInterface {
     setHotelActiveStatus(hotelId: Principal, active: boolean): Promise<void>;
     setHotelSubscriptionStatus(hotelId: Principal, status: SubscriptionStatus): Promise<void>;
     submitRSVP(name: string, attending: boolean, inviteCode: string): Promise<void>;
+    updateBookingStatus(bookingId: bigint, newStatus: BookingStatus): Promise<void>;
     updateHotelProfile(name: string, location: string, address: string, mapLink: string, whatsapp: string | null, email: string | null): Promise<void>;
     updateRoom(roomId: bigint, roomNumber: string, roomType: string, pricePerNight: bigint, currency: string, pictures: Array<string>): Promise<RoomView>;
     validateInviteToken(token: string): Promise<boolean>;

@@ -10,7 +10,7 @@ import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { formatMoney } from '../../utils/money';
 import { Calendar, Users, Hotel, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import type { RoomView, HotelDataView } from '../../backend';
+import type { RoomView, HotelDataView, BookingRequest } from '../../backend';
 
 interface BookingFormProps {
   hotel: HotelDataView;
@@ -25,7 +25,7 @@ export function BookingForm({ hotel, room }: BookingFormProps) {
   const [checkOut, setCheckOut] = useState('');
   const [roomsCount, setRoomsCount] = useState('1');
   const [guests, setGuests] = useState('1');
-  const [bookingSuccess, setBookingSuccess] = useState<bigint | null>(null);
+  const [bookingSuccess, setBookingSuccess] = useState<BookingRequest | null>(null);
 
   const isAuthenticated = !!identity;
 
@@ -94,7 +94,7 @@ export function BookingForm({ hotel, room }: BookingFormProps) {
       const checkInMs = new Date(checkIn).getTime() * 1000000; // Convert to nanoseconds
       const checkOutMs = new Date(checkOut).getTime() * 1000000;
 
-      const bookingId = await createBooking.mutateAsync({
+      const booking = await createBooking.mutateAsync({
         hotelId: hotel.id,
         roomId: room.id,
         checkIn: BigInt(checkInMs),
@@ -104,7 +104,7 @@ export function BookingForm({ hotel, room }: BookingFormProps) {
         currency: room.currency,
       });
 
-      setBookingSuccess(bookingId);
+      setBookingSuccess(booking);
       toast.success('Booking created successfully!');
     } catch (error: any) {
       console.error('Booking error:', error);
@@ -124,7 +124,7 @@ export function BookingForm({ hotel, room }: BookingFormProps) {
         <CardContent className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground">Booking ID</p>
-            <p className="font-mono text-lg font-semibold">#{bookingSuccess.toString()}</p>
+            <p className="font-mono text-lg font-semibold">#{bookingSuccess.id.toString()}</p>
           </div>
           <Separator />
           <div className="space-y-2 text-sm">

@@ -1,151 +1,59 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T14:20:58.446Z",
+  "generatedAt": "2026-02-09T20:34:17.216Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 10,
-    "implemented": 7,
+    "total": 4,
+    "implemented": 0,
     "items": [
       {
-        "id": "REQ-12",
-        "summary": "Replace the placeholder guest booking UI with a working standard hotel booking flow on the Hotel Detail page: guest selects a room, then can choose check-in date, check-out date, number of rooms, and number of guests, and submit a booking.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/booking/BookingForm.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/booking/BookingForm.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-13",
-        "summary": "Implement backend booking APIs required by the frontend `ExtendedBackendInterface`: `createBooking(hotelId, roomId, checkIn, checkOut, guests, currency)`, `getBookings(filters)`, and `updateBookingStatus(bookingId, newStatus)` with correct authorization so bookings work for guest, hotel, and admin portals.",
+        "id": "REQ-32",
+        "summary": "Add an admin-only backend maintenance API to permanently remove legacy/stale hotel data that is still visible in Guest/Admin browsing but should no longer appear anywhere, without changing normal product behavior for other hotels.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-14",
-        "summary": "Extend the booking data model to support 'number of rooms' (room quantity) and ensure `totalPrice` is computed based on nights × pricePerNight × roomQuantity (and persisted on the booking record).",
+        "id": "REQ-33",
+        "summary": "When the admin maintenance API is run for the affected hotel, delete the legacy room photo data (reported ~5 old room photos) so those images no longer appear in Guest Browse Hotels, Admin hotel browsing, or the Hotel Detail room cards.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-15",
-        "summary": "Implement guest booking visibility in the Guest portal by replacing the placeholder 'My Bookings' UI with a real bookings table that loads from `getBookings`, shows status, dates, room quantity, guests, total price, and opens booking details using the existing booking details dialog where appropriate.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/booking/MyBookingsTable.tsx",
-          "frontend/src/pages/MyBookingsPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/booking/MyBookingsTable.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-16",
-        "summary": "Implement hotel-side booking management by replacing the placeholder Hotel Bookings panel with a list/table of bookings for the caller hotel, including an action to confirm a pending booking (calling `updateBookingStatus`).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/hotel/HotelBookingsPanel.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/hotel/HotelBookingsPanel.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-17",
-        "summary": "Implement admin-side bookings overview by replacing the placeholder Admin Bookings panel with a real bookings list that can display bookings across all hotels (using `getBookings`), including status and key booking fields.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/admin/AdminBookingsPanel.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/admin/AdminBookingsPanel.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-18",
-        "summary": "Enable flexible hotel-managed payment methods: implement backend APIs `addPaymentMethod(name, details)` and `removePaymentMethod(index)` for activated hotels, persist them to the hotel profile, and expose them through existing hotel profile queries (e.g., `getHotels`, `getCallerHotelProfile`, `getHotelProfile`).",
+        "id": "REQ-34",
+        "summary": "When the admin maintenance API is run for the affected hotel, remove the legacy payment method entries that cannot be deleted (including the 'GOPAY' entry and the old email stored as a payment method), and ensure they do not reappear.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-19",
-        "summary": "Replace the placeholder Hotel Payment Methods panel UI with an operational management UI: add payment method (name, details), list existing methods, and remove method actions; do not hardcode payment providers or countries.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-20",
-        "summary": "Ensure hotel email entry is functional end-to-end: the Hotel Profile Save flow must persist the email field to the backend and reflect it in hotel profile reads and guest-facing contact sections where applicable.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/hotel/HotelProfilePanel.tsx",
-          "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/hotel/HotelProfilePanel.tsx",
-          "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-21",
-        "summary": "Add focused regression verification aligned with `frontend/REGRESSION_CHECKLIST.md` to confirm that enabling bookings and payment methods does not break existing flows (auth, browse hotels, hotel profile, rooms, admin hotel visibility).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/REGRESSION_CHECKLIST.md",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/REGRESSION_CHECKLIST.md",
-          "frontend/src/hooks/useQueries.ts"
-        ]
+        "id": "REQ-35",
+        "summary": "Ensure the hotel email is only represented via the hotel profile contact email field and not duplicated/derived into payment methods during reads or writes, so guests/admins do not see email displayed as a payment method.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/REGRESSION_CHECKLIST.md",
-    "frontend/src/components/admin/AdminBookingsPanel.tsx",
-    "frontend/src/components/booking/BookingForm.tsx",
-    "frontend/src/components/booking/MyBookingsTable.tsx",
-    "frontend/src/components/hotel/HotelBookingsPanel.tsx",
-    "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
-    "frontend/src/components/hotel/HotelProfilePanel.tsx",
-    "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/HotelDetailPage.tsx",
-    "frontend/src/types/extended-backend.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/admin/DataCleanupPanel.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/pages/AdminPanelPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

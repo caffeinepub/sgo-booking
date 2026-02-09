@@ -1,211 +1,108 @@
 {
   "kind": "build_request",
-  "title": "Enable standard guest booking flow with cross-portal booking management and hotel-managed payment methods",
-  "priority": "high",
+  "title": "Clean up legacy room photos and undeletable payment method entries without affecting existing flows",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-12",
-      "text": "Replace the placeholder guest booking UI with a working standard hotel booking flow on the Hotel Detail page: guest selects a room, then can choose check-in date, check-out date, number of rooms, and number of guests, and submit a booking.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-3",
-          "msg-4",
-          "msg-6"
-        ],
-        "quotes": [
-          "ya aktifka fitur booking nya. dan gunarkan alur standar hotel saja, bisa pilih kamar, jumlah kamar, jumlah orang dan tanggal booking."
-        ]
-      },
-      "acceptanceCriteria": [
-        "On `/browse/$hotelId`, after selecting a room, the booking form collects: check-in date, check-out date, number of rooms, and number of guests.",
-        "Submitting the form creates a booking via the backend and shows a clear success state (e.g., booking ID and initial status).",
-        "Validation prevents invalid input (e.g., check-out <= check-in; rooms/guests < 1).",
-        "The previous 'Booking functionality coming soon/unavailable' placeholder messaging is no longer shown when booking is supported."
-      ]
-    },
-    {
-      "id": "REQ-13",
-      "text": "Implement backend booking APIs required by the frontend `ExtendedBackendInterface`: `createBooking(hotelId, roomId, checkIn, checkOut, guests, currency)`, `getBookings(filters)`, and `updateBookingStatus(bookingId, newStatus)` with correct authorization so bookings work for guest, hotel, and admin portals.",
+      "id": "REQ-32",
+      "text": "Add an admin-only backend maintenance API to permanently remove legacy/stale hotel data that is still visible in Guest/Admin browsing but should no longer appear anywhere, without changing normal product behavior for other hotels.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3",
-          "msg-4",
-          "msg-6"
+          "recent-messages"
         ],
         "quotes": [
-          "bookingan tamu harus masuk ke akun hotel dan akun admin juga. Dan Bookingan tamu setelah di konfirmasi pihak hotel, status nya harus confirm baik di akun tamu, akun admin dan akun hotel"
+          "tapi itu masih ada sisa-sisa sampah di backend yang bekas lama dan masih terbawa. Bisa anda bersihkan? supaya tidak tampil di akun tamu, akun admin dan di akun hotel?"
         ]
       },
       "acceptanceCriteria": [
-        "A signed-in guest can create a booking for a selected hotel/room and receive a booking ID.",
-        "`getBookings` returns the correct bookings depending on caller context: guest sees own bookings; hotel sees bookings for its hotel; admin can query across hotels.",
-        "A hotel (owner) can confirm a booking by calling `updateBookingStatus` (mapped to an implemented status such as `#booked`), and the updated status is persisted and returned in subsequent queries.",
-        "Unauthorized callers cannot update other hotels’ bookings (except admin)."
+        "A new admin-only method exists in `backend/main.mo` that can be invoked to clean legacy data for a specific hotel (input: hotel principal).",
+        "The method is protected so only an admin (hardcoded admin or AccessControl admin) can call it; non-admin callers are rejected.",
+        "No existing public/guest/hotel workflows are changed by default; cleanup happens only when the admin explicitly calls the new maintenance method.",
+        "The canister still compiles and deploys with the single-actor architecture (all logic in `backend/main.mo`)."
       ]
     },
     {
-      "id": "REQ-14",
-      "text": "Extend the booking data model to support 'number of rooms' (room quantity) and ensure `totalPrice` is computed based on nights × pricePerNight × roomQuantity (and persisted on the booking record).",
+      "id": "REQ-33",
+      "text": "When the admin maintenance API is run for the affected hotel, delete the legacy room photo data (reported ~5 old room photos) so those images no longer appear in Guest Browse Hotels, Admin hotel browsing, or the Hotel Detail room cards.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "recent-messages"
         ],
         "quotes": [
-          "bisa pilih kamar, jumlah kamar, jumlah orang dan tanggal booking."
+          "di  aku tamu dan akun admin di fitur browsing hotel masih ada sampah foto-foto kamar yang dulu yang masih tampil tapi di akun hotel tidak ada.",
+          "seluruh foto kamar yang lama di hapus. Kalau tidak ada salah ada 5 foto kamar yang lama. hapus. saja."
         ]
       },
       "acceptanceCriteria": [
-        "Booking records persist a room quantity field (e.g., `roomsCount`) and it is returned from `getBookings`.",
-        "`totalPrice` reflects nights × room price per night × roomsCount.",
-        "If a schema/state change is required, a conditional `backend/migration.mo` update is provided to preserve existing state and initialize the new field safely."
+        "After running the maintenance API for the target hotel, `getHotels()` and `getRooms({ hotelId = targetHotel })` do not return the legacy room photo URLs/data that previously appeared in Guest/Admin browsing screenshots.",
+        "The cleanup removes legacy photo references at the source of truth (room records / stored image references) rather than relying on frontend filtering.",
+        "Current/non-legacy room photos for that hotel remain intact unless they are part of the identified legacy set.",
+        "No other hotel’s rooms/photos are modified by this cleanup."
       ]
     },
     {
-      "id": "REQ-15",
-      "text": "Implement guest booking visibility in the Guest portal by replacing the placeholder 'My Bookings' UI with a real bookings table that loads from `getBookings`, shows status, dates, room quantity, guests, total price, and opens booking details using the existing booking details dialog where appropriate.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-3",
-          "msg-4"
-        ],
-        "quotes": [
-          "bookingan tamu harus masuk ke akun hotel dan akun admin juga."
-        ]
-      },
-      "acceptanceCriteria": [
-        "`/my-bookings` (or the existing My Bookings page) displays bookings for the logged-in guest using backend data.",
-        "Each booking row shows at minimum: hotel, room, check-in/out, roomsCount, guests, totalPrice/currency, and status.",
-        "Booking status updates (after hotel confirmation) are reflected for the guest after refresh/reload (and ideally via React Query invalidation)."
-      ]
-    },
-    {
-      "id": "REQ-16",
-      "text": "Implement hotel-side booking management by replacing the placeholder Hotel Bookings panel with a list/table of bookings for the caller hotel, including an action to confirm a pending booking (calling `updateBookingStatus`).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-3"
-        ],
-        "quotes": [
-          "Dan Bookingan tamu setelah di konfirmasi pihak hotel, status nya harus confirm baik di akun tamu, akun admin dan akun hotel,"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Hotel Area → Bookings tab shows bookings belonging to the caller hotel.",
-        "Hotel can confirm a booking; after confirmation, the booking status is shown as confirmed (mapped to the backend status, e.g., `Booked`).",
-        "After confirming, relevant queries are invalidated so the UI updates without manual intervention beyond a normal refresh."
-      ]
-    },
-    {
-      "id": "REQ-17",
-      "text": "Implement admin-side bookings overview by replacing the placeholder Admin Bookings panel with a real bookings list that can display bookings across all hotels (using `getBookings`), including status and key booking fields.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-3",
-          "msg-4"
-        ],
-        "quotes": [
-          "bookingan tamu harus masuk ke akun hotel dan akun admin juga."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Admin Panel → Bookings Overview shows bookings loaded from the backend.",
-        "Admin can see bookings across hotels (not limited to a single hotel).",
-        "Booking status displayed in admin matches guest/hotel views after confirmation."
-      ]
-    },
-    {
-      "id": "REQ-18",
-      "text": "Enable flexible hotel-managed payment methods: implement backend APIs `addPaymentMethod(name, details)` and `removePaymentMethod(index)` for activated hotels, persist them to the hotel profile, and expose them through existing hotel profile queries (e.g., `getHotels`, `getCallerHotelProfile`, `getHotelProfile`).",
+      "id": "REQ-34",
+      "text": "When the admin maintenance API is run for the affected hotel, remove the legacy payment method entries that cannot be deleted (including the 'GOPAY' entry and the old email stored as a payment method), and ensure they do not reappear.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-9"
+          "recent-messages"
         ],
         "quotes": [
-          "Jadi jangan di buat baku di dalam sistem, biar pihak oleh yang memasukan metode pembayaran. Admin tidak mengatur metode pembayara.n."
+          "di metode pembayaran itu ada gopay dan email  lama yang tidak bisa di hapus. Saya ingin hapus dan mengganti metode pembayaran yang baru.",
+          "Cukup di fitur profile. Ini saya kirim screenshot nya biar anda bisa lihat. Dan di fitur jangan di ganggu, karena sudah berjalan normal. Cukup di metode pembayaran saja yang ada teks GOPAY  di hapus."
         ]
       },
       "acceptanceCriteria": [
-        "Activated hotel caller can add a payment method (name + details) and it persists on their hotel record.",
-        "Activated hotel caller can remove a payment method by index and it persists.",
-        "`getHotels` and hotel profile queries return the updated `paymentMethods` list so guests can view it on the hotel detail page.",
-        "Admin cannot edit/manage hotel payment methods via backend APIs (only the hotel owner, plus admin override only if already used elsewhere is explicitly intended)."
+        "After running the maintenance API for the target hotel, `getCallerHotelProfile()` and `getHotels()` show the hotel with payment methods that no longer include the legacy 'GOPAY' entry or the old email-as-payment-method entry.",
+        "The cleanup is persistent (data is actually removed from backend state).",
+        "The hotel can still add new payment methods via the existing add method flow after cleanup (no method is auto-added by the cleanup).",
+        "No other hotel’s payment methods are modified by this cleanup."
       ]
     },
     {
-      "id": "REQ-19",
-      "text": "Replace the placeholder Hotel Payment Methods panel UI with an operational management UI: add payment method (name, details), list existing methods, and remove method actions; do not hardcode payment providers or countries.",
-      "target": "frontend",
+      "id": "REQ-35",
+      "text": "Ensure the hotel email is only represented via the hotel profile contact email field and not duplicated/derived into payment methods during reads or writes, so guests/admins do not see email displayed as a payment method.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-9"
+          "recent-messages"
         ],
         "quotes": [
-          "Untuk metode pembayaran di buat simpel... Jadi jangan di buat baku di dalam sistem, biar pihak oleh yang memasukan metode pembayaran."
+          "Dan untuk email sudah ada kolom nya di fitur profile jadi tidak usah ada lagi di metode pembayaran. Cukup di fitur profile."
         ]
       },
       "acceptanceCriteria": [
-        "Hotel Area → Payments tab allows adding payment methods (free-form name + details) and shows them immediately after save.",
-        "Hotel can remove an existing payment method and the list updates accordingly.",
-        "No fixed list of providers is enforced; fields accept arbitrary text."
-      ]
-    },
-    {
-      "id": "REQ-20",
-      "text": "Ensure hotel email entry is functional end-to-end: the Hotel Profile Save flow must persist the email field to the backend and reflect it in hotel profile reads and guest-facing contact sections where applicable.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-9"
-        ],
-        "quotes": [
-          "Dan ini juga di akun Hotel belum bisa menambahkan metode pembayaraan, memasukan email hotel. Masih belum aktif."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Saving hotel profile with an email updates the backend `contact.email` field.",
-        "After saving, the Hotel Profile panel reloads and displays the saved email.",
-        "Guest-facing hotel contact displays the email when present (no placeholder text)."
-      ]
-    },
-    {
-      "id": "REQ-21",
-      "text": "Add focused regression verification aligned with `frontend/REGRESSION_CHECKLIST.md` to confirm that enabling bookings and payment methods does not break existing flows (auth, browse hotels, hotel profile, rooms, admin hotel visibility).",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-10"
-        ],
-        "quotes": [
-          "bangun sekarang, jangan sampe error dan mengganggu fitur yang lain."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Document (in code comments or a short checklist update) the specific steps run to verify: hotel profile save, room create/update, guest hotel browsing, booking creation, booking confirmation, admin booking visibility, and payment methods management.",
-        "No runtime errors like missing actor methods occur for booking/payment/room/profile flows after deployment."
+        "Backend does not automatically add or retain payment method entries that are only an email address when the hotel already has `contact.email` set.",
+        "`getHotels()` and `getCallerHotelProfile()` continue to expose `contact.email` as before, but do not include email-only entries in `paymentMethods` for the cleaned hotel.",
+        "No changes break the existing frontend payment methods UI (add/remove continues to work as before)."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in `backend/main.mo`; only add/update `backend/migration.mo` if a state/schema upgrade is required (conditional migration policy).",
-    "Do not edit any frontend files under `frontend/src/components/ui`, `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useInternetIdentity.tsx`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`. Compose these components/hooks instead.",
-    "Use English for all user-facing UI strings added/changed as part of this work.",
-    "Do not introduce hardcoded payment providers (e.g., Stripe-only, GoPay-only); payment methods must be free-form per hotel.",
-    "Do not break existing functionality in browsing hotels, hotel profile/rooms management, and admin hotel visibility tools."
+    "Do not modify or break existing features that are currently working (bookings, cancellation flows, hotel profile, rooms management, admin panels, auth).",
+    "Backend must remain a single-actor Motoko canister; keep all logic in `backend/main.mo`.",
+    "All user-facing text must remain in English."
   ],
   "nonGoals": [
-    "Implementing real online payment processing (e.g., Stripe checkout) or automatic payment verification.",
-    "Real-time notifications to hotel/admin/guest (no push, email, SMS, or websockets).",
-    "Adding third-party authentication providers beyond Internet Identity."
+    "Adding a new UI for cleanup actions in guest/admin/hotel portals.",
+    "Introducing new authentication providers or any external database/services.",
+    "Changing booking/payment business logic beyond removing the specified legacy/stale data."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

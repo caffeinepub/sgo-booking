@@ -1,91 +1,71 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T14:20:58.442Z",
-  "summary": "Frontend changes implement major parts of the booking flow UI (booking form on hotel detail, guest/hotel/admin bookings tables), hotel payment methods management UI, guest-facing payment/contact display, and regression checklist updates. However, the diff evidence is insufficient/truncated to confirm the required backend booking/payment/email APIs and booking data-model changes are implemented. Additionally, the guest/admin/hotel booking tables shown in the diff do not clearly include the required room-quantity (roomsCount) field in the displayed columns.",
+  "generatedAt": "2026-02-09T20:34:17.213Z",
+  "summary": "The diff adds a new frontend Admin “Data Cleanup Utility” panel and a backend migration module hookup, but the provided backend diff snippet does not show implementation of the required admin-only maintenance API in `backend/main.mo` nor the specific cleanup logic for legacy room photos/payment methods/email-as-payment-method. The new UI also conflicts with the explicit non-goal of not adding a new UI for cleanup actions.",
   "missing_requirements": [
     {
-      "id": "REQ-13",
-      "requirement": "Implement backend booking APIs `createBooking(hotelId, roomId, checkIn, checkOut, guests, currency)`, `getBookings(filters)`, and `updateBookingStatus(bookingId, newStatus)` with correct authorization (guest/hotel/admin visibility and update restrictions).",
-      "reason": "The backend diff snippet shows type declarations (e.g., BookingStatus, BookingRequest, BookingQuery) but does not show implementations of `createBooking`, `getBookings`, or `updateBookingStatus`, nor the authorization logic required by the AC. Because `backend/main.mo` is truncated, there is not enough evidence these APIs exist and enforce the required access rules.",
+      "id": "REQ-32",
+      "requirement": "Add an admin-only backend maintenance API in `backend/main.mo` to clean legacy data for a specific hotel principal, rejected for non-admin callers, with no default workflow changes.",
+      "reason": "The diff shows a new HARDCODED_ADMIN constant and a migration include, but does not show any new admin-only maintenance method definition or authorization checks for it in the truncated `backend/main.mo` snippet. The frontend calls `adminRemoveLegacyRoomPhotos` / `adminRemoveLegacyPaymentMethods`, but corresponding backend methods are not evidenced in the diff summary.",
       "evidence": [
-        "backend/main.mo (truncated)",
-        "frontend/src/types/extended-backend.ts (interface expects booking methods)",
-        "frontend/src/hooks/useQueries.ts (mentions new booking management hooks, but truncated)"
+        "backend/main.mo",
+        "frontend/src/components/admin/DataCleanupPanel.tsx"
       ]
     },
     {
-      "id": "REQ-14",
-      "requirement": "Extend booking model to support number of rooms (roomsCount) and compute/persist `totalPrice = nights × pricePerNight × roomsCount`; provide conditional migration if needed.",
-      "reason": "Frontend types include `roomsCount`, but the backend `BookingRequest` type shown in the diff does not include `roomsCount`, and there is no visible backend logic for total price calculation/persistence or any migration changes. With truncated backend content and no `backend/migration.mo` change, this requirement is not evidenced as implemented.",
+      "id": "REQ-33",
+      "requirement": "When the admin maintenance API is run for a target hotel, delete legacy room photo data at the source of truth so `getHotels()` and `getRooms({hotelId})` no longer return those legacy photos, without affecting other hotels or non-legacy photos.",
+      "reason": "No backend logic is shown that mutates room records/pictures to remove legacy photos. Only a frontend action calling `adminRemoveLegacyRoomPhotos` is shown; the actual backend deletion and scoping to the target hotel is not evidenced.",
       "evidence": [
-        "backend/main.mo (BookingRequest type shown without roomsCount)",
-        "frontend/src/types/extended-backend.ts (BookingRequest includes roomsCount)"
+        "frontend/src/components/admin/DataCleanupPanel.tsx",
+        "backend/main.mo"
       ]
     },
     {
-      "id": "REQ-15",
-      "requirement": "Guest portal My Bookings shows table loaded from `getBookings` with status, dates, room quantity (roomsCount), guests, total price/currency, and uses BookingDetailsDialog where appropriate.",
-      "reason": "`MyBookingsTable` is implemented and uses `useGetBookings` and `BookingDetailsDialog`, but the visible table headers/fields in the diff show columns for Guests/Total/Status etc. and do not show a roomsCount column. The truncated content prevents confirming roomsCount is displayed anywhere in the rows/details.",
+      "id": "REQ-34",
+      "requirement": "When the admin maintenance API is run for a target hotel, remove legacy payment method entries (including 'GOPAY' and email-as-payment-method) persistently and ensure they do not reappear, without modifying other hotels and without auto-adding methods.",
+      "reason": "No backend state cleanup code is shown for paymentMethods. The frontend calls `adminRemoveLegacyPaymentMethods`, but the corresponding persistent backend removal and prevention of reappearance is not evidenced in the diff summary.",
       "evidence": [
-        "frontend/src/components/booking/MyBookingsTable.tsx (table headers shown; no roomsCount visible)"
+        "frontend/src/components/admin/DataCleanupPanel.tsx",
+        "backend/main.mo"
       ]
     },
     {
-      "id": "REQ-16",
-      "requirement": "Hotel-side booking management lists bookings for caller hotel and includes action to confirm pending booking via `updateBookingStatus`, showing confirmed status and invalidating queries.",
-      "reason": "Hotel bookings UI and confirm action are present, but the visible table headers do not show room quantity (roomsCount). Also, because `useQueries.ts` is truncated, query invalidation behavior after confirmation cannot be confirmed from the diff evidence.",
+      "id": "REQ-35",
+      "requirement": "Ensure hotel email is represented only in `contact.email` and is not duplicated/derived into `paymentMethods` during reads or writes.",
+      "reason": "The diff does not show changes to backend read/write paths (e.g., `getHotels()`, `getCallerHotelProfile()`, or payment-method add/update flows) that would prevent adding/retaining email-only entries in paymentMethods when `contact.email` is set.",
       "evidence": [
-        "frontend/src/components/hotel/HotelBookingsPanel.tsx (table headers shown; no roomsCount visible)",
-        "frontend/src/hooks/useQueries.ts (truncated; invalidation not fully evidenced)"
-      ]
-    },
-    {
-      "id": "REQ-17",
-      "requirement": "Admin bookings overview lists bookings across all hotels using `getBookings`, with status and key booking fields.",
-      "reason": "Admin bookings UI is present and uses `useGetBookings`, but the visible table headers do not show room quantity (roomsCount). Also, backend support for admin cross-hotel visibility is not evidenced due to truncated backend.",
-      "evidence": [
-        "frontend/src/components/admin/AdminBookingsPanel.tsx (table headers shown; no roomsCount visible)",
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-18",
-      "requirement": "Backend APIs `addPaymentMethod(name, details)` and `removePaymentMethod(index)` for activated hotels, persisted to hotel profile and exposed via hotel profile queries; admin cannot manage these methods.",
-      "reason": "Frontend hooks/panels call `useAddPaymentMethod`/`useRemovePaymentMethod` and display payment methods from `getCallerHotelProfile`, but the backend diff snippet only shows the `PaymentMethod` type and that hotel data includes `paymentMethods`; it does not show the required backend methods or authorization constraints. Truncation prevents confirming implementation.",
-      "evidence": [
-        "backend/main.mo (PaymentMethod type and hotel data types include paymentMethods, but no method implementations shown)",
-        "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx (calls add/remove hooks)",
-        "frontend/src/types/extended-backend.ts (declares addPaymentMethod/removePaymentMethod)"
-      ]
-    },
-    {
-      "id": "REQ-20",
-      "requirement": "Hotel email entry persists end-to-end: profile save writes `contact.email` to backend; reads reflect it and guest-facing contact displays it.",
-      "reason": "Frontend hotel profile form now includes an email field and sends it in `updateHotelProfile`, and guest-facing contact display is implemented, but the backend update/read persistence for `contact.email` is not evidenced in the truncated backend diff.",
-      "evidence": [
-        "frontend/src/components/hotel/HotelProfilePanel.tsx (email field included in update)",
-        "frontend/src/components/payments/HotelPaymentMethodsList.tsx (displays email if present)",
-        "backend/main.mo (HotelContact includes email, but no persistence logic shown due to truncation)"
+        "backend/main.mo"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.62,
+  "hallucinated_features": [
+    {
+      "description": "Added a new frontend Admin UI panel for performing cleanup actions (DataCleanupPanel) with inputs and buttons to remove legacy photos/payment methods.",
+      "reason": "The BuildRequest explicitly lists as a non-goal: “Adding a new UI for cleanup actions in guest/admin/hotel portals.” The diff adds such a UI and wires it into the Admin Panel page.",
+      "evidence": [
+        "frontend/src/components/admin/DataCleanupPanel.tsx",
+        "frontend/src/pages/AdminPanelPage.tsx"
+      ]
+    },
+    {
+      "description": "Introduced a backend migration module (`backend/migration.mo`) and hooked it into `backend/main.mo` via `(with migration = Migration.run)`.",
+      "reason": "The BuildRequest constraints require keeping logic in `backend/main.mo` and do not request adding a migration system/module. This appears to be additional unrequested infrastructure.",
+      "evidence": [
+        "backend/migration.mo",
+        "backend/main.mo"
+      ]
+    }
+  ],
+  "confidence": 0.74,
   "changed_files": [
     "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/REGRESSION_CHECKLIST.md",
-    "frontend/src/components/admin/AdminBookingsPanel.tsx",
-    "frontend/src/components/booking/BookingForm.tsx",
-    "frontend/src/components/booking/MyBookingsTable.tsx",
-    "frontend/src/components/hotel/HotelBookingsPanel.tsx",
-    "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
-    "frontend/src/components/hotel/HotelProfilePanel.tsx",
-    "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/HotelDetailPage.tsx",
-    "frontend/src/types/extended-backend.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/components/admin/DataCleanupPanel.tsx",
+    "frontend/src/pages/AdminPanelPage.tsx",
     "project_state.json"
   ]
 }

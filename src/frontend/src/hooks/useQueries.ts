@@ -1,9 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { backendInterface, UserRole, UserProfile, InviteToken, HotelDataView, RoomView, RoomQuery } from '../backend';
+import type { backendInterface, UserRole, UserProfile, InviteToken, HotelDataView, RoomView, RoomQuery, BookingRequest, BookingQuery, BookingStatus } from '../backend';
 import { Principal } from '@icp-sdk/core/principal';
 import { useInternetIdentity } from './useInternetIdentity';
-import type { BookingRequest, BookingQuery, BookingStatus } from '../types/extended-backend';
 
 export function useGetCallerUserRole() {
   const { actor, isFetching } = useActor();
@@ -212,16 +211,45 @@ export function useGetCallerHotelProfile(options?: { enabled?: boolean }) {
   });
 }
 
+// Sanitize RoomQuery to convert null to undefined for backend compatibility
+function sanitizeRoomQuery(filters: RoomQuery): RoomQuery {
+  const sanitized: RoomQuery = {};
+  
+  if (filters.hotelId !== null && filters.hotelId !== undefined) {
+    sanitized.hotelId = filters.hotelId;
+  }
+  
+  if (filters.minPrice !== null && filters.minPrice !== undefined) {
+    sanitized.minPrice = filters.minPrice;
+  }
+  
+  if (filters.maxPrice !== null && filters.maxPrice !== undefined) {
+    sanitized.maxPrice = filters.maxPrice;
+  }
+  
+  if (filters.roomType !== null && filters.roomType !== undefined) {
+    sanitized.roomType = filters.roomType;
+  }
+  
+  if (filters.availableOnly !== null && filters.availableOnly !== undefined) {
+    sanitized.availableOnly = filters.availableOnly;
+  }
+  
+  return sanitized;
+}
+
 export function useGetRooms(filters: RoomQuery, options?: { enabled?: boolean }) {
   const { actor, isFetching } = useActor();
   const enabled = options?.enabled !== undefined ? options.enabled : true;
 
+  const sanitizedFilters = sanitizeRoomQuery(filters);
+  
   const normalizedFilters = {
-    hotelId: filters.hotelId?.toString() || null,
-    minPrice: filters.minPrice?.toString() || null,
-    maxPrice: filters.maxPrice?.toString() || null,
-    roomType: filters.roomType || null,
-    availableOnly: filters.availableOnly || null,
+    hotelId: sanitizedFilters.hotelId?.toString() || undefined,
+    minPrice: sanitizedFilters.minPrice?.toString() || undefined,
+    maxPrice: sanitizedFilters.maxPrice?.toString() || undefined,
+    roomType: sanitizedFilters.roomType || undefined,
+    availableOnly: sanitizedFilters.availableOnly || undefined,
   };
 
   return useQuery<RoomView[]>({
@@ -229,7 +257,7 @@ export function useGetRooms(filters: RoomQuery, options?: { enabled?: boolean })
     queryFn: async () => {
       if (!actor) return [];
       try {
-        return await actor.getRooms(filters);
+        return await actor.getRooms(sanitizedFilters);
       } catch (error) {
         console.error('Failed to fetch rooms:', error);
         throw error;
@@ -390,6 +418,37 @@ export function useUpdateRoom() {
 
 // ============ BOOKING HOOKS ============
 
+// Sanitize BookingQuery to convert null to undefined for backend compatibility
+function sanitizeBookingQuery(filters: BookingQuery): BookingQuery {
+  const sanitized: BookingQuery = {};
+  
+  if (filters.hotelId !== null && filters.hotelId !== undefined) {
+    sanitized.hotelId = filters.hotelId;
+  }
+  
+  if (filters.status !== null && filters.status !== undefined) {
+    sanitized.status = filters.status;
+  }
+  
+  if (filters.fromDate !== null && filters.fromDate !== undefined) {
+    sanitized.fromDate = filters.fromDate;
+  }
+  
+  if (filters.toDate !== null && filters.toDate !== undefined) {
+    sanitized.toDate = filters.toDate;
+  }
+  
+  if (filters.minPrice !== null && filters.minPrice !== undefined) {
+    sanitized.minPrice = filters.minPrice;
+  }
+  
+  if (filters.maxPrice !== null && filters.maxPrice !== undefined) {
+    sanitized.maxPrice = filters.maxPrice;
+  }
+  
+  return sanitized;
+}
+
 export function useCreateBooking() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -405,11 +464,7 @@ export function useCreateBooking() {
       currency: string;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      // Check if method exists
-      if (typeof (actor as any).createBooking !== 'function') {
-        throw new Error('Booking functionality not yet available in backend');
-      }
-      return await (actor as any).createBooking(
+      return await actor.createBooking(
         params.hotelId,
         params.roomId,
         params.checkIn,
@@ -429,26 +484,23 @@ export function useGetBookings(filters?: BookingQuery) {
   const { actor, isFetching } = useActor();
   const { identity } = useInternetIdentity();
 
-  const normalizedFilters = filters ? {
-    hotelId: filters.hotelId?.toString() || null,
-    status: filters.status || null,
-    fromDate: filters.fromDate?.toString() || null,
-    toDate: filters.toDate?.toString() || null,
-    minPrice: filters.minPrice?.toString() || null,
-    maxPrice: filters.maxPrice?.toString() || null,
-  } : {};
+  const sanitizedFilters = filters ? sanitizeBookingQuery(filters) : {};
+
+  const normalizedFilters = {
+    hotelId: sanitizedFilters.hotelId?.toString() || undefined,
+    status: sanitizedFilters.status || undefined,
+    fromDate: sanitizedFilters.fromDate?.toString() || undefined,
+    toDate: sanitizedFilters.toDate?.toString() || undefined,
+    minPrice: sanitizedFilters.minPrice?.toString() || undefined,
+    maxPrice: sanitizedFilters.maxPrice?.toString() || undefined,
+  };
 
   return useQuery<BookingRequest[]>({
     queryKey: ['bookings', normalizedFilters],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      // Check if method exists
-      if (typeof (actor as any).getBookings !== 'function') {
-        console.warn('Booking functionality not yet available in backend');
-        return [];
-      }
       try {
-        const result = await (actor as any).getBookings(filters || {});
+        const result = await actor.getBookings(sanitizedFilters);
         return result.bookings || [];
       } catch (error) {
         console.error('Failed to fetch bookings:', error);
@@ -468,11 +520,22 @@ export function useUpdateBookingStatus() {
   return useMutation({
     mutationFn: async (params: { bookingId: bigint; newStatus: BookingStatus }) => {
       if (!actor) throw new Error('Actor not available');
-      // Check if method exists
-      if (typeof (actor as any).updateBookingStatus !== 'function') {
-        throw new Error('Booking status update not yet available in backend');
-      }
-      return await (actor as any).updateBookingStatus(params.bookingId, params.newStatus);
+      return await actor.updateBookingStatus(params.bookingId, params.newStatus);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+}
+
+export function useCancelBooking() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (bookingId: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return await actor.cancelBooking(bookingId);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['bookings'] });

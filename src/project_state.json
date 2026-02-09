@@ -1,20 +1,29 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 7,
-  "summary": "Fix backend regressions preventing hotel profile saving and cross-portal visibility (hotel/admin/guest), and implement a standard hotel booking flow (select room, quantity, guests, dates) with booking visibility and status sync across guest/hotel/admin portals, plus enable hotel-managed flexible payment methods and hotel email entry.",
+  "projectStateVersion": 15,
+  "summary": "Fix backend regressions and complete booking/payment/cancellation flows, and additionally clean up legacy/stale backend data causing ghost room photos in guest/admin browsing and undeletable legacy payment method entries (e.g., GoPay/email) in hotel payment methods—without impacting other working features.",
   "architectural_notes": [
     "Backend must expose a working createRoom function (previously existed) for saving room data including photo upload; client currently calls extendedActor.createRoom.",
     "Frontend is calling a hotel profile update API (error reported: `extendedActor.updateHotelProfile is not a function`); backend Candid/actor must expose the expected hotel profile save/update methods.",
     "Hotel visibility across portals depends on backend listing/filtering (e.g., active/published/approved/subscription/token-used status) and persisted hotel records; ensure admin/guest listings source from correct storage and criteria.",
     "Booking system requires persisted Booking records with status transitions (e.g., Pending -> Confirmed) and cross-portal query APIs so guest/hotel/admin all read the same source of truth.",
-    "Payment methods must be stored as hotel-defined/free-form entries (not hardcoded providers) and surfaced to guests as options including pay-online vs pay-at-hotel."
+    "Payment methods must be stored as hotel-defined/free-form entries (not hardcoded providers) and surfaced to guests as options including pay-online vs pay-at-hotel.",
+    "Booking flow decision: guest creates booking with initial status `Pending`; hotel confirms booking (status -> `Confirmed`); the system does not enforce or automate payment (online/offline payment happens outside the system by mutual agreement), and no payment-proof upload step is required.",
+    "Current booking failure shows backend response/message: \"Booking functionality not yet available in backend\" — indicates booking endpoints are not implemented/enabled on the backend, so Confirm/Create Booking cannot work until booking APIs are live.",
+    "Booking cancellation rules: Guest may cancel only when status is `Pending`; once `Confirmed`, only the Hotel may cancel. Cancelled/Confirmed bookings must remain visible in booking history for reporting. Backend status transitions and authorization in `updateBookingStatus` must enforce these rules.",
+    "Stale/legacy backend data may be leaking into Guest/Admin hotel browsing (ghost room photos) despite not appearing in the Hotel portal; implement a safe cleanup/migration path to remove orphaned room photo data and ensure all portals read from the same canonical room/photo source.",
+    "Legacy payment method data (e.g., GoPay/email) may be persisted in an older schema/location that current delete flows don’t affect; backend should support removing these legacy entries and prevent email being stored inside payment methods, using Hotel Profile email as the single source of truth."
   ],
   "known_issues": [
     "Regression: hotel cannot save room data (including room photo upload). Error shown: “extendedActor.createRoom is not a function” and all room fields fail to save.",
     "Regression: Hotel profile Save does not work; runtime error reported: `extendedActor.updateHotelProfile is not a function`.",
     "Hotels do not appear in admin and guest portals (shows 'No Hotels Available') even after hotel profile is filled and marked active / token used.",
     "Guest booking is currently unavailable (UI indicates 'Booking functionality is currently unavailable/coming soon'), so bookings cannot be created.",
-    "Hotel portal cannot currently add/manage payment methods and cannot save hotel email (features not active)."
+    "Hotel portal cannot currently add/manage payment methods and cannot save hotel email (features not active).",
+    "Build/deploy pipeline is failing repeatedly due to platform/tooling error (Caffeine unable to complete build), blocking verification and release of booking fixes.",
+    "Booking still fails at runtime with message \"Booking functionality not yet available in backend\", indicating backend booking APIs are not active/implemented.",
+    "Stale legacy room photos still appear in Guest/Admin hotel browsing even though the Hotel portal no longer shows them (ghost/orphaned data).",
+    "Hotel payment methods contain a legacy 'GOPAY' (and old email) entry that cannot be deleted via the current UI; requires backend cleanup/removal without breaking other features."
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -71,6 +80,30 @@
       "title": "Add focused regression verification aligned with `frontend/REGRESSION_CHECKLIST.md` to confirm that enabling bookings and payment methods does not break existing flows (auth, browse hotels, hotel profile, rooms, admin hotel visibility).",
       "reqIds": [
         "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-identify-and-fix-the-root-cause-s-of-the-repeated-caffeine-build-failures-so-the-project-can-compile-and-deploy-successfully-without-changing-product-behavior",
+      "title": "Identify and fix the root cause(s) of the repeated Caffeine build failures so the project can compile and deploy successfully without changing product behavior.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-guest-side-cancel-action-in-the-guest-portal-booking-history-table-so-that-guests-can-cancel-a-booking-when-and-only-when-its-status-is-pendingtransfer-the-cancel-action-must-call-the-existing-useupdatebookingstatus-mutation-with-bookingstatus-canceled-refresh-the-bookings-list-and-show-success-error-feedback-in-english",
+      "title": "Add a guest-side Cancel action in the Guest portal booking history table so that guests can cancel a booking when (and only when) its status is `pendingTransfer`. The cancel action must call the existing `useUpdateBookingStatus` mutation with `BookingStatus.canceled`, refresh the bookings list, and show success/error feedback in English.",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-hotel-side-cancel-action-in-the-hotel-bookings-ui-so-that-hotel-users-can-cancel-bookings-for-their-hotel-when-the-booking-is-pendingtransfer-or-booked-the-cancel-action-must-call-the-existing-useupdatebookingstatus-mutation-with-bookingstatus-canceled-refresh-the-bookings-list-and-show-success-error-feedback-in-english",
+      "title": "Add a hotel-side Cancel action in the Hotel bookings UI so that hotel users can cancel bookings for their hotel when the booking is `pendingTransfer` or `booked`. The cancel action must call the existing `useUpdateBookingStatus` mutation with `BookingStatus.canceled`, refresh the bookings list, and show success/error feedback in English.",
+      "reqIds": [
+        "REQ-30"
       ],
       "version": 1
     }
@@ -221,6 +254,112 @@
       "summary": "Enable flexible hotel-managed payment methods: implement backend APIs `addPaymentMethod(name, details)` and `removePaymentMethod(index)` for activated hotels, persist them to the hotel profile, and expose them through existing hotel profile queries (e.g., `getHotels`, `getCallerHotelProfile`, `getHotelProfile`).",
       "reqIds": [
         "REQ-18"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-25",
+      "summary": "Implement backend booking APIs in `backend/main.mo` so the frontend no longer shows the runtime error \"Booking functionality not yet available in backend\" when the user clicks \"Confirm Booking\".",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-26",
+      "summary": "Align the booking data model between frontend and backend: extend backend `BookingRequest` to include `roomsCount` and persist it for each booking, matching `frontend/src/types/extended-backend.ts` `BookingRequest.roomsCount`.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-27",
+      "summary": "Implement `createBooking(hotelId, roomId, checkIn, checkOut, guests, roomsCount, currency)` in `backend/main.mo` with correct validation and authorization so authenticated guests can create bookings for an active hotel’s room.",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-28",
+      "summary": "Implement `getBookings(filters: BookingQuery)` in `backend/main.mo` to support guest, hotel, and admin booking visibility as expected by the existing frontend tables (Guest: own bookings; Hotel: bookings for caller’s hotel; Admin: cross-hotel).",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-29",
+      "summary": "Implement `updateBookingStatus(bookingId, newStatus)` in `backend/main.mo` with authorization and status transition support for the existing Hotel Bookings and Admin Bookings UIs.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-30",
+      "summary": "Add booking cancellation feature across guest and hotel portals: show a Cancel action in Guest 'My Bookings' for Pending bookings only; show a Cancel action in Hotel bookings list for Pending and Confirmed bookings; persist cancellation via backend `updateBookingStatus` (or equivalent) to set status to `Cancelled`, enforce authorization rules (guest cannot cancel Confirmed), and keep Cancelled bookings visible in history/reporting views.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-31",
+      "summary": "Implement booking cancellation rules in the backend booking status update flow so that:\n- A guest can cancel their own booking only when the booking status is `pendingTransfer`.\n- A hotel can cancel bookings for its own hotel when the booking status is `pendingTransfer` or `booked`.\n- All canceled bookings remain retrievable via `getBookings` and continue to appear in all booking history views.\nCancellation must be persisted by setting booking status to `canceled` (matching the existing `BookingStatus.canceled` used by the frontend).",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-34",
+      "summary": "Add a focused regression verification pass limited to booking flows to ensure the new cancel feature does not break existing booking functionality and that no unrelated features are modified.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-35",
+      "summary": "Clean up legacy/ghost room photos still appearing in Guest/Admin hotel browsing (but not in Hotel account) by removing the old room photo assets/records from the backend so they no longer show anywhere (user reports ~5 old room photos).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-36",
+      "summary": "Clean up legacy/undeletable payment method entries in the backend (e.g., lingering 'GOPAY' text and old email stored in payment methods) so they can be removed and do not reappear; keep the Add Payment Method feature so hotels can add new methods themselves, and ensure email is only stored/displayed via the Hotel Profile email field (not duplicated in payment methods).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-37",
+      "summary": "Add an admin-only backend maintenance API to permanently remove legacy/stale hotel data that is still visible in Guest/Admin browsing but should no longer appear anywhere, without changing normal product behavior for other hotels.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-38",
+      "summary": "When the admin maintenance API is run for the affected hotel, delete the legacy room photo data (reported ~5 old room photos) so those images no longer appear in Guest Browse Hotels, Admin hotel browsing, or the Hotel Detail room cards.",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-39",
+      "summary": "When the admin maintenance API is run for the affected hotel, remove the legacy payment method entries that cannot be deleted (including the 'GOPAY' entry and the old email stored as a payment method), and ensure they do not reappear.",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-40",
+      "summary": "Ensure the hotel email is only represented via the hotel profile contact email field and not duplicated/derived into payment methods during reads or writes, so guests/admins do not see email displayed as a payment method.",
+      "reqIds": [
+        "REQ-35"
       ],
       "status": "pending"
     }

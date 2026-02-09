@@ -14,9 +14,9 @@ import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import InviteLinksModule "invite-links/invite-links-module";
+import Migration "migration";
 
-
-
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -107,6 +107,7 @@ actor {
     timestamp : Int;
     paymentProof : ?Text;
     currency : Text;
+    roomsCount : Nat;
   };
 
   public type BookingQueryResult = {
@@ -157,6 +158,13 @@ actor {
     roomType : ?Text;
     availableOnly : ?Bool;
   };
+
+  public type CancellableBookingResult = {
+    #canceledByGuest;
+    #canceledByHotel;
+  };
+
+  var nextBookingId = 0;
 
   let hotelsList = List.empty<HotelData>();
   let roomsMap = Map.empty<Nat, Room>();
@@ -494,6 +502,285 @@ actor {
     };
   };
 
+  // Admin maintenance API - Remove legacy hotel data
+  public shared ({ caller }) func adminRemoveLegacyRoomPhotos(hotelId : Principal, roomId : Nat) : async () {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can remove legacy room photos");
+    };
+
+    switch (roomsMap.get(roomId)) {
+      case (?room) {
+        if (not Principal.equal(room.hotelId, hotelId)) {
+          Runtime.trap("Room does not belong to the specified hotel");
+        };
+
+        let updatedRoom : Room = {
+          room with
+          pictures = [];
+        };
+        roomsMap.add(roomId, updatedRoom);
+      };
+      case (null) {
+        Runtime.trap("Room not found");
+      };
+    };
+  };
+
+  public shared ({ caller }) func adminRemoveLegacyPaymentMethods(hotelId : Principal) : async () {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can remove legacy payment methods");
+    };
+
+    switch (getHotelData(hotelId)) {
+      case (?hotel) {
+        let updatedHotel : HotelData = {
+          hotel with
+          paymentMethods = List.empty<PaymentMethod>();
+        };
+        updateHotelData(updatedHotel);
+      };
+      case (null) {
+        Runtime.trap("Hotel not found");
+      };
+    };
+  };
+
+  public shared ({ caller }) func adminDeleteHotelData(hotelId : Principal) : async () {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can delete hotel data");
+    };
+
+    // Remove hotel from list
+    let filtered = hotelsList.toArray().filter(func(h) { not Principal.equal(h.id, hotelId) });
+    hotelsList.clear();
+    filtered.forEach(func(h) { hotelsList.add(h) });
+
+    // Remove all rooms belonging to this hotel
+    let allRooms = roomsMap.toArray();
+    for ((roomId, room) in allRooms.vals()) {
+      if (Principal.equal(room.hotelId, hotelId)) {
+        roomsMap.remove(roomId);
+      };
+    };
+
+    // Remove hotel activation status
+    directHotelActivations.remove(hotelId);
+    hotelOwners.remove(hotelId);
+  };
+
+  // Bookings Functionality
+  public shared ({ caller }) func createBooking(hotelId : Principal, roomId : Nat, checkIn : Int, checkOut : Int, guests : Nat, roomsCount : Nat, currency : Text) : async BookingRequest {
+    if (not (hasPermissionOverride(caller, #user))) {
+      Runtime.trap("Unauthorized: Only registered users can create bookings");
+    };
+
+    // Validate that hotel exists and is active
+    switch (getHotelData(hotelId)) {
+      case (?hotel) {
+        if (not hotel.active) {
+          Runtime.trap("Cannot book a hotel that is not active");
+        };
+      };
+      case (null) {
+        Runtime.trap("Hotel not found");
+      };
+    };
+
+    // Validate that room exists and belongs to hotel
+    let room = switch (roomsMap.get(roomId)) {
+      case (?room) {
+        if (not Principal.equal(room.hotelId, hotelId)) {
+          Runtime.trap("Cannot book a room that does not belong to the specified hotel");
+        };
+        room;
+      };
+      case (null) {
+        Runtime.trap("Room not found");
+      };
+    };
+
+    // Validate check-in and check-out dates
+    if (checkIn >= checkOut) {
+      Runtime.trap("Check-out date must be after check-in date");
+    };
+
+    if (guests == 0) {
+      Runtime.trap("Booking must be for at least one guest");
+    };
+
+    if (roomsCount == 0) {
+      Runtime.trap("Booking must include at least one room");
+    };
+
+    // Calculate total price
+    let totalPrice = room.pricePerNight * roomsCount;
+
+    // Create booking
+    let newBooking : BookingRequest = {
+      id = nextBookingId;
+      status = #pendingTransfer;
+      hotelId = ?hotelId;
+      roomId = roomId;
+      userId = caller;
+      checkIn = checkIn;
+      checkOut = checkOut;
+      totalPrice = totalPrice;
+      guests = guests;
+      timestamp = Time.now();
+      paymentProof = null;
+      currency = currency;
+      roomsCount = roomsCount;
+    };
+
+    bookingsMap.add(nextBookingId, newBooking);
+
+    switch (getHotelData(hotelId)) {
+      case (?hotel) {
+        hotel.bookings.add(nextBookingId);
+        updateHotelData(hotel);
+      };
+      case (null) { Runtime.trap("Hotel not found") };
+    };
+
+    nextBookingId += 1;
+    newBooking;
+  };
+
+  public query ({ caller }) func getBookings(filters : BookingQuery) : async BookingQueryResult {
+    var bookings = bookingsMap.toArray().map(func((_, booking)) { booking });
+
+    // Determine the scope based on caller and filters
+    let callerIsHotel = isHotelActivated(caller);
+    let callerIsAdmin = isAdminUser(caller);
+
+    switch (filters.hotelId) {
+      case (?hotelId) {
+        // Explicit hotel filter provided
+        if (not callerIsAdmin and not Principal.equal(caller, hotelId)) {
+          Runtime.trap("Unauthorized: Only admins or the specific hotel can access hotel bookings");
+        };
+        bookings := bookings.filter(func(booking) { booking.hotelId == ?hotelId });
+      };
+      case (null) {
+        // No hotel filter - determine scope by caller type
+        if (callerIsAdmin) {
+          // Admin sees all bookings (no filter)
+        } else if (callerIsHotel) {
+          // Hotel sees their own hotel's bookings
+          bookings := bookings.filter(func(booking) { booking.hotelId == ?caller });
+        } else {
+          // Regular user/guest sees only their own bookings
+          if (not hasPermissionOverride(caller, #user)) {
+            Runtime.trap("Unauthorized: Only registered users can view bookings");
+          };
+          bookings := bookings.filter(func(booking) { Principal.equal(booking.userId, caller) });
+        };
+      };
+    };
+
+    // Apply additional filters
+    bookings := bookings.filter(func(booking) {
+      let statusMatches = switch (filters.status) {
+        case (?status) { booking.status == status };
+        case (null) { true };
+      };
+      let priceMatches = switch (filters.minPrice, filters.maxPrice) {
+        case (?min, ?max) { booking.totalPrice >= min and booking.totalPrice <= max };
+        case (?min, null) { booking.totalPrice >= min };
+        case (null, ?max) { booking.totalPrice <= max };
+        case (null, null) { true };
+      };
+      statusMatches and priceMatches
+    });
+
+    let totalCount = bookings.size();
+    { bookings = bookings; totalCount };
+  };
+
+  public shared ({ caller }) func updateBookingStatus(bookingId : Nat, newStatus : BookingStatus) : async () {
+    // Ensure booking exists
+    let booking = switch (bookingsMap.get(bookingId)) {
+      case (?booking) { booking };
+      case (null) { Runtime.trap("Booking not found") };
+    };
+
+    // Check permissions
+    let isBookingOwner = Principal.equal(caller, booking.userId);
+    let isHotel = switch (booking.hotelId) {
+      case (?hotelId) { Principal.equal(caller, hotelId) };
+      case (null) { false };
+    };
+
+    // Only allow update if caller is the booking owner, hotel, or admin
+    if (not (isBookingOwner or isHotel or isAdminUser(caller))) {
+      Runtime.trap("Unauthorized: Only the booking creator, associated hotel, or admin can update bookings");
+    };
+
+    // Prevent duplicate status
+    if (booking.status == newStatus) {
+      Runtime.trap("Cannot update to the same booking status");
+    };
+
+    let updatedBooking = {
+      booking with
+      status = newStatus;
+      timestamp = Time.now();
+    };
+    bookingsMap.add(bookingId, updatedBooking);
+  };
+
+  public shared ({ caller }) func cancelBooking(bookingId : Nat) : async CancellableBookingResult {
+    let booking = switch (bookingsMap.get(bookingId)) {
+      case (?booking) { booking };
+      case (null) { Runtime.trap("Booking not found") };
+    };
+
+    let isBookingOwner = Principal.equal(caller, booking.userId);
+    let isHotel = switch (booking.hotelId) {
+      case (?hotelId) { Principal.equal(caller, hotelId) };
+      case (null) { false };
+    };
+
+    switch (booking.status, isBookingOwner, isHotel) {
+      // Guest can cancel pending transfer
+      case (#pendingTransfer, true, _) {
+        let updatedBooking = {
+          booking with
+          status = #canceled;
+          timestamp = Time.now();
+        };
+        bookingsMap.add(bookingId, updatedBooking);
+        return #canceledByGuest;
+      };
+      // Hotel can cancel pending transfer or booked
+      case (#pendingTransfer or #booked, _, true) {
+        let updatedBooking = {
+          booking with
+          status = #canceled;
+          timestamp = Time.now();
+        };
+        bookingsMap.add(bookingId, updatedBooking);
+        return #canceledByHotel;
+      };
+      // Status not allowed for cancellation
+      case (_) { Runtime.trap("Cannot cancel booking at current status"); };
+    };
+  };
+
+  public query ({ caller }) func getBooking(bookingId : Nat) : async ?BookingRequest {
+    switch (bookingsMap.get(bookingId)) {
+      case (?booking) {
+        if (not isAdminUser(caller) and 
+          not Principal.equal(caller, booking.userId) and
+          not Principal.equal(caller, switch (booking.hotelId) { case (?id) { id }; case (null) { caller } })) {
+          Runtime.trap("Unauthorized: Can only view your own booking, associated hotel bookings, or as admin");
+        };
+        ?booking;
+      };
+      case (null) { null };
+    };
+  };
+
   // Room Management
   func toRoomView(room : Room) : RoomView {
     {
@@ -751,4 +1038,3 @@ actor {
     InviteLinksModule.getInviteCodes(inviteState);
   };
 };
-

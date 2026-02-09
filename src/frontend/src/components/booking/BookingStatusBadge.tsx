@@ -1,43 +1,49 @@
 import React from 'react';
 import { Badge } from '../ui/badge';
-import { BookingStatus } from '../../types/extended-backend';
+import { BookingStatus } from '../../backend';
 
 interface BookingStatusBadgeProps {
   status: BookingStatus;
 }
 
 export function BookingStatusBadge({ status }: BookingStatusBadgeProps) {
-  const getVariant = () => {
+  const getStatusVariant = (status: BookingStatus): 'default' | 'secondary' | 'destructive' | 'outline' => {
     switch (status) {
       case BookingStatus.booked:
-      case BookingStatus.checkedIn:
         return 'default';
       case BookingStatus.pendingTransfer:
         return 'secondary';
-      case BookingStatus.paymentFailed:
+      case BookingStatus.checkedIn:
+        return 'default';
       case BookingStatus.canceled:
         return 'destructive';
+      case BookingStatus.paymentFailed:
+        return 'destructive';
       default:
-        return 'secondary';
+        return 'outline';
     }
   };
 
-  const getLabel = () => {
+  const getStatusLabel = (status: BookingStatus): string => {
     switch (status) {
-      case BookingStatus.pendingTransfer:
-        return 'Pending Transfer';
-      case BookingStatus.paymentFailed:
-        return 'Payment Failed';
       case BookingStatus.booked:
         return 'Booked';
+      case BookingStatus.pendingTransfer:
+        return 'Pending Transfer';
       case BookingStatus.checkedIn:
         return 'Checked In';
       case BookingStatus.canceled:
         return 'Canceled';
+      case BookingStatus.paymentFailed:
+        return 'Payment Failed';
       default:
-        return status;
+        return 'Unknown';
     }
   };
 
-  return <Badge variant={getVariant()}>{getLabel()}</Badge>;
+  return (
+    <Badge variant={getStatusVariant(status)}>
+      {getStatusLabel(status)}
+    </Badge>
+  );
 }

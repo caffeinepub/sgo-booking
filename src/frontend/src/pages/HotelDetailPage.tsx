@@ -20,7 +20,9 @@ export default function HotelDetailPage() {
   const hotelPrincipal = Principal.fromText(hotelId);
   const hotel = hotels?.find((h) => h.id.toString() === hotelId);
 
-  const { data: rooms, isLoading: roomsLoading, error: roomsError } = useGetRooms({ hotelId: hotelPrincipal || null });
+  // Pass sanitized query with hotelId only when available (omit when undefined)
+  const roomQuery = hotelPrincipal ? { hotelId: hotelPrincipal } : {};
+  const { data: rooms, isLoading: roomsLoading, error: roomsError } = useGetRooms(roomQuery);
 
   const [selectedRoom, setSelectedRoom] = React.useState<any>(null);
 

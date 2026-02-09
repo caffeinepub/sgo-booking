@@ -1,21 +1,60 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Alert, AlertDescription } from '../ui/alert';
-import { useGetBookings, useGetHotels } from '../../hooks/useQueries';
+import { Button } from '../ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
+import { useGetBookings, useGetHotels, useCancelBooking } from '../../hooks/useQueries';
 import { BookingStatusBadge } from './BookingStatusBadge';
 import { BookingDetailsDialog } from './BookingDetailsDialog';
+import { BookingStatus } from '../../backend';
 import { formatMoney } from '../../utils/money';
-import { Calendar, Users, Hotel, AlertCircle } from 'lucide-react';
+import { Calendar, Users, Hotel, AlertCircle, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function MyBookingsTable() {
   const { data: bookings, isLoading, error } = useGetBookings();
   const { data: hotels } = useGetHotels();
+  const cancelBooking = useCancelBooking();
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState<bigint | null>(null);
 
   const getHotelName = (hotelId: any) => {
     if (!hotelId || !hotels) return 'Unknown Hotel';
     const hotel = hotels.find((h) => h.id.toString() === hotelId.toString());
     return hotel?.name || 'Unknown Hotel';
+  };
+
+  const handleCancelClick = (bookingId: bigint) => {
+    setSelectedBookingId(bookingId);
+    setCancelDialogOpen(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedBookingId) return;
+
+    try {
+      await cancelBooking.mutateAsync(selectedBookingId);
+      toast.success('Booking canceled successfully');
+      setCancelDialogOpen(false);
+      setSelectedBookingId(null);
+    } catch (error: any) {
+      console.error('Failed to cancel booking:', error);
+      toast.error(error.message || 'Failed to cancel booking');
+    }
+  };
+
+  const canGuestCancel = (booking: any) => {
+    return booking.status === BookingStatus.pendingTransfer;
   };
 
   if (isLoading) {
@@ -72,70 +111,106 @@ export function MyBookingsTable() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>My Bookings</CardTitle>
-        <CardDescription>
-          {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Booking ID</TableHead>
-                <TableHead>Hotel</TableHead>
-                <TableHead>Check-in</TableHead>
-                <TableHead>Check-out</TableHead>
-                <TableHead>Guests</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bookings.map((booking) => (
-                <TableRow key={booking.id.toString()}>
-                  <TableCell className="font-mono text-sm">
-                    #{booking.id.toString()}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {getHotelName(booking.hotelId)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(Number(booking.checkIn) / 1000000).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(Number(booking.checkOut) / 1000000).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Users className="h-3 w-3" />
-                      {booking.guests.toString()}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-semibold">
-                    {formatMoney(booking.totalPrice, booking.currency)}
-                  </TableCell>
-                  <TableCell>
-                    <BookingStatusBadge status={booking.status} />
-                  </TableCell>
-                  <TableCell>
-                    <BookingDetailsDialog booking={booking} />
-                  </TableCell>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>My Bookings</CardTitle>
+          <CardDescription>
+            {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Booking ID</TableHead>
+                  <TableHead>Hotel</TableHead>
+                  <TableHead>Check-in</TableHead>
+                  <TableHead>Check-out</TableHead>
+                  <TableHead>Guests</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {bookings.map((booking) => (
+                  <TableRow key={booking.id.toString()}>
+                    <TableCell className="font-mono text-sm">
+                      #{booking.id.toString()}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {getHotelName(booking.hotelId)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(Number(booking.checkIn) / 1000000).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(Number(booking.checkOut) / 1000000).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Users className="h-3 w-3" />
+                        {booking.guests.toString()}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      {formatMoney(booking.totalPrice, booking.currency)}
+                    </TableCell>
+                    <TableCell>
+                      <BookingStatusBadge status={booking.status} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {canGuestCancel(booking) && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleCancelClick(booking.id)}
+                            disabled={cancelBooking.isPending}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Cancel
+                          </Button>
+                        )}
+                        <BookingDetailsDialog booking={booking} />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this booking? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, keep booking</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              disabled={cancelBooking.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelBooking.isPending ? 'Canceling...' : 'Yes, cancel booking'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
