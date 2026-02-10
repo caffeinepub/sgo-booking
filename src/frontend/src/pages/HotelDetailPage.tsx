@@ -1,149 +1,155 @@
-import React from 'react';
-import { useParams, useNavigate } from '@tanstack/react-router';
-import { Principal } from '@icp-sdk/core/principal';
-import { useGetHotels, useGetRooms } from '../hooks/useQueries';
+import React, { useState } from 'react';
+import { useParams } from '@tanstack/react-router';
+import { useGetHotels } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { BookingForm } from '../components/booking/BookingForm';
-import { HotelPaymentMethodsList } from '../components/payments/HotelPaymentMethodsList';
 import { RoomPhotosSection } from '../components/hotel/RoomPhotosSection';
+import { HotelPaymentMethodsList } from '../components/payments/HotelPaymentMethodsList';
+import { MapPin, Phone, Mail, ExternalLink, Loader2 } from 'lucide-react';
 import { formatMoney } from '../utils/money';
-import { Building2, MapPin, ArrowLeft, ExternalLink } from 'lucide-react';
+import type { RoomView } from '../types/extended-backend';
 
-export default function HotelDetailPage() {
+export function HotelDetailPage() {
   const { hotelId } = useParams({ from: '/browse/$hotelId' });
-  const navigate = useNavigate();
-  const { data: hotels, isLoading: hotelsLoading } = useGetHotels();
+  const { data: hotels, isLoading } = useGetHotels();
+  const [selectedRoom, setSelectedRoom] = useState<RoomView | null>(null);
 
-  const hotelPrincipal = Principal.fromText(hotelId);
   const hotel = hotels?.find((h) => h.id.toString() === hotelId);
 
-  // Pass sanitized query with hotelId only when available (omit when undefined)
-  const roomQuery = hotelPrincipal ? { hotelId: hotelPrincipal } : {};
-  const { data: rooms, isLoading: roomsLoading, error: roomsError } = useGetRooms(roomQuery);
-
-  const [selectedRoom, setSelectedRoom] = React.useState<any>(null);
-
-  if (hotelsLoading || roomsLoading) {
+  if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading hotel details...</p>
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!hotel) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-4">Hotel not found</p>
-            <Button onClick={() => navigate({ to: '/browse' })}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Browse
-            </Button>
+            <p className="text-muted-foreground">Hotel not found</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <Button variant="ghost" onClick={() => navigate({ to: '/browse' })} className="mb-6">
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Browse
-      </Button>
+  const rooms = hotel.rooms || [];
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building2 className="h-6 w-6 text-primary" />
-                    <CardTitle className="text-3xl">{hotel.name}</CardTitle>
-                  </div>
-                  <CardDescription className="flex items-center gap-2 text-base">
-                    <MapPin className="h-4 w-4" />
-                    {hotel.location}
-                  </CardDescription>
-                </div>
-                {hotel.active && <Badge variant="default">Active</Badge>}
-              </div>
+              <CardTitle className="text-3xl">{hotel.name}</CardTitle>
+              <CardDescription className="flex items-center gap-2 text-base">
+                <MapPin className="h-4 w-4" />
+                {hotel.location}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <h3 className="font-semibold mb-2">Address</h3>
                 <p className="text-muted-foreground">{hotel.address}</p>
               </div>
+
               {hotel.mapLink && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={hotel.mapLink} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View on Map
-                  </a>
-                </Button>
+                <div>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={hotel.mapLink} target="_blank" rel="noopener noreferrer" className="gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      View on Map
+                    </a>
+                  </Button>
+                </div>
               )}
+
+              <Separator />
+
+              <div>
+                <h3 className="font-semibold mb-2">Contact Information</h3>
+                <div className="space-y-2">
+                  {hotel.contact.whatsapp && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{hotel.contact.whatsapp}</span>
+                    </div>
+                  )}
+                  {hotel.contact.email && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{hotel.contact.email}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Available Rooms</CardTitle>
-              <CardDescription>
-                {rooms && rooms.length > 0
-                  ? `${rooms.length} room${rooms.length !== 1 ? 's' : ''} available`
-                  : 'No rooms available'}
-              </CardDescription>
+              <CardDescription>Select a room to book</CardDescription>
             </CardHeader>
             <CardContent>
-              {roomsError ? (
-                <p className="text-destructive text-sm">Failed to load rooms</p>
-              ) : !rooms || rooms.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No rooms available at this hotel</p>
+              {rooms.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No rooms available at this time</p>
+                </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {rooms.map((room) => (
-                    <Card key={room.id.toString()} className="overflow-hidden">
-                      <CardContent className="p-4">
-                        <div className="flex flex-col md:flex-row gap-4">
-                          <div className="md:w-48 flex-shrink-0">
-                            <RoomPhotosSection 
-                              pictures={room.pictures} 
-                              roomNumber={room.roomNumber}
-                              compact 
-                            />
+                    <Card
+                      key={room.id.toString()}
+                      className={`cursor-pointer transition-all ${
+                        selectedRoom?.id === room.id ? 'ring-2 ring-primary' : 'hover:shadow-md'
+                      }`}
+                      onClick={() => setSelectedRoom(room)}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-xl">{room.roomType}</CardTitle>
+                            <CardDescription className="mt-2 space-y-1">
+                              {room.promoPercent > BigInt(0) ? (
+                                <>
+                                  <div className="flex items-center gap-2">
+                                    <span className="line-through text-muted-foreground">
+                                      {formatMoney(room.pricePerNight, room.currency)}
+                                    </span>
+                                    <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-0.5 rounded">
+                                      {room.promoPercent.toString()}% OFF
+                                    </span>
+                                  </div>
+                                  <div className="font-semibold text-green-600 text-lg">
+                                    {formatMoney(room.discountedPrice, room.currency)} per night
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-lg font-semibold">
+                                  {formatMoney(room.pricePerNight, room.currency)} per night
+                                </div>
+                              )}
+                            </CardDescription>
                           </div>
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="font-semibold text-lg">{room.roomType}</h3>
-                                <p className="text-sm text-muted-foreground">Room {room.roomNumber}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-2xl font-bold">{formatMoney(room.pricePerNight, room.currency)}</p>
-                                <p className="text-sm text-muted-foreground">per night</p>
-                              </div>
-                            </div>
-                            <Separator />
-                            <Button
-                              onClick={() => setSelectedRoom(room)}
-                              className="w-full md:w-auto"
-                              disabled={selectedRoom?.id === room.id}
-                            >
-                              {selectedRoom?.id === room.id ? 'Selected' : 'Book This Room'}
-                            </Button>
-                          </div>
+                          <Button
+                            variant={selectedRoom?.id === room.id ? 'default' : 'outline'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedRoom(room);
+                            }}
+                          >
+                            {selectedRoom?.id === room.id ? 'Selected' : 'Select'}
+                          </Button>
                         </div>
+                      </CardHeader>
+                      <CardContent>
+                        <RoomPhotosSection pictures={room.pictures} roomType={room.roomType} />
                       </CardContent>
                     </Card>
                   ))}
@@ -152,22 +158,22 @@ export default function HotelDetailPage() {
             </CardContent>
           </Card>
 
-          <HotelPaymentMethodsList
-            paymentMethods={hotel.paymentMethods}
-            contact={hotel.contact}
-            hotelName={hotel.name}
-          />
+          <HotelPaymentMethodsList hotel={hotel} />
         </div>
 
-        <div className="lg:col-span-1">
+        <div className="lg:sticky lg:top-4 lg:self-start">
           {selectedRoom ? (
-            <div className="sticky top-4">
-              <BookingForm hotel={hotel} room={selectedRoom} />
-            </div>
+            <BookingForm hotel={hotel} room={selectedRoom} />
           ) : (
             <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">Select a room to book</p>
+              <CardHeader>
+                <CardTitle>Book a Room</CardTitle>
+                <CardDescription>Select a room to continue</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Please select a room from the available options to proceed with your booking.
+                </p>
               </CardContent>
             </Card>
           )}

@@ -10,103 +10,35 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface BookingQuery {
-  'status' : [] | [BookingStatus],
-  'hotelId' : [] | [Principal],
-  'maxPrice' : [] | [bigint],
-  'toDate' : [] | [bigint],
-  'fromDate' : [] | [bigint],
-  'minPrice' : [] | [bigint],
-}
-export interface BookingQueryResult {
-  'bookings' : Array<BookingRequest>,
-  'totalCount' : bigint,
-}
-export interface BookingRequest {
-  'id' : bigint,
-  'status' : BookingStatus,
-  'checkIn' : bigint,
-  'userId' : Principal,
-  'hotelId' : [] | [Principal],
-  'roomsCount' : bigint,
-  'paymentProof' : [] | [string],
-  'currency' : string,
-  'timestamp' : bigint,
-  'checkOut' : bigint,
-  'roomId' : bigint,
-  'totalPrice' : bigint,
-  'guests' : bigint,
-}
-export type BookingStatus = { 'canceled' : null } |
-  { 'booked' : null } |
-  { 'checkedIn' : null } |
-  { 'pendingTransfer' : null } |
-  { 'paymentFailed' : null };
-export type CancellableBookingResult = { 'canceledByHotel' : null } |
-  { 'canceledByGuest' : null };
-export interface HotelContact {
-  'whatsapp' : [] | [string],
-  'email' : [] | [string],
-}
-export interface HotelDataView {
-  'id' : Principal,
-  'active' : boolean,
-  'contact' : HotelContact,
-  'mapLink' : string,
-  'bookings' : Array<bigint>,
-  'name' : string,
-  'subscriptionStatus' : SubscriptionStatus,
-  'address' : string,
-  'location' : string,
-  'paymentMethods' : Array<PaymentMethod>,
-  'rooms' : Array<RoomView>,
-}
 export interface InviteCode {
   'created' : Time,
   'code' : string,
   'used' : boolean,
 }
-export interface InviteToken {
-  'boundPrincipal' : [] | [Principal],
-  'token' : string,
-  'usageCount' : bigint,
-  'isActive' : boolean,
-  'issuedAt' : Time,
-  'issuedBy' : Principal,
-  'maxUses' : bigint,
-}
-export interface PaymentMethod { 'name' : string, 'details' : string }
 export interface RSVP {
   'name' : string,
   'inviteCode' : string,
   'timestamp' : Time,
   'attending' : boolean,
 }
-export interface RoomQuery {
-  'hotelId' : [] | [Principal],
-  'maxPrice' : [] | [bigint],
-  'availableOnly' : [] | [boolean],
-  'minPrice' : [] | [bigint],
-  'roomType' : [] | [string],
+export interface RoomInput {
+  'pricePerNight' : bigint,
+  'promoPercent' : bigint,
+  'currency' : string,
+  'pictures' : Array<string>,
+  'roomType' : string,
 }
 export interface RoomView {
   'id' : bigint,
   'pricePerNight' : bigint,
   'hotelId' : Principal,
-  'roomNumber' : string,
+  'promoPercent' : bigint,
   'currency' : string,
   'pictures' : Array<string>,
   'roomType' : string,
+  'discountedPrice' : bigint,
 }
-export type SubscriptionStatus = { 'paid' : null } |
-  { 'test' : null } |
-  { 'unpaid' : null };
 export type Time = bigint;
-export interface UserProfile {
-  'name' : string,
-  'email' : [] | [string],
-  'phone' : [] | [string],
-}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -138,70 +70,16 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'activateHotelDirectly' : ActorMethod<[Principal], boolean>,
-  'adminDeleteAllRoomsForHotel' : ActorMethod<[Principal], undefined>,
-  'adminDeleteHotelData' : ActorMethod<[Principal], undefined>,
-  'adminPurgeDeprecatedGoatHotelData' : ActorMethod<[], undefined>,
-  'adminRemoveLegacyPaymentMethods' : ActorMethod<[Principal], undefined>,
-  'adminRemoveLegacyRoomPhotos' : ActorMethod<[Principal, bigint], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'cancelBooking' : ActorMethod<[bigint], CancellableBookingResult>,
-  'consumeInviteToken' : ActorMethod<[string], boolean>,
-  'createBooking' : ActorMethod<
-    [Principal, bigint, bigint, bigint, bigint, bigint, string],
-    BookingRequest
-  >,
-  'createHotelInviteToken' : ActorMethod<
-    [bigint, [] | [Principal]],
-    InviteToken
-  >,
-  'createHotelProfile' : ActorMethod<
-    [string, string, string, string, [] | [string], [] | [string]],
-    undefined
-  >,
-  'createRoom' : ActorMethod<
-    [string, string, bigint, string, Array<string>],
-    RoomView
-  >,
-  'doesCallerHaveDirectActivation' : ActorMethod<[], boolean>,
+  'createRoom' : ActorMethod<[RoomInput], RoomView>,
   'generateInviteCode' : ActorMethod<[], string>,
   'getAllRSVPs' : ActorMethod<[], Array<RSVP>>,
-  'getBooking' : ActorMethod<[bigint], [] | [BookingRequest]>,
-  'getBookings' : ActorMethod<[BookingQuery], BookingQueryResult>,
-  'getCallerHotelProfile' : ActorMethod<[], [] | [HotelDataView]>,
-  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getHotelProfile' : ActorMethod<[Principal], [] | [HotelDataView]>,
-  'getHotels' : ActorMethod<[], Array<HotelDataView>>,
   'getInviteCodes' : ActorMethod<[], Array<InviteCode>>,
-  'getInviteTokens' : ActorMethod<[], Array<InviteToken>>,
-  'getRooms' : ActorMethod<[RoomQuery], Array<RoomView>>,
-  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
-  'getValidHotelInviteTokens' : ActorMethod<[], Array<string>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
-  'isCallerHotelActivated' : ActorMethod<[], boolean>,
-  'isCallerHotelActiveByDirectActivation' : ActorMethod<[], boolean>,
-  'isHotelActiveByDirectActivation' : ActorMethod<[Principal], boolean>,
-  'isHotelOwner' : ActorMethod<[Principal, Principal], boolean>,
-  'isValidHotelInviteToken' : ActorMethod<[Principal], boolean>,
   'makeMeAdmin' : ActorMethod<[], undefined>,
-  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'setHotelActiveStatus' : ActorMethod<[Principal, boolean], undefined>,
-  'setHotelSubscriptionStatus' : ActorMethod<
-    [Principal, SubscriptionStatus],
-    undefined
-  >,
   'submitRSVP' : ActorMethod<[string, boolean, string], undefined>,
-  'updateBookingStatus' : ActorMethod<[bigint, BookingStatus], undefined>,
-  'updateHotelProfile' : ActorMethod<
-    [string, string, string, string, [] | [string], [] | [string]],
-    undefined
-  >,
-  'updateRoom' : ActorMethod<
-    [bigint, string, string, bigint, string, Array<string>],
-    RoomView
-  >,
-  'validateInviteToken' : ActorMethod<[string], boolean>,
+  'updateRoom' : ActorMethod<[bigint, RoomInput], RoomView>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

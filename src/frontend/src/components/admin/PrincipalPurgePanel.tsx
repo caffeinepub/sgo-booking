@@ -4,133 +4,123 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { AlertTriangle, Trash2 } from 'lucide-react';
-import { useAdminPurgeHotelData } from '../../hooks/useQueries';
-import { Principal } from '@icp-sdk/core/principal';
+import { useAdminPurgePrincipalData } from '../../hooks/useQueries';
 import { toast } from 'sonner';
+import { Trash2, AlertTriangle } from 'lucide-react';
+import { Principal } from '@icp-sdk/core/principal';
 
 export function PrincipalPurgePanel() {
+  const purgeMutation = useAdminPurgePrincipalData();
   const [principalInput, setPrincipalInput] = useState('');
-  const [confirmationInput, setConfirmationInput] = useState('');
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const purgeHotelData = useAdminPurgeHotelData();
+  const [confirmInput, setConfirmInput] = useState('');
+  const [principalError, setPrincipalError] = useState('');
 
-  const handleInitiatePurge = () => {
-    if (!principalInput.trim()) {
-      toast.error('Please enter a hotel Principal ID');
-      return;
+  const validatePrincipal = (value: string): boolean => {
+    if (!value.trim()) {
+      setPrincipalError('Principal ID is required');
+      return false;
     }
 
     try {
-      Principal.fromText(principalInput.trim());
-      setShowConfirmation(true);
+      Principal.fromText(value.trim());
+      setPrincipalError('');
+      return true;
     } catch (error) {
-      toast.error('Invalid Principal ID format');
+      setPrincipalError('Invalid Principal format');
+      return false;
     }
   };
 
-  const handleConfirmPurge = async () => {
-    if (confirmationInput !== principalInput.trim()) {
+  const handlePrincipalChange = (value: string) => {
+    setPrincipalInput(value);
+    if (value.trim()) {
+      validatePrincipal(value);
+    } else {
+      setPrincipalError('');
+    }
+  };
+
+  const handlePurge = async () => {
+    if (!validatePrincipal(principalInput)) {
+      return;
+    }
+
+    if (confirmInput !== principalInput.trim()) {
       toast.error('Confirmation does not match. Please type the exact Principal ID.');
       return;
     }
 
     try {
       const principal = Principal.fromText(principalInput.trim());
-      await purgeHotelData.mutateAsync(principal);
-      toast.success('Hotel data purged successfully');
+      await purgeMutation.mutateAsync(principal);
+      toast.success('Principal data purged successfully');
       setPrincipalInput('');
-      setConfirmationInput('');
-      setShowConfirmation(false);
+      setConfirmInput('');
+      setPrincipalError('');
     } catch (error: any) {
-      console.error('Purge error:', error);
-      toast.error(error.message || 'Failed to purge hotel data');
+      toast.error(error.message || 'Failed to purge principal data');
     }
   };
 
-  const handleCancel = () => {
-    setShowConfirmation(false);
-    setConfirmationInput('');
-  };
+  const canPurge = principalInput.trim() && confirmInput === principalInput.trim() && !principalError;
 
   return (
     <Card className="border-destructive">
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Trash2 className="h-5 w-5 text-destructive" />
-          <CardTitle className="text-destructive">Purge Hotel Data</CardTitle>
-        </div>
+        <CardTitle className="flex items-center gap-2 text-destructive">
+          <Trash2 className="h-5 w-5" />
+          Purge Principal Data
+        </CardTitle>
         <CardDescription>
-          Permanently delete all data for a specific hotel Principal ID (profile, rooms, bookings, tokens, activation status)
+          Permanently delete all data associated with a specific Principal ID (hotel profile, rooms, bookings)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Warning:</strong> This action is irreversible. All hotel data, rooms, bookings, payment methods, and activation status will be permanently deleted.
+            <strong>Warning:</strong> This action is irreversible. All hotel data, rooms, and bookings associated with
+            this Principal will be permanently deleted.
           </AlertDescription>
         </Alert>
 
-        {!showConfirmation ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="principal-input">Hotel Principal ID</Label>
-              <Input
-                id="principal-input"
-                placeholder="e.g., opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae"
-                value={principalInput}
-                onChange={(e) => setPrincipalInput(e.target.value)}
-                disabled={purgeHotelData.isPending}
-              />
-            </div>
-
-            <Button
-              variant="destructive"
-              onClick={handleInitiatePurge}
-              disabled={!principalInput.trim() || purgeHotelData.isPending}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Initiate Purge
-            </Button>
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="principalId">
+              Principal ID to Purge <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="principalId"
+              value={principalInput}
+              onChange={(e) => handlePrincipalChange(e.target.value)}
+              placeholder="e.g., xxxxx-xxxxx-xxxxx-xxxxx-xxx"
+              className={principalError ? 'border-destructive' : ''}
+            />
+            {principalError && <p className="text-sm text-destructive mt-1">{principalError}</p>}
           </div>
-        ) : (
-          <div className="space-y-4">
-            <Alert>
-              <AlertDescription>
-                <strong>Confirmation Required:</strong> Type the exact Principal ID below to confirm deletion.
-              </AlertDescription>
-            </Alert>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmation-input">Type Principal ID to confirm</Label>
-              <Input
-                id="confirmation-input"
-                placeholder={principalInput.trim()}
-                value={confirmationInput}
-                onChange={(e) => setConfirmationInput(e.target.value)}
-                disabled={purgeHotelData.isPending}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                onClick={handleConfirmPurge}
-                disabled={confirmationInput !== principalInput.trim() || purgeHotelData.isPending}
-              >
-                {purgeHotelData.isPending ? 'Purging...' : 'Confirm Purge'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                disabled={purgeHotelData.isPending}
-              >
-                Cancel
-              </Button>
-            </div>
+          <div>
+            <Label htmlFor="confirmPrincipal">
+              Type Principal ID again to confirm <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="confirmPrincipal"
+              value={confirmInput}
+              onChange={(e) => setConfirmInput(e.target.value)}
+              placeholder="Confirm by typing the Principal ID"
+            />
           </div>
-        )}
+
+          <Button
+            variant="destructive"
+            onClick={handlePurge}
+            disabled={!canPurge || purgeMutation.isPending}
+            className="w-full"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {purgeMutation.isPending ? 'Purging...' : 'Purge All Data for This Principal'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

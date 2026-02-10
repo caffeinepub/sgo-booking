@@ -1,37 +1,53 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Hotel management system: need ability to fully purge all data associated with a given principal ID (including admin-created tokens and legacy photos/descriptions) and enforce hotel dashboard access control requiring admin activation; hotels must re-register after purge.",
+  "summary": "Hotel dashboard/admin enhancements: simplify room upload (remove Room Number), add promo percentage with automatic discounted price calculation, and provide edit/delete controls for uploaded room photos and room entries without impacting other existing features.",
   "architectural_notes": [
-    "Implement principal-ID scoped purge as a controlled, audited destructive operation (delete or anonymize all related records, including auth tokens and media metadata).",
-    "Enforce authorization: hotel dashboard access must be denied unless the hotel account is in an admin-activated state."
+    "Promo is stored as numeric percentage and used to compute discounted price automatically.",
+    "Backend schema must be updated to fully remove roomNumber to avoid unused data in the database."
   ],
   "known_issues": [
-    "Risk: destructive principal-ID purge could accidentally impact unrelated data/features if relationships are not correctly scoped; needs careful safeguards/testing."
+    "Build/deployment automation returned a generic error ('unable to implement your request'); user requested to retry the build."
   ],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-ensure-hotel-dashboard-access-is-blocked-after-a-purge-until-the-hotel-re-registers-and-is-activated-again-by-admin-invite-token-consumption",
-      "title": "Ensure hotel dashboard access is blocked after a purge until the hotel re-registers and is activated again by admin invite token consumption.",
+      "id": "feature-remove-the-room-number-field-from-the-hotel-room-data-model-end-to-end-backend-frontend-so-rooms-are-identified-without-any-stored-roomnumber-and-no-unused-legacy-roomnumber-data-remains-in-canister-state",
+      "title": "Remove the \"Room Number\" field from the hotel room data model end-to-end (backend + frontend), so rooms are identified without any stored roomNumber and no unused/legacy roomNumber data remains in canister state.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-numeric-promo-percentage-field-to-rooms-0-100-and-automatically-calculate-the-discounted-nightly-price-from-the-base-price-and-promo-percentage-display-and-use-the-discounted-price-consistently-in-hotel-room-management-and-guest-booking-flows",
+      "title": "Add a numeric promo percentage field to rooms (0–100) and automatically calculate the discounted nightly price from the base price and promo percentage; display and use the discounted price consistently in hotel room management and guest booking flows.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-an-admin-panel-ui-action-to-run-the-full-principal-purge-safely-with-explicit-confirmation-and-refresh-affected-cached-queries-so-the-ui-immediately-reflects-the-deletion",
-      "title": "Add an Admin Panel UI action to run the full principal purge safely (with explicit confirmation) and refresh affected cached queries so the UI immediately reflects the deletion.",
+      "id": "feature-add-edit-and-delete-actions-for-each-room-entry-in-the-hotel-rooms-list-allowing-the-hotel-owner-to-update-or-remove-a-room-without-impacting-other-existing-dashboards-features",
+      "title": "Add Edit and Delete actions for each room entry in the hotel \"Rooms\" list, allowing the hotel owner to update or remove a room without impacting other existing dashboards/features.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-regression-checks-and-guardrails-to-prevent-runtime-errors-or-cross-feature-breakage-after-introducing-purge-behavior",
-      "title": "Add regression checks and guardrails to prevent runtime errors or cross-feature breakage after introducing purge behavior.",
+      "id": "feature-add-edit-delete-controls-for-each-uploaded-room-photo-each-picture-item-so-hotel-owners-can-remove-individual-photos-and-optionally-replace-a-specific-photo-with-changes-persisted-to-the-backend-room-pictures-array",
+      "title": "Add Edit/Delete controls for each uploaded room photo (each picture item), so hotel owners can remove individual photos and optionally replace a specific photo, with changes persisted to the backend room pictures array.",
       "reqIds": [
         "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-room-management-components-and-hooks-to-match-the-new-room-schema-no-roomnumber-includes-promopercent-and-discounted-price-display-specifically-updating-the-existing-hotel-room-management-ui-implementation-in-frontend-src-components-hotel-roomspanel-tsx-and-related-query-hooks",
+      "title": "Update frontend room management components and hooks to match the new room schema (no roomNumber; includes promoPercent and discounted-price display), specifically updating the existing hotel room management UI implementation in frontend/src/components/hotel/RoomsPanel.tsx and related query hooks.",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
@@ -39,26 +55,38 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Hard-delete (purge) all data associated with a specified principal ID, including admin-created tokens and any stored photos/descriptions",
+      "summary": "Remove Room Number field from room upload/UI and delete roomNumber from backend schema/storage (no unused DB fields).",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "After purge, require hotel to re-register; block hotel dashboard access until admin activates the new registration",
+      "summary": "Add promo as numeric percentage and automatically calculate discounted room price based on base price and promo %.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Add a backend admin-only API to fully purge (hard-delete) all data associated with the hotel Principal ID `opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae` without affecting any other principals’ data.",
+      "summary": "Add Edit/Delete actions per uploaded room photo/item so hotels can edit/delete each uploaded room photo entry.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Ensure requested room upload changes do not affect other existing features that are already working normally.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Implement a safe state upgrade path for the room schema change (removing roomNumber and adding promoPercent/base/discounted price representation), ensuring existing canister data upgrades without data loss beyond dropping roomNumber, and without breaking running features.",
       "reqIds": [
-        "REQ-1"
+        "REQ-6"
       ],
       "status": "pending"
     }
   ],
-  "projectName": "Admin purge of all data for a specific hotel Principal ID and enforce re-registration + activation",
+  "projectName": "Simplify room management: remove Room Number, add promo pricing, and enable edit/delete for rooms and room photos",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

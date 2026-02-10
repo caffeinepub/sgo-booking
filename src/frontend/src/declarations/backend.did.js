@@ -24,111 +24,34 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const CancellableBookingResult = IDL.Variant({
-  'canceledByHotel' : IDL.Null,
-  'canceledByGuest' : IDL.Null,
-});
-export const BookingStatus = IDL.Variant({
-  'canceled' : IDL.Null,
-  'booked' : IDL.Null,
-  'checkedIn' : IDL.Null,
-  'pendingTransfer' : IDL.Null,
-  'paymentFailed' : IDL.Null,
-});
-export const BookingRequest = IDL.Record({
-  'id' : IDL.Nat,
-  'status' : BookingStatus,
-  'checkIn' : IDL.Int,
-  'userId' : IDL.Principal,
-  'hotelId' : IDL.Opt(IDL.Principal),
-  'roomsCount' : IDL.Nat,
-  'paymentProof' : IDL.Opt(IDL.Text),
+export const RoomInput = IDL.Record({
+  'pricePerNight' : IDL.Nat,
+  'promoPercent' : IDL.Nat,
   'currency' : IDL.Text,
-  'timestamp' : IDL.Int,
-  'checkOut' : IDL.Int,
-  'roomId' : IDL.Nat,
-  'totalPrice' : IDL.Nat,
-  'guests' : IDL.Nat,
-});
-export const Time = IDL.Int;
-export const InviteToken = IDL.Record({
-  'boundPrincipal' : IDL.Opt(IDL.Principal),
-  'token' : IDL.Text,
-  'usageCount' : IDL.Nat,
-  'isActive' : IDL.Bool,
-  'issuedAt' : Time,
-  'issuedBy' : IDL.Principal,
-  'maxUses' : IDL.Nat,
+  'pictures' : IDL.Vec(IDL.Text),
+  'roomType' : IDL.Text,
 });
 export const RoomView = IDL.Record({
   'id' : IDL.Nat,
   'pricePerNight' : IDL.Nat,
   'hotelId' : IDL.Principal,
-  'roomNumber' : IDL.Text,
+  'promoPercent' : IDL.Nat,
   'currency' : IDL.Text,
   'pictures' : IDL.Vec(IDL.Text),
   'roomType' : IDL.Text,
+  'discountedPrice' : IDL.Nat,
 });
+export const Time = IDL.Int;
 export const RSVP = IDL.Record({
   'name' : IDL.Text,
   'inviteCode' : IDL.Text,
   'timestamp' : Time,
   'attending' : IDL.Bool,
 });
-export const BookingQuery = IDL.Record({
-  'status' : IDL.Opt(BookingStatus),
-  'hotelId' : IDL.Opt(IDL.Principal),
-  'maxPrice' : IDL.Opt(IDL.Nat),
-  'toDate' : IDL.Opt(IDL.Int),
-  'fromDate' : IDL.Opt(IDL.Int),
-  'minPrice' : IDL.Opt(IDL.Nat),
-});
-export const BookingQueryResult = IDL.Record({
-  'bookings' : IDL.Vec(BookingRequest),
-  'totalCount' : IDL.Nat,
-});
-export const HotelContact = IDL.Record({
-  'whatsapp' : IDL.Opt(IDL.Text),
-  'email' : IDL.Opt(IDL.Text),
-});
-export const SubscriptionStatus = IDL.Variant({
-  'paid' : IDL.Null,
-  'test' : IDL.Null,
-  'unpaid' : IDL.Null,
-});
-export const PaymentMethod = IDL.Record({
-  'name' : IDL.Text,
-  'details' : IDL.Text,
-});
-export const HotelDataView = IDL.Record({
-  'id' : IDL.Principal,
-  'active' : IDL.Bool,
-  'contact' : HotelContact,
-  'mapLink' : IDL.Text,
-  'bookings' : IDL.Vec(IDL.Nat),
-  'name' : IDL.Text,
-  'subscriptionStatus' : SubscriptionStatus,
-  'address' : IDL.Text,
-  'location' : IDL.Text,
-  'paymentMethods' : IDL.Vec(PaymentMethod),
-  'rooms' : IDL.Vec(RoomView),
-});
-export const UserProfile = IDL.Record({
-  'name' : IDL.Text,
-  'email' : IDL.Opt(IDL.Text),
-  'phone' : IDL.Opt(IDL.Text),
-});
 export const InviteCode = IDL.Record({
   'created' : Time,
   'code' : IDL.Text,
   'used' : IDL.Bool,
-});
-export const RoomQuery = IDL.Record({
-  'hotelId' : IDL.Opt(IDL.Principal),
-  'maxPrice' : IDL.Opt(IDL.Nat),
-  'availableOnly' : IDL.Opt(IDL.Bool),
-  'minPrice' : IDL.Opt(IDL.Nat),
-  'roomType' : IDL.Opt(IDL.Text),
 });
 
 export const idlService = IDL.Service({
@@ -159,107 +82,16 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'activateHotelDirectly' : IDL.Func([IDL.Principal], [IDL.Bool], []),
-  'adminDeleteAllRoomsForHotel' : IDL.Func([IDL.Principal], [], []),
-  'adminDeleteHotelData' : IDL.Func([IDL.Principal], [], []),
-  'adminPurgeDeprecatedGoatHotelData' : IDL.Func([], [], []),
-  'adminRemoveLegacyPaymentMethods' : IDL.Func([IDL.Principal], [], []),
-  'adminRemoveLegacyRoomPhotos' : IDL.Func([IDL.Principal, IDL.Nat], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'cancelBooking' : IDL.Func([IDL.Nat], [CancellableBookingResult], []),
-  'consumeInviteToken' : IDL.Func([IDL.Text], [IDL.Bool], []),
-  'createBooking' : IDL.Func(
-      [IDL.Principal, IDL.Nat, IDL.Int, IDL.Int, IDL.Nat, IDL.Nat, IDL.Text],
-      [BookingRequest],
-      [],
-    ),
-  'createHotelInviteToken' : IDL.Func(
-      [IDL.Nat, IDL.Opt(IDL.Principal)],
-      [InviteToken],
-      [],
-    ),
-  'createHotelProfile' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Opt(IDL.Text),
-        IDL.Opt(IDL.Text),
-      ],
-      [],
-      [],
-    ),
-  'createRoom' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text)],
-      [RoomView],
-      [],
-    ),
-  'doesCallerHaveDirectActivation' : IDL.Func([], [IDL.Bool], ['query']),
+  'createRoom' : IDL.Func([RoomInput], [RoomView], []),
   'generateInviteCode' : IDL.Func([], [IDL.Text], []),
   'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
-  'getBooking' : IDL.Func([IDL.Nat], [IDL.Opt(BookingRequest)], ['query']),
-  'getBookings' : IDL.Func([BookingQuery], [BookingQueryResult], ['query']),
-  'getCallerHotelProfile' : IDL.Func([], [IDL.Opt(HotelDataView)], ['query']),
-  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getHotelProfile' : IDL.Func(
-      [IDL.Principal],
-      [IDL.Opt(HotelDataView)],
-      ['query'],
-    ),
-  'getHotels' : IDL.Func([], [IDL.Vec(HotelDataView)], ['query']),
   'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
-  'getInviteTokens' : IDL.Func([], [IDL.Vec(InviteToken)], ['query']),
-  'getRooms' : IDL.Func([RoomQuery], [IDL.Vec(RoomView)], ['query']),
-  'getUserProfile' : IDL.Func(
-      [IDL.Principal],
-      [IDL.Opt(UserProfile)],
-      ['query'],
-    ),
-  'getValidHotelInviteTokens' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'isCallerHotelActivated' : IDL.Func([], [IDL.Bool], ['query']),
-  'isCallerHotelActiveByDirectActivation' : IDL.Func([], [IDL.Bool], ['query']),
-  'isHotelActiveByDirectActivation' : IDL.Func(
-      [IDL.Principal],
-      [IDL.Bool],
-      ['query'],
-    ),
-  'isHotelOwner' : IDL.Func(
-      [IDL.Principal, IDL.Principal],
-      [IDL.Bool],
-      ['query'],
-    ),
-  'isValidHotelInviteToken' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'makeMeAdmin' : IDL.Func([], [], []),
-  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'setHotelActiveStatus' : IDL.Func([IDL.Principal, IDL.Bool], [], []),
-  'setHotelSubscriptionStatus' : IDL.Func(
-      [IDL.Principal, SubscriptionStatus],
-      [],
-      [],
-    ),
   'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
-  'updateBookingStatus' : IDL.Func([IDL.Nat, BookingStatus], [], []),
-  'updateHotelProfile' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Opt(IDL.Text),
-        IDL.Opt(IDL.Text),
-      ],
-      [],
-      [],
-    ),
-  'updateRoom' : IDL.Func(
-      [IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text)],
-      [RoomView],
-      [],
-    ),
-  'validateInviteToken' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+  'updateRoom' : IDL.Func([IDL.Nat, RoomInput], [RoomView], []),
 });
 
 export const idlInitArgs = [];
@@ -281,108 +113,34 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const CancellableBookingResult = IDL.Variant({
-    'canceledByHotel' : IDL.Null,
-    'canceledByGuest' : IDL.Null,
-  });
-  const BookingStatus = IDL.Variant({
-    'canceled' : IDL.Null,
-    'booked' : IDL.Null,
-    'checkedIn' : IDL.Null,
-    'pendingTransfer' : IDL.Null,
-    'paymentFailed' : IDL.Null,
-  });
-  const BookingRequest = IDL.Record({
-    'id' : IDL.Nat,
-    'status' : BookingStatus,
-    'checkIn' : IDL.Int,
-    'userId' : IDL.Principal,
-    'hotelId' : IDL.Opt(IDL.Principal),
-    'roomsCount' : IDL.Nat,
-    'paymentProof' : IDL.Opt(IDL.Text),
+  const RoomInput = IDL.Record({
+    'pricePerNight' : IDL.Nat,
+    'promoPercent' : IDL.Nat,
     'currency' : IDL.Text,
-    'timestamp' : IDL.Int,
-    'checkOut' : IDL.Int,
-    'roomId' : IDL.Nat,
-    'totalPrice' : IDL.Nat,
-    'guests' : IDL.Nat,
-  });
-  const Time = IDL.Int;
-  const InviteToken = IDL.Record({
-    'boundPrincipal' : IDL.Opt(IDL.Principal),
-    'token' : IDL.Text,
-    'usageCount' : IDL.Nat,
-    'isActive' : IDL.Bool,
-    'issuedAt' : Time,
-    'issuedBy' : IDL.Principal,
-    'maxUses' : IDL.Nat,
+    'pictures' : IDL.Vec(IDL.Text),
+    'roomType' : IDL.Text,
   });
   const RoomView = IDL.Record({
     'id' : IDL.Nat,
     'pricePerNight' : IDL.Nat,
     'hotelId' : IDL.Principal,
-    'roomNumber' : IDL.Text,
+    'promoPercent' : IDL.Nat,
     'currency' : IDL.Text,
     'pictures' : IDL.Vec(IDL.Text),
     'roomType' : IDL.Text,
+    'discountedPrice' : IDL.Nat,
   });
+  const Time = IDL.Int;
   const RSVP = IDL.Record({
     'name' : IDL.Text,
     'inviteCode' : IDL.Text,
     'timestamp' : Time,
     'attending' : IDL.Bool,
   });
-  const BookingQuery = IDL.Record({
-    'status' : IDL.Opt(BookingStatus),
-    'hotelId' : IDL.Opt(IDL.Principal),
-    'maxPrice' : IDL.Opt(IDL.Nat),
-    'toDate' : IDL.Opt(IDL.Int),
-    'fromDate' : IDL.Opt(IDL.Int),
-    'minPrice' : IDL.Opt(IDL.Nat),
-  });
-  const BookingQueryResult = IDL.Record({
-    'bookings' : IDL.Vec(BookingRequest),
-    'totalCount' : IDL.Nat,
-  });
-  const HotelContact = IDL.Record({
-    'whatsapp' : IDL.Opt(IDL.Text),
-    'email' : IDL.Opt(IDL.Text),
-  });
-  const SubscriptionStatus = IDL.Variant({
-    'paid' : IDL.Null,
-    'test' : IDL.Null,
-    'unpaid' : IDL.Null,
-  });
-  const PaymentMethod = IDL.Record({ 'name' : IDL.Text, 'details' : IDL.Text });
-  const HotelDataView = IDL.Record({
-    'id' : IDL.Principal,
-    'active' : IDL.Bool,
-    'contact' : HotelContact,
-    'mapLink' : IDL.Text,
-    'bookings' : IDL.Vec(IDL.Nat),
-    'name' : IDL.Text,
-    'subscriptionStatus' : SubscriptionStatus,
-    'address' : IDL.Text,
-    'location' : IDL.Text,
-    'paymentMethods' : IDL.Vec(PaymentMethod),
-    'rooms' : IDL.Vec(RoomView),
-  });
-  const UserProfile = IDL.Record({
-    'name' : IDL.Text,
-    'email' : IDL.Opt(IDL.Text),
-    'phone' : IDL.Opt(IDL.Text),
-  });
   const InviteCode = IDL.Record({
     'created' : Time,
     'code' : IDL.Text,
     'used' : IDL.Bool,
-  });
-  const RoomQuery = IDL.Record({
-    'hotelId' : IDL.Opt(IDL.Principal),
-    'maxPrice' : IDL.Opt(IDL.Nat),
-    'availableOnly' : IDL.Opt(IDL.Bool),
-    'minPrice' : IDL.Opt(IDL.Nat),
-    'roomType' : IDL.Opt(IDL.Text),
   });
   
   return IDL.Service({
@@ -413,115 +171,16 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'activateHotelDirectly' : IDL.Func([IDL.Principal], [IDL.Bool], []),
-    'adminDeleteAllRoomsForHotel' : IDL.Func([IDL.Principal], [], []),
-    'adminDeleteHotelData' : IDL.Func([IDL.Principal], [], []),
-    'adminPurgeDeprecatedGoatHotelData' : IDL.Func([], [], []),
-    'adminRemoveLegacyPaymentMethods' : IDL.Func([IDL.Principal], [], []),
-    'adminRemoveLegacyRoomPhotos' : IDL.Func([IDL.Principal, IDL.Nat], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'cancelBooking' : IDL.Func([IDL.Nat], [CancellableBookingResult], []),
-    'consumeInviteToken' : IDL.Func([IDL.Text], [IDL.Bool], []),
-    'createBooking' : IDL.Func(
-        [IDL.Principal, IDL.Nat, IDL.Int, IDL.Int, IDL.Nat, IDL.Nat, IDL.Text],
-        [BookingRequest],
-        [],
-      ),
-    'createHotelInviteToken' : IDL.Func(
-        [IDL.Nat, IDL.Opt(IDL.Principal)],
-        [InviteToken],
-        [],
-      ),
-    'createHotelProfile' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Opt(IDL.Text),
-          IDL.Opt(IDL.Text),
-        ],
-        [],
-        [],
-      ),
-    'createRoom' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text)],
-        [RoomView],
-        [],
-      ),
-    'doesCallerHaveDirectActivation' : IDL.Func([], [IDL.Bool], ['query']),
+    'createRoom' : IDL.Func([RoomInput], [RoomView], []),
     'generateInviteCode' : IDL.Func([], [IDL.Text], []),
     'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
-    'getBooking' : IDL.Func([IDL.Nat], [IDL.Opt(BookingRequest)], ['query']),
-    'getBookings' : IDL.Func([BookingQuery], [BookingQueryResult], ['query']),
-    'getCallerHotelProfile' : IDL.Func([], [IDL.Opt(HotelDataView)], ['query']),
-    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getHotelProfile' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Opt(HotelDataView)],
-        ['query'],
-      ),
-    'getHotels' : IDL.Func([], [IDL.Vec(HotelDataView)], ['query']),
     'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
-    'getInviteTokens' : IDL.Func([], [IDL.Vec(InviteToken)], ['query']),
-    'getRooms' : IDL.Func([RoomQuery], [IDL.Vec(RoomView)], ['query']),
-    'getUserProfile' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Opt(UserProfile)],
-        ['query'],
-      ),
-    'getValidHotelInviteTokens' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'isCallerHotelActivated' : IDL.Func([], [IDL.Bool], ['query']),
-    'isCallerHotelActiveByDirectActivation' : IDL.Func(
-        [],
-        [IDL.Bool],
-        ['query'],
-      ),
-    'isHotelActiveByDirectActivation' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Bool],
-        ['query'],
-      ),
-    'isHotelOwner' : IDL.Func(
-        [IDL.Principal, IDL.Principal],
-        [IDL.Bool],
-        ['query'],
-      ),
-    'isValidHotelInviteToken' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Bool],
-        ['query'],
-      ),
     'makeMeAdmin' : IDL.Func([], [], []),
-    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-    'setHotelActiveStatus' : IDL.Func([IDL.Principal, IDL.Bool], [], []),
-    'setHotelSubscriptionStatus' : IDL.Func(
-        [IDL.Principal, SubscriptionStatus],
-        [],
-        [],
-      ),
     'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
-    'updateBookingStatus' : IDL.Func([IDL.Nat, BookingStatus], [], []),
-    'updateHotelProfile' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Opt(IDL.Text),
-          IDL.Opt(IDL.Text),
-        ],
-        [],
-        [],
-      ),
-    'updateRoom' : IDL.Func(
-        [IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text)],
-        [RoomView],
-        [],
-      ),
-    'validateInviteToken' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+    'updateRoom' : IDL.Func([IDL.Nat, RoomInput], [RoomView], []),
   });
 };
 

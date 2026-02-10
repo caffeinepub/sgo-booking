@@ -1,7 +1,6 @@
-// Extended types that should be in backend.d.ts but are missing
-// These match the Motoko backend types defined in backend/main.mo
-
-import { Principal } from '@icp-sdk/core/principal';
+// Extended TypeScript interface definitions matching actual backend types
+import type { Principal } from '@icp-sdk/core/principal';
+import type { Time } from '../backend';
 
 export enum BookingStatus {
   pendingTransfer = 'pendingTransfer',
@@ -9,6 +8,27 @@ export enum BookingStatus {
   booked = 'booked',
   checkedIn = 'checkedIn',
   canceled = 'canceled',
+}
+
+export interface BookingRequest {
+  id: bigint;
+  status: BookingStatus;
+  hotelId: Principal | null;
+  roomId: bigint;
+  userId: Principal;
+  checkIn: bigint;
+  checkOut: bigint;
+  totalPrice: bigint;
+  guests: bigint;
+  timestamp: bigint;
+  paymentProof: string | null;
+  currency: string;
+  roomsCount: bigint;
+}
+
+export interface BookingQueryResult {
+  bookings: BookingRequest[];
+  totalCount: bigint;
 }
 
 export interface PaymentMethod {
@@ -44,51 +64,20 @@ export interface HotelDataView {
 export interface RoomView {
   id: bigint;
   hotelId: Principal;
-  roomNumber: string;
   roomType: string;
   pricePerNight: bigint;
+  promoPercent: bigint;
+  discountedPrice: bigint;
   currency: string;
   pictures: string[];
 }
 
-export interface BookingRequest {
-  id: bigint;
-  status: BookingStatus;
-  hotelId: Principal | null;
-  roomId: bigint;
-  userId: Principal;
-  checkIn: bigint;
-  checkOut: bigint;
-  totalPrice: bigint;
-  guests: bigint;
-  roomsCount: bigint;
-  timestamp: bigint;
-  paymentProof: string | null;
+export interface RoomInput {
+  roomType: string;
+  pricePerNight: bigint;
+  promoPercent: bigint;
   currency: string;
-}
-
-export interface BookingQueryResult {
-  bookings: BookingRequest[];
-  totalCount: bigint;
-}
-
-export interface InviteToken {
-  token: string;
-  isActive: boolean;
-  issuedBy: Principal;
-  issuedAt: bigint;
-  maxUses: bigint;
-  usageCount: bigint;
-  boundPrincipal: Principal | null;
-}
-
-export interface BookingQuery {
-  hotelId?: Principal | null;
-  status?: BookingStatus | null;
-  fromDate?: bigint | null;
-  toDate?: bigint | null;
-  minPrice?: bigint | null;
-  maxPrice?: bigint | null;
+  pictures: string[];
 }
 
 export interface UserProfile {
@@ -97,76 +86,12 @@ export interface UserProfile {
   phone: string | null;
 }
 
-export interface RoomQuery {
-  hotelId?: Principal | null;
-  minPrice?: bigint | null;
-  maxPrice?: bigint | null;
-  roomType?: string | null;
-  availableOnly?: boolean | null;
-}
-
-// Extended backend interface matching actual backend.d.ts methods
-export interface ExtendedBackendInterface {
-  // Auth & Profile
-  getCallerUserProfile(): Promise<UserProfile | null>;
-  saveCallerUserProfile(profile: UserProfile): Promise<void>;
-  makeMeAdmin(): Promise<void>;
-  
-  // Invite tokens
-  validateInviteToken(token: string): Promise<boolean>;
-  consumeInviteToken(token: string): Promise<boolean>;
-  createHotelInviteToken(maxUses: bigint, boundPrincipal: Principal | null): Promise<InviteToken>;
-  getInviteTokens(): Promise<InviteToken[]>;
-  
-  // Hotels
-  getHotels(): Promise<HotelDataView[]>;
-  getCallerHotelProfile(): Promise<HotelDataView | null>;
-  updateHotelProfile(
-    name: string,
-    location: string,
-    address: string,
-    mapLink: string,
-    whatsapp: string | null,
-    email: string | null
-  ): Promise<void>;
-  setHotelActiveStatus(hotelId: Principal, active: boolean): Promise<void>;
-  setHotelSubscriptionStatus(hotelId: Principal, status: SubscriptionStatus): Promise<void>;
-  activateHotelDirectly(hotelPrincipal: Principal): Promise<boolean>;
-  
-  // Payment methods
-  addPaymentMethod(name: string, details: string): Promise<void>;
-  removePaymentMethod(index: bigint): Promise<void>;
-  
-  // Rooms
-  getRooms(filters: RoomQuery): Promise<RoomView[]>;
-  createRoom(
-    roomNumber: string,
-    roomType: string,
-    pricePerNight: bigint,
-    currency: string,
-    pictures: string[]
-  ): Promise<RoomView>;
-  updateRoom(
-    roomId: bigint,
-    roomNumber: string,
-    roomType: string,
-    pricePerNight: bigint,
-    currency: string,
-    pictures: string[]
-  ): Promise<RoomView>;
-  
-  // Bookings
-  getBookings(filters: BookingQuery): Promise<BookingQueryResult>;
-  createBooking(
-    hotelId: Principal,
-    roomId: bigint,
-    checkIn: bigint,
-    checkOut: bigint,
-    guests: bigint,
-    roomsCount: bigint,
-    currency: string
-  ): Promise<bigint>;
-  setPaymentProof(bookingId: bigint, paymentProof: string): Promise<void>;
-  updateBookingStatus(bookingId: bigint, newStatus: BookingStatus): Promise<void>;
-  recordStayCompletion(bookingId: bigint): Promise<void>;
+export interface InviteToken {
+  token: string;
+  isActive: boolean;
+  issuedBy: Principal;
+  issuedAt: Time;
+  maxUses: bigint;
+  usageCount: bigint;
+  boundPrincipal: Principal | null;
 }

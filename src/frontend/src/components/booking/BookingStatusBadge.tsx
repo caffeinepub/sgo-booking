@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '../ui/badge';
-import { BookingStatus } from '../../backend';
+import { BookingStatus } from '../../types/extended-backend';
 
 interface BookingStatusBadgeProps {
   status: BookingStatus;

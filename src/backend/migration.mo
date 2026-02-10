@@ -1,18 +1,11 @@
-import List "mo:core/List";
 import Map "mo:core/Map";
-import Text "mo:core/Text";
-import Principal "mo:core/Principal";
 import Nat "mo:core/Nat";
-import InviteLinksModule "invite-links/invite-links-module";
-import AccessControl "authorization/access-control";
-import Int "mo:core/Int";
+import List "mo:core/List";
 import Time "mo:core/Time";
-import Float "mo:core/Float";
+import Principal "mo:core/Principal";
 
 module {
-  let DEPRECATED_GOAT_HOTEL_ID_TEXT = "opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae";
-
-  type BookingStatus = {
+  type OldBookingStatus = {
     #pendingTransfer;
     #paymentFailed;
     #booked;
@@ -20,23 +13,23 @@ module {
     #canceled;
   };
 
-  type PaymentMethod = {
+  type OldPaymentMethod = {
     name : Text;
     details : Text;
   };
 
-  type HotelContact = {
+  type OldHotelContact = {
     whatsapp : ?Text;
     email : ?Text;
   };
 
-  type SubscriptionStatus = {
+  type OldSubscriptionStatus = {
     #paid;
     #unpaid;
     #test;
   };
 
-  type HotelData = {
+  type OldHotelData = {
     id : Principal;
     name : Text;
     location : Text;
@@ -45,12 +38,12 @@ module {
     active : Bool;
     rooms : List.List<Nat>;
     bookings : List.List<Nat>;
-    paymentMethods : List.List<PaymentMethod>;
-    contact : HotelContact;
-    subscriptionStatus : SubscriptionStatus;
+    paymentMethods : List.List<OldPaymentMethod>;
+    contact : OldHotelContact;
+    subscriptionStatus : OldSubscriptionStatus;
   };
 
-  type Room = {
+  type OldRoom = {
     id : Nat;
     hotelId : Principal;
     roomNumber : Text;
@@ -60,9 +53,9 @@ module {
     pictures : [Text];
   };
 
-  type BookingRequest = {
+  type OldBookingRequest = {
     id : Nat;
-    status : BookingStatus;
+    status : OldBookingStatus;
     hotelId : ?Principal;
     roomId : Nat;
     userId : Principal;
@@ -76,7 +69,7 @@ module {
     roomsCount : Nat;
   };
 
-  type InviteToken = {
+  type OldInviteToken = {
     token : Text;
     isActive : Bool;
     issuedBy : Principal;
@@ -86,7 +79,7 @@ module {
     boundPrincipal : ?Principal;
   };
 
-  type Payment = {
+  type OldPayment = {
     paymentId : Nat;
     bookingId : Nat;
     amount : Float;
@@ -97,7 +90,7 @@ module {
     timestamp : Int;
   };
 
-  type UserProfile = {
+  type OldUserProfile = {
     name : Text;
     email : ?Text;
     phone : ?Text;
@@ -106,80 +99,145 @@ module {
   type OldActor = {
     nextBookingId : Nat;
     hasRunUpgradeCleanup : Bool;
-    hotelsList : List.List<HotelData>;
-    roomsMap : Map.Map<Nat, Room>;
-    bookingsMap : Map.Map<Nat, BookingRequest>;
-    userProfiles : Map.Map<Principal, UserProfile>;
-    inviteTokens : Map.Map<Text, InviteToken>;
-    payments : Map.Map<Nat, Payment>;
+    nextRoomId : Nat;
+    hotelsList : List.List<OldHotelData>;
+    roomsMap : Map.Map<Nat, OldRoom>;
+    bookingsMap : Map.Map<Nat, OldBookingRequest>;
+    userProfiles : Map.Map<Principal, OldUserProfile>;
+    inviteTokens : Map.Map<Text, OldInviteToken>;
+    payments : Map.Map<Nat, OldPayment>;
     directHotelActivations : Map.Map<Principal, Bool>;
     hotelOwners : Map.Map<Principal, Principal>;
-    nextRoomId : Nat;
-    accessControlState : AccessControl.AccessControlState;
-    inviteState : InviteLinksModule.InviteLinksSystemState;
+    legacyActiveHotels : List.List<Principal>;
+    legacyDeactivatedHotels : List.List<Principal>;
   };
 
-  type NewActor = OldActor;
+  type NewBookingStatus = {
+    #pendingTransfer;
+    #paymentFailed;
+    #booked;
+    #checkedIn;
+    #canceled;
+  };
+
+  type NewPaymentMethod = {
+    name : Text;
+    details : Text;
+  };
+
+  type NewHotelContact = {
+    whatsapp : ?Text;
+    email : ?Text;
+  };
+
+  type NewSubscriptionStatus = {
+    #paid;
+    #unpaid;
+    #test;
+  };
+
+  type NewHotelData = {
+    id : Principal;
+    name : Text;
+    location : Text;
+    address : Text;
+    mapLink : Text;
+    active : Bool;
+    rooms : List.List<Nat>;
+    bookings : List.List<Nat>;
+    paymentMethods : List.List<NewPaymentMethod>;
+    contact : NewHotelContact;
+    subscriptionStatus : NewSubscriptionStatus;
+  };
+
+  type NewRoom = {
+    id : Nat;
+    hotelId : Principal;
+    roomType : Text;
+    pricePerNight : Nat;
+    promoPercent : Nat;
+    discountedPrice : Nat;
+    currency : Text;
+    pictures : [Text];
+  };
+
+  type NewBookingRequest = {
+    id : Nat;
+    status : NewBookingStatus;
+    hotelId : ?Principal;
+    roomId : Nat;
+    userId : Principal;
+    checkIn : Int;
+    checkOut : Int;
+    totalPrice : Nat;
+    guests : Nat;
+    timestamp : Int;
+    paymentProof : ?Text;
+    currency : Text;
+    roomsCount : Nat;
+  };
+
+  type NewInviteToken = {
+    token : Text;
+    isActive : Bool;
+    issuedBy : Principal;
+    issuedAt : Time.Time;
+    maxUses : Nat;
+    usageCount : Nat;
+    boundPrincipal : ?Principal;
+  };
+
+  type NewPayment = {
+    paymentId : Nat;
+    bookingId : Nat;
+    amount : Float;
+    billNumber : Text;
+    currency : Text;
+    paymentProof : ?Text;
+    confirmed : Bool;
+    timestamp : Int;
+  };
+
+  type NewUserProfile = {
+    name : Text;
+    email : ?Text;
+    phone : ?Text;
+  };
+
+  type NewActor = {
+    nextBookingId : Nat;
+    hasRunUpgradeCleanup : Bool;
+    nextRoomId : Nat;
+    hotelsList : List.List<NewHotelData>;
+    roomsMap : Map.Map<Nat, NewRoom>;
+    bookingsMap : Map.Map<Nat, NewBookingRequest>;
+    userProfiles : Map.Map<Principal, NewUserProfile>;
+    inviteTokens : Map.Map<Text, NewInviteToken>;
+    payments : Map.Map<Nat, NewPayment>;
+    directHotelActivations : Map.Map<Principal, Bool>;
+    hotelOwners : Map.Map<Principal, Principal>;
+    legacyActiveHotels : List.List<Principal>;
+    legacyDeactivatedHotels : List.List<Principal>;
+  };
 
   public func run(old : OldActor) : NewActor {
-    let filteredHotels = old.hotelsList.filter(
-      func(hotel) { not (hotel.id.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) }
-    );
-
-    let filteredRooms = old.roomsMap.filter(
-      func(_id, room) { not (room.hotelId.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) }
-    );
-
-    let filteredBookings = old.bookingsMap.filter(
-      func(_id, booking) {
-        switch (booking.hotelId) {
-          case (?hotelId) { not (hotelId.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) };
-          case (null) { true };
-        }
+    let newRoomsMap = old.roomsMap.map<Nat, OldRoom, NewRoom>(
+      func(_id, oldRoom) {
+        {
+          id = oldRoom.id;
+          hotelId = oldRoom.hotelId;
+          roomType = oldRoom.roomType;
+          pricePerNight = oldRoom.pricePerNight;
+          promoPercent = 0; // default no promo on upgrade
+          discountedPrice = oldRoom.pricePerNight; // initially same as pricePerNight
+          currency = oldRoom.currency;
+          pictures = oldRoom.pictures;
+        };
       }
     );
-
-    let deprecatedBookingIds = old.bookingsMap.toArray().filter(
-      func((_, booking)) {
-        switch (booking.hotelId) {
-          case (?hotelId) { hotelId.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT };
-          case (null) { false };
-        }
-      }
-    ).map(func((bookingId, _)) { bookingId });
-
-    let filteredPayments = old.payments.filter(
-      func(_paymentId, payment) {
-        not deprecatedBookingIds.find(func(bookingId) { bookingId == payment.bookingId }).isSome()
-      }
-    );
-
-    let filteredInviteTokens = old.inviteTokens.filter(
-      func(_token, inviteToken) {
-        switch (inviteToken.boundPrincipal) {
-          case (?boundPrincipal) { not (boundPrincipal.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) };
-          case (null) { true };
-        }
-      }
-    );
-
-    let filteredActivations = old.directHotelActivations.filter(
-      func(hotelId, _status) { not (hotelId.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) }
-    );
-
-    let filteredOwners = old.hotelOwners.filter(
-      func(hotelId, _owner) { not (hotelId.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) }
-    );
-
     {
-      old with
-      hotelsList = filteredHotels;
-      roomsMap = filteredRooms;
-      bookingsMap = filteredBookings;
-      payments = filteredPayments;
-      inviteTokens = filteredInviteTokens;
-      directHotelActivations = filteredActivations;
-      hotelOwners = filteredOwners;
+      old with roomsMap = newRoomsMap;
     };
   };
 };
+

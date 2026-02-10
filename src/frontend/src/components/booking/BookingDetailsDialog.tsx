@@ -6,7 +6,7 @@ import { BookingStatusBadge } from './BookingStatusBadge';
 import { formatMoney } from '../../utils/money';
 import { Calendar, Users, Hotel, Eye, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import type { BookingRequest } from '../../backend';
+import type { BookingRequest } from '../../types/extended-backend';
 
 interface BookingDetailsDialogProps {
   booking: BookingRequest;

@@ -16,19 +16,11 @@ interface HotelActivationFormProps {
 
 export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
   const [token, setToken] = useState('');
-  const [validationResult, setValidationResult] = useState<boolean | null>(null);
+  const [validationStatus, setValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
+  const validateToken = useValidateInviteToken();
+  const consumeToken = useConsumeInviteToken();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  const validateMutation = useValidateInviteToken();
-  const consumeMutation = useConsumeInviteToken();
-
-  const handleTokenChange = (value: string) => {
-    setToken(value);
-    if (validationResult !== null) {
-      setValidationResult(null);
-    }
-  };
 
   const handleValidate = async () => {
     if (!token.trim()) {
@@ -37,16 +29,16 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
     }
 
     try {
-      const isValid = await validateMutation.mutateAsync(token.trim());
-      setValidationResult(isValid);
+      const isValid = await validateToken.mutateAsync(token.trim());
+      setValidationStatus(isValid ? 'valid' : 'invalid');
       if (isValid) {
-        toast.success('Token is valid! You can now activate your hotel account.');
+        toast.success('Token is valid');
       } else {
-        toast.error('Invalid or expired token. Please check and try again.');
+        toast.error('Token is invalid or expired');
       }
     } catch (error: any) {
-      setValidationResult(false);
-      toast.error('Failed to validate token: ' + (error.message || 'Unknown error'));
+      setValidationStatus('invalid');
+      toast.error(error.message || 'Failed to validate token');
     }
   };
 
@@ -57,45 +49,69 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
     }
 
     try {
-      await consumeMutation.mutateAsync(token.trim());
-      toast.success('Hotel account activated successfully! Redirecting...');
+      await consumeToken.mutateAsync(token.trim());
       
-      // Invalidate and refetch all relevant queries
-      await queryClient.invalidateQueries({ queryKey: ['callerUserRole'] });
-      await queryClient.invalidateQueries({ queryKey: ['isCurrentUserAdmin'] });
-      await queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
-      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+      // Wait for all queries to refetch
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['isCallerHotelActivated'] }),
+        queryClient.refetchQueries({ queryKey: ['callerHotelProfile'] }),
+        queryClient.refetchQueries({ queryKey: ['hotels'] }),
+        queryClient.refetchQueries({ queryKey: ['adminHotels'] }),
+      ]);
+
+      toast.success('Hotel account activated successfully!');
       
-      // Navigate to hotel area after a short delay
-      setTimeout(() => {
-        navigate({ to: '/hotel' });
-        if (onSuccess) {
-          onSuccess();
-        }
-      }, 1500);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        // Navigate to Hotel Area after successful activation
+        setTimeout(() => {
+          navigate({ to: '/hotel' });
+        }, 500);
+      }
     } catch (error: any) {
-      toast.error('Activation failed: ' + (error.message || 'Unknown error'));
+      toast.error(error.message || 'Failed to activate hotel account');
     }
   };
 
-  const isActivateDisabled = 
-    consumeMutation.isPending || 
-    !token.trim() || 
-    (validationResult !== null && !validationResult);
-
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
-        <div className="flex items-center gap-3 mb-2">
-          <Key className="h-6 w-6 text-primary" />
-          <CardTitle>Activate Hotel Account</CardTitle>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <Key className="h-5 w-5" />
+          Hotel Onboarding
+        </CardTitle>
         <CardDescription>
-          Enter the invite token provided by an administrator to activate your hotel account
+          Activate your hotel account to start managing your property
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {validationStatus === 'idle' && (
+          <Alert>
+            <AlertDescription>
+              Your account has hotel role but is not yet activated. Enter an invite token from an administrator to activate your hotel account.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {validationStatus === 'valid' && (
+          <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800 dark:text-green-200">
+              Token is valid and ready to use
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {validationStatus === 'invalid' && (
+          <Alert variant="destructive">
+            <XCircle className="h-4 w-4" />
+            <AlertDescription>
+              Token is invalid or expired
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="invite-token">Invite Token</Label>
           <Input
@@ -103,45 +119,24 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
             type="text"
             placeholder="Enter your invite token"
             value={token}
-            onChange={(e) => handleTokenChange(e.target.value)}
-            disabled={consumeMutation.isPending}
-            className="font-mono"
+            onChange={(e) => {
+              setToken(e.target.value);
+              setValidationStatus('idle');
+            }}
+            disabled={validateToken.isPending || consumeToken.isPending}
           />
-          <p className="text-sm text-muted-foreground">
-            The token is your principal ID provided by the administrator
-          </p>
         </div>
-
-        {validationResult !== null && (
-          <Alert className={validationResult ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}>
-            {validationResult ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">
-                  Token is valid and ready to use
-                </AlertDescription>
-              </>
-            ) : (
-              <>
-                <XCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800">
-                  Invalid or expired token. Please verify the token and try again.
-                </AlertDescription>
-              </>
-            )}
-          </Alert>
-        )}
 
         <div className="flex gap-2">
           <Button
-            onClick={handleValidate}
             variant="outline"
-            disabled={validateMutation.isPending || !token.trim()}
+            onClick={handleValidate}
+            disabled={!token.trim() || validateToken.isPending || consumeToken.isPending}
             className="flex-1"
           >
-            {validateMutation.isPending ? (
+            {validateToken.isPending ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Validating...
               </>
             ) : (
@@ -150,28 +145,19 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
           </Button>
           <Button
             onClick={handleActivate}
-            disabled={isActivateDisabled}
+            disabled={!token.trim() || consumeToken.isPending}
             className="flex-1"
           >
-            {consumeMutation.isPending ? (
+            {consumeToken.isPending ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Activating...
               </>
             ) : (
-              <>
-                <Key className="h-4 w-4 mr-2" />
-                Activate Hotel Account
-              </>
+              'Activate Hotel'
             )}
           </Button>
         </div>
-
-        <Alert>
-          <AlertDescription className="text-sm">
-            <strong>Note:</strong> After activation, you'll be able to manage your hotel profile, add rooms, and handle bookings.
-          </AlertDescription>
-        </Alert>
       </CardContent>
     </Card>
   );

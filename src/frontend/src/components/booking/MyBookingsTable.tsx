@@ -13,16 +13,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog';
-import { useGetBookings, useGetHotels, useCancelBooking } from '../../hooks/useQueries';
+import { useGetCallerBookings, useGetHotels, useCancelBooking } from '../../hooks/useQueries';
 import { BookingStatusBadge } from './BookingStatusBadge';
 import { BookingDetailsDialog } from './BookingDetailsDialog';
-import { BookingStatus } from '../../backend';
+import { BookingStatus } from '../../types/extended-backend';
 import { formatMoney } from '../../utils/money';
 import { Calendar, Users, Hotel, AlertCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function MyBookingsTable() {
-  const { data: bookingResult, isLoading, error } = useGetBookings();
+  const { data: bookingResult, isLoading, error } = useGetCallerBookings();
   const { data: hotels } = useGetHotels();
   const cancelBooking = useCancelBooking();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);

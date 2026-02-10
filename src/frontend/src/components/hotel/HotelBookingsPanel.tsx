@@ -13,20 +13,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog';
-import { useGetBookings, useUpdateBookingStatus, useGetCallerHotelProfile, useCancelBooking } from '../../hooks/useQueries';
+import { useGetHotelBookings, useConfirmBooking, useGetCallerHotelProfile, useCancelBooking } from '../../hooks/useQueries';
 import { BookingStatusBadge } from '../booking/BookingStatusBadge';
 import { BookingDetailsDialog } from '../booking/BookingDetailsDialog';
-import { BookingStatus } from '../../backend';
+import { BookingStatus } from '../../types/extended-backend';
 import { formatMoney } from '../../utils/money';
 import { Calendar, Users, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function HotelBookingsPanel() {
   const { data: hotelProfile } = useGetCallerHotelProfile();
-  const { data: bookingResult, isLoading, error } = useGetBookings(
-    hotelProfile ? { hotelId: hotelProfile.id } : {}
-  );
-  const updateStatus = useUpdateBookingStatus();
+  const { data: bookingResult, isLoading, error } = useGetHotelBookings();
+  const confirmBooking = useConfirmBooking();
   const cancelBooking = useCancelBooking();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState<bigint | null>(null);
@@ -35,10 +33,7 @@ export function HotelBookingsPanel() {
 
   const handleConfirmBooking = async (bookingId: bigint) => {
     try {
-      await updateStatus.mutateAsync({
-        bookingId,
-        newStatus: BookingStatus.booked,
-      });
+      await confirmBooking.mutateAsync(bookingId);
       toast.success('Booking confirmed successfully');
     } catch (error: any) {
       console.error('Failed to confirm booking:', error);
@@ -146,7 +141,6 @@ export function HotelBookingsPanel() {
                       <TableHead>Check-out</TableHead>
                       <TableHead>Guests</TableHead>
                       <TableHead>Total</TableHead>
-                      <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -178,14 +172,11 @@ export function HotelBookingsPanel() {
                           {formatMoney(booking.totalPrice, booking.currency)}
                         </TableCell>
                         <TableCell>
-                          <BookingStatusBadge status={booking.status} />
-                        </TableCell>
-                        <TableCell>
                           <div className="flex items-center gap-2">
                             <Button
                               size="sm"
                               onClick={() => handleConfirmBooking(booking.id)}
-                              disabled={updateStatus.isPending}
+                              disabled={confirmBooking.isPending}
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Confirm
@@ -199,7 +190,7 @@ export function HotelBookingsPanel() {
                               <XCircle className="h-4 w-4 mr-1" />
                               Cancel
                             </Button>
-                            <BookingDetailsDialog booking={booking} showGuestPrincipal />
+                            <BookingDetailsDialog booking={booking} />
                           </div>
                         </TableCell>
                       </TableRow>
@@ -275,7 +266,7 @@ export function HotelBookingsPanel() {
                               Cancel
                             </Button>
                           )}
-                          <BookingDetailsDialog booking={booking} showGuestPrincipal />
+                          <BookingDetailsDialog booking={booking} />
                         </div>
                       </TableCell>
                     </TableRow>

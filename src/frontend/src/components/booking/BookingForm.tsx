@@ -10,7 +10,7 @@ import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { formatMoney } from '../../utils/money';
 import { Calendar, Users, Hotel, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import type { RoomView, HotelDataView, BookingRequest } from '../../backend';
+import type { RoomView, HotelDataView, BookingRequest } from '../../types/extended-backend';
 
 interface BookingFormProps {
   hotel: HotelDataView;
@@ -40,7 +40,9 @@ export function BookingForm({ hotel, room }: BookingFormProps) {
   const calculateTotalPrice = () => {
     const nights = calculateNights();
     const rooms = parseInt(roomsCount) || 1;
-    return BigInt(Number(room.pricePerNight) * nights * rooms);
+    // Use discounted price for calculation
+    const pricePerNight = room.promoPercent > BigInt(0) ? room.discountedPrice : room.pricePerNight;
+    return BigInt(Number(pricePerNight) * nights * rooms);
   };
 
   const validateForm = () => {
@@ -168,14 +170,13 @@ export function BookingForm({ hotel, room }: BookingFormProps) {
 
   const nights = calculateNights();
   const totalPrice = calculateTotalPrice();
+  const pricePerNight = room.promoPercent > BigInt(0) ? room.discountedPrice : room.pricePerNight;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Book This Room</CardTitle>
-        <CardDescription>
-          {room.roomType} - Room {room.roomNumber}
-        </CardDescription>
+        <CardDescription>{room.roomType}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -245,7 +246,7 @@ export function BookingForm({ hotel, room }: BookingFormProps) {
               <div className="space-y-2 bg-muted p-3 rounded-lg">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Price per night:</span>
-                  <span className="font-medium">{formatMoney(room.pricePerNight, room.currency)}</span>
+                  <span className="font-medium">{formatMoney(pricePerNight, room.currency)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Number of nights:</span>

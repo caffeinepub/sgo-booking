@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useGetCallerHotelProfile } from '../hooks/useQueries';
+import { useGetCallerHotelProfile, useIsCallerHotelActivated } from '../hooks/useQueries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Button } from '../components/ui/button';
-import { Building2, AlertCircle, Home, User } from 'lucide-react';
+import { Building2, AlertCircle, Home, User, Lock } from 'lucide-react';
 import { HotelProfilePanel } from '../components/hotel/HotelProfilePanel';
 import { RoomsPanel } from '../components/hotel/RoomsPanel';
 import { HotelPaymentMethodsPanel } from '../components/hotel/HotelPaymentMethodsPanel';
@@ -14,9 +14,13 @@ import { SubscriptionPanel } from '../components/hotel/SubscriptionPanel';
 import { useNavigate } from '@tanstack/react-router';
 
 export function HotelAreaPage() {
-  const { data: hotelProfile, isLoading, isError } = useGetCallerHotelProfile();
+  const { data: hotelProfile, isLoading: profileLoading, isFetched: profileFetched } = useGetCallerHotelProfile();
+  const { data: isActivated, isLoading: activationLoading, isFetched: activationFetched } = useIsCallerHotelActivated();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
+
+  const isLoading = profileLoading || activationLoading;
+  const isFetched = profileFetched && activationFetched;
 
   if (isLoading) {
     return (
@@ -31,7 +35,46 @@ export function HotelAreaPage() {
     );
   }
 
-  if (isError || !hotelProfile) {
+  // Check if hotel is deactivated by admin
+  if (isFetched && isActivated === false) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <Lock className="h-6 w-6 text-destructive" />
+              <CardTitle>Hotel Account Disabled</CardTitle>
+            </div>
+            <CardDescription>
+              Your hotel account has been deactivated by an administrator.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Access Restricted</AlertTitle>
+              <AlertDescription>
+                Your hotel account is currently inactive. This may be due to subscription payment issues or administrative action. Please contact an administrator to reactivate your account.
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate({ to: '/account' })} variant="outline" className="gap-2">
+                <User className="h-4 w-4" />
+                View Account Status
+              </Button>
+              <Button onClick={() => navigate({ to: '/' })} variant="ghost" className="gap-2">
+                <Home className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check if profile not found (shouldn't happen after activation, but handle gracefully)
+  if (isFetched && !hotelProfile) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto">

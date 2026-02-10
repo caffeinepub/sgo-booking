@@ -2,14 +2,14 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Alert, AlertDescription } from '../ui/alert';
-import { useGetBookings, useGetHotels } from '../../hooks/useQueries';
+import { useGetAllBookings, useGetHotels } from '../../hooks/useQueries';
 import { BookingStatusBadge } from '../booking/BookingStatusBadge';
 import { BookingDetailsDialog } from '../booking/BookingDetailsDialog';
 import { formatMoney } from '../../utils/money';
 import { Calendar, Users, Hotel, AlertCircle } from 'lucide-react';
 
 export function AdminBookingsPanel() {
-  const { data: bookingResult, isLoading, error } = useGetBookings();
+  const { data: bookingResult, isLoading, error } = useGetAllBookings();
   const { data: hotels } = useGetHotels();
 
   const bookings = bookingResult?.bookings || [];

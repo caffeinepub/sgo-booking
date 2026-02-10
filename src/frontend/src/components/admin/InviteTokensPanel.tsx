@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Plus, Copy, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Principal } from '@icp-sdk/core/principal';
-import type { InviteToken } from '../../backend';
+import type { InviteToken } from '../../types/extended-backend';
 
 export function InviteTokensPanel() {
   const { data: tokens, isLoading } = useGetInviteTokens();
@@ -96,46 +96,38 @@ export function InviteTokensPanel() {
             </Label>
             <Input
               id="hotelPrincipal"
-              type="text"
               value={hotelPrincipal}
               onChange={(e) => handlePrincipalChange(e.target.value)}
-              placeholder="Enter hotel's Internet Identity Principal"
+              placeholder="e.g., xxxxx-xxxxx-xxxxx-xxxxx-xxx"
               className={principalError ? 'border-destructive' : ''}
             />
             {principalError && <p className="text-sm text-destructive mt-1">{principalError}</p>}
           </div>
 
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
-              <Label htmlFor="maxUses">Max Uses</Label>
-              <Input
-                id="maxUses"
-                type="number"
-                min="1"
-                value={maxUses}
-                onChange={(e) => setMaxUses(e.target.value)}
-                placeholder="1"
-              />
-            </div>
-            <Button
-              onClick={handleGenerateToken}
-              disabled={createToken.isPending || !hotelPrincipal.trim() || !!principalError}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Generate Token
-            </Button>
+          <div>
+            <Label htmlFor="maxUses">Max Uses</Label>
+            <Input
+              id="maxUses"
+              type="number"
+              min="1"
+              value={maxUses}
+              onChange={(e) => setMaxUses(e.target.value)}
+            />
           </div>
+
+          <Button onClick={handleGenerateToken} disabled={createToken.isPending || !!principalError} className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            {createToken.isPending ? 'Generating...' : 'Generate Token'}
+          </Button>
         </div>
 
         {isLoading ? (
-          <div className="text-center py-8">
-            <div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Loading tokens...</p>
+          <div className="flex items-center justify-center py-8">
+            <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : tokensList.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            <p>No invite tokens yet. Generate one to get started.</p>
+            <p>No tokens generated yet.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -143,7 +135,6 @@ export function InviteTokensPanel() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Token</TableHead>
-                  <TableHead>Bound Principal</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Usage</TableHead>
                   <TableHead>Actions</TableHead>
@@ -152,29 +143,20 @@ export function InviteTokensPanel() {
               <TableBody>
                 {tokensList.map((token) => (
                   <TableRow key={token.token}>
-                    <TableCell className="font-mono text-sm max-w-xs truncate">{token.token}</TableCell>
-                    <TableCell className="font-mono text-xs max-w-xs truncate">
-                      {token.boundPrincipal ? token.boundPrincipal.toString() : (
-                        <span className="text-muted-foreground italic">Unbound (legacy)</span>
-                      )}
+                    <TableCell className="font-mono text-sm max-w-xs truncate">
+                      {token.token}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={token.isActive && token.usageCount < token.maxUses ? 'default' : 'secondary'}>
-                        {token.usageCount >= token.maxUses ? 'Used' : 'Available'}
+                      <Badge variant={token.isActive ? 'default' : 'secondary'}>
+                        {token.isActive ? 'Active' : 'Used'}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       {token.usageCount.toString()} / {token.maxUses.toString()}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyToken(token.token)}
-                        className="gap-1"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => handleCopyToken(token.token)}>
                         <Copy className="h-4 w-4" />
-                        Copy Token
                       </Button>
                     </TableCell>
                   </TableRow>

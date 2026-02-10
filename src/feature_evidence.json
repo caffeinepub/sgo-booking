@@ -2,10 +2,39 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-hotel-dashboard-access-is-blocked-after-a-purge-until-the-hotel-re-registers-and-is-activated-again-by-admin-invite-token-consumption",
-      "featureTitle": "Ensure hotel dashboard access is blocked after a purge until the hotel re-registers and is activated again by admin invite token consumption.",
+      "featureId": "feature-remove-the-room-number-field-from-the-hotel-room-data-model-end-to-end-backend-frontend-so-rooms-are-identified-without-any-stored-roomnumber-and-no-unused-legacy-roomnumber-data-remains-in-canister-state",
+      "featureTitle": "Remove the \"Room Number\" field from the hotel room data model end-to-end (backend + frontend), so rooms are identified without any stored roomNumber and no unused/legacy roomNumber data remains in canister state.",
       "files": [
-        "frontend/src/App.tsx"
+        "frontend/src/components/booking/BookingForm.tsx",
+        "frontend/src/components/hotel/RoomPhotosSection.tsx",
+        "frontend/src/components/hotel/RoomsPanel.tsx",
+        "frontend/src/pages/HotelDetailPage.tsx",
+        "frontend/src/types/extended-backend.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-numeric-promo-percentage-field-to-rooms-0-100-and-automatically-calculate-the-discounted-nightly-price-from-the-base-price-and-promo-percentage-display-and-use-the-discounted-price-consistently-in-hotel-room-management-and-guest-booking-flows",
+      "featureTitle": "Add a numeric promo percentage field to rooms (0–100) and automatically calculate the discounted nightly price from the base price and promo percentage; display and use the discounted price consistently in hotel room management and guest booking flows.",
+      "files": [
+        "frontend/src/components/booking/BookingForm.tsx",
+        "frontend/src/components/hotel/RoomsPanel.tsx",
+        "frontend/src/pages/HotelDetailPage.tsx",
+        "frontend/src/types/extended-backend.ts",
+        "frontend/src/utils/roomPricing.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -23,12 +52,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-an-admin-panel-ui-action-to-run-the-full-principal-purge-safely-with-explicit-confirmation-and-refresh-affected-cached-queries-so-the-ui-immediately-reflects-the-deletion",
-      "featureTitle": "Add an Admin Panel UI action to run the full principal purge safely (with explicit confirmation) and refresh affected cached queries so the UI immediately reflects the deletion.",
+      "featureId": "feature-add-edit-and-delete-actions-for-each-room-entry-in-the-hotel-rooms-list-allowing-the-hotel-owner-to-update-or-remove-a-room-without-impacting-other-existing-dashboards-features",
+      "featureTitle": "Add Edit and Delete actions for each room entry in the hotel \"Rooms\" list, allowing the hotel owner to update or remove a room without impacting other existing dashboards/features.",
       "files": [
-        "frontend/src/components/admin/PrincipalPurgePanel.tsx",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/pages/AdminPanelPage.tsx"
+        "frontend/src/components/hotel/RoomsPanel.tsx",
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -46,11 +74,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-regression-checks-and-guardrails-to-prevent-runtime-errors-or-cross-feature-breakage-after-introducing-purge-behavior",
-      "featureTitle": "Add regression checks and guardrails to prevent runtime errors or cross-feature breakage after introducing purge behavior.",
+      "featureId": "feature-add-edit-delete-controls-for-each-uploaded-room-photo-each-picture-item-so-hotel-owners-can-remove-individual-photos-and-optionally-replace-a-specific-photo-with-changes-persisted-to-the-backend-room-pictures-array",
+      "featureTitle": "Add Edit/Delete controls for each uploaded room photo (each picture item), so hotel owners can remove individual photos and optionally replace a specific photo, with changes persisted to the backend room pictures array.",
       "files": [
-        "frontend/REGRESSION_CHECKLIST.md",
-        "frontend/src/pages/BrowseHotelsPage.tsx"
+        "frontend/src/components/hotel/RoomPhotosSection.tsx",
+        "frontend/src/components/hotel/RoomsPanel.tsx",
+        "frontend/src/pages/HotelDetailPage.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -64,6 +93,29 @@
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-frontend-room-management-components-and-hooks-to-match-the-new-room-schema-no-roomnumber-includes-promopercent-and-discounted-price-display-specifically-updating-the-existing-hotel-room-management-ui-implementation-in-frontend-src-components-hotel-roomspanel-tsx-and-related-query-hooks",
+      "featureTitle": "Update frontend room management components and hooks to match the new room schema (no roomNumber; includes promoPercent and discounted-price display), specifically updating the existing hotel room management UI implementation in frontend/src/components/hotel/RoomsPanel.tsx and related query hooks.",
+      "files": [
+        "frontend/src/components/hotel/RoomsPanel.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/types/extended-backend.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

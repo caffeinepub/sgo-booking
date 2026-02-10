@@ -1,64 +1,81 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T00:21:55.688Z",
-  "summary": "The diff adds an Admin UI purge panel and client-side cache invalidation, plus stronger hotel-area activation gating and several defensive UI/error-state improvements. However, the backend admin-only purge API and backend-side activation/ownership/token cleanup behavior are not clearly evidenced in the provided backend diff (main.mo is truncated), and an unrequested automatic migration-based purge for the hardcoded principal appears to have been added.",
+  "generatedAt": "2026-02-10T13:36:54.409Z",
+  "summary": "Diff implements core room schema changes (roomNumber removed; promoPercent/discountedPrice added) and updates guest booking calculation to use discounted price. Room photo gallery adds per-photo delete/replace controls. However, evidence is insufficient that photo delete/replace persists to backend, and many unrelated admin/auth/layout/style changes were introduced despite the request to focus only on room upload/schema changes.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Add a backend admin-only API to fully purge (hard-delete) all data associated with the specified hotel Principal ID without affecting other principals’ data, including deleting hotel profile, rooms, bookings/payments, activation/ownership mappings, and invite tokens bound to that principal.",
-      "reason": "The diff shows a new frontend hook calling `adminDeleteHotelData` and a UI panel to trigger it, but the backend diff snippet for `backend/main.mo` does not include evidence of a new public/admin method implementing the purge, nor explicit deletion of hotels/rooms/bookings/payments/activation/token mappings at call time. The added `backend/migration.mo` performs filtering during upgrade for the hardcoded principal, which is not the same as an admin API.",
+      "id": "REQ-4",
+      "requirement": "Persist room photo delete/replace to backend (update the room’s pictures array) and update UI after success so guest-facing photos reflect changes.",
+      "reason": "RoomPhotosSection exposes onPhotoDelete/onPhotoReplace callbacks and renders Delete/Replace buttons, but the diff summary does not show any wiring in RoomsPanel (or elsewhere) that calls a backend update/mutation to persist the modified pictures array, nor query invalidation/refetch after success.",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts (mentions new useAdminPurgeHotelData calling adminDeleteHotelData in summary)",
-        "frontend/src/components/admin/PrincipalPurgePanel.tsx (invokes useAdminPurgeHotelData)",
-        "backend/main.mo (truncated; no purge API evidenced in shown portion)",
-        "backend/migration.mo (implements upgrade-time filtering for the hardcoded principal, not an API call)"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Ensure backend activation checks return false after purge and the purged principal must re-register and be re-activated via a new admin invite token consumption.",
-      "reason": "Frontend route gating was updated to require hotel activation for the Hotel Area, but the diff does not provide clear backend evidence that purge removes activation/ownership mappings and that `isCallerHotelActivated()` will return false after the purge operation (backend changes are truncated and migration-based filtering is not equivalent to an admin-triggered purge).",
-      "evidence": [
-        "frontend/src/App.tsx (RequireRole requireHotelActivation=true for /hotel)",
-        "frontend-file-summaries.txt (mentions RequireRole uses useIsCallerHotelActivated; activation gating)",
-        "backend/main.mo (truncated; activation/purge linkage not evidenced)",
-        "backend/migration.mo (only upgrade-time cleanup is visible)"
+        "frontend/src/components/hotel/RoomPhotosSection.tsx",
+        "frontend/src/components/hotel/RoomsPanel.tsx (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Automatic upgrade-time migration that purges the hardcoded deprecated hotel principal by filtering hotels/rooms/bookings/payments/invite tokens during canister upgrade.",
-      "reason": "The BuildRequest asks for an admin-only API to purge on demand and enforce re-registration/activation; it does not request an automatic migration that deletes data during upgrade. This adds destructive behavior outside the requested admin-triggered flow.",
+      "description": "Added/modified extensive admin panel UI and management features (hotel visibility control, bookings overview UI changes, invite token management UI changes, principal purge panel).",
+      "reason": "BuildRequest explicitly constrained scope to room upload/schema changes and requested not to change unrelated admin/activation flows beyond necessity; these additions/changes are not requested by REQ-1..REQ-6.",
       "evidence": [
-        "backend/migration.mo (filters out DEPRECATED_GOAT_HOTEL_ID_TEXT across hotelsList/roomsMap/bookingsMap/payments/inviteTokens, etc.)",
-        "backend/main.mo (adds `import Migration \"migration\";` and `(with migration = Migration.run)` indicating migration is used)"
+        "frontend/src/components/admin/AdminBookingsPanel.tsx",
+        "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+        "frontend/src/components/admin/InviteTokensPanel.tsx",
+        "frontend/src/components/admin/PrincipalPurgePanel.tsx",
+        "frontend/src/pages/AdminPanelPage.tsx (mentioned in frontend-file-summaries.txt)"
       ]
     },
     {
-      "description": "Changes to global styling, HTML metadata, language selector/locale context, build versioning, and other unrelated UI content not directly required for the purge feature.",
-      "reason": "These items are not part of REQ-1..REQ-4 and go beyond the requested purge API/UI action and guardrails.",
+      "description": "Introduced/changed profile completion gating UX (new dialog/flow requiring profile completion).",
+      "reason": "Not part of requested room management/schema changes; BuildRequest non-goals include avoiding redesigning unrelated flows.",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/src/index.css, frontend/index.html, frontend/src/i18n/LocaleContext.tsx, frontend/src/components/nav/LanguageSelector.tsx, frontend/src/buildInfo.ts)"
+        "frontend/src/components/auth/ProfileCompletionGate.tsx",
+        "frontend/src/App.tsx (routes wrapped with ProfileCompletionGate)"
+      ]
+    },
+    {
+      "description": "Significant routing and navigation restructuring using TanStack Router and changes to protected route gating.",
+      "reason": "Not requested by REQ-1..REQ-6 and outside the stated scope to focus on room upload/schema changes.",
+      "evidence": [
+        "frontend/src/App.tsx",
+        "frontend/src/pages/HotelAreaPage.tsx (mentioned in frontend-file-summaries.txt)",
+        "frontend/src/components/nav/TopNav.tsx (mentioned in frontend-file-summaries.txt)"
+      ]
+    },
+    {
+      "description": "Global styling/theme changes (OKLCH color system, accent color changes, etc.) and build version display updates.",
+      "reason": "Not requested; unrelated to room schema/upload changes.",
+      "evidence": [
+        "frontend/src/index.css (mentioned in frontend-file-summaries.txt)",
+        "frontend/src/buildInfo.ts (mentioned in frontend-file-summaries.txt)",
+        "frontend/src/components/layout/AppShell.tsx (mentioned in frontend-file-summaries.txt)"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.67,
   "changed_files": [
     "backend/main.mo",
     "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/REGRESSION_CHECKLIST.md",
     "frontend/src/App.tsx",
     "frontend/src/components/admin/AdminBookingsPanel.tsx",
+    "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+    "frontend/src/components/admin/InviteTokensPanel.tsx",
     "frontend/src/components/admin/PrincipalPurgePanel.tsx",
+    "frontend/src/components/auth/ProfileCompletionGate.tsx",
+    "frontend/src/components/booking/BookingDetailsDialog.tsx",
+    "frontend/src/components/booking/BookingForm.tsx",
+    "frontend/src/components/booking/BookingStatusBadge.tsx",
     "frontend/src/components/booking/MyBookingsTable.tsx",
     "frontend/src/components/hotel/HotelBookingsPanel.tsx",
-    "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
+    "frontend/src/components/hotel/RoomPhotosSection.tsx",
+    "frontend/src/components/hotel/RoomsPanel.tsx",
+    "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AdminPanelPage.tsx",
-    "frontend/src/pages/BrowseHotelsPage.tsx",
+    "frontend/src/pages/HotelDetailPage.tsx",
+    "frontend/src/types/extended-backend.ts",
+    "frontend/src/utils/roomPricing.ts",
     "project_state.json"
   ]
 }

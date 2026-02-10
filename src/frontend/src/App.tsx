@@ -9,7 +9,7 @@ import { MyBookingsPage } from './pages/MyBookingsPage';
 import { AccountStatusPage } from './pages/AccountStatusPage';
 import { HotelAreaPage } from './pages/HotelAreaPage';
 import AdminPanelPage from './pages/AdminPanelPage';
-import HotelDetailPage from './pages/HotelDetailPage';
+import { HotelDetailPage } from './pages/HotelDetailPage';
 import { RequireAuth } from './components/auth/RequireAuth';
 import { RequireRole } from './components/auth/RequireRole';
 import { ProfileCompletionGate } from './components/auth/ProfileCompletionGate';

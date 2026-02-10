@@ -1,119 +1,156 @@
 {
   "kind": "build_request",
-  "title": "Admin purge of all data for a specific hotel Principal ID and enforce re-registration + activation",
-  "priority": "high",
+  "title": "Simplify room management: remove Room Number, add promo pricing, and enable edit/delete for rooms and room photos",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a backend admin-only API to fully purge (hard-delete) all data associated with the hotel Principal ID `opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae` without affecting any other principals’ data.",
-      "target": "backend",
+      "text": "Remove the \"Room Number\" field from the hotel room data model end-to-end (backend + frontend), so rooms are identified without any stored roomNumber and no unused/legacy roomNumber data remains in canister state.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-3",
+          "msg-5",
+          "msg-10"
         ],
         "quotes": [
-          "sekarang begini saja semua yang menyangkut principle id (opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj_qnpbc-gae) hapus total. dari sistem ini.",
-          "Buat akun hotel tidak bisa lagi mempunyai akses ke dashboard hotel keculi melakukan aktivasi lagi admin.",
-          "Buay kosong saja semua database dari principle id yang saja kasih"
+          "sekarang untuk upload foto kamar dan deskripsinya, itu ada nomor room, di hapus saja.",
+          "Ya struktur di backend juga di hapus untuk Room Number. jadi tidak ada sampah di database yang tidak gunakan.",
+          "fokus ke yang saya minta. Jangan ganggu fitur-fitur yang lain yang sudah berjalan normal"
         ]
       },
       "acceptanceCriteria": [
-        "Calling the purge API as an admin removes the hotel profile entry for the target principal from backend storage.",
-        "All rooms belonging to the target principal are deleted from backend room storage and no longer appear in any guest/admin/hotel queries.",
-        "All hotel-owned payment methods and contact data for the target principal are removed (by virtue of deleting the hotel record).",
-        "All activation/ownership mappings for the target principal are removed (e.g., direct activation flags and owner mappings).",
-        "All invite tokens that are bound to the target principal (and/or used to activate that principal) are removed/invalidated so they cannot re-activate the old account.",
-        "Any bookings/payments that reference the target hotel principal are deleted or made inaccessible such that no UI path can render them as valid data (no orphan/ghost records returned from queries).",
-        "The purge operation does not delete or modify hotels/rooms/bookings belonging to any other principal IDs.",
-        "The purge API is protected by the same admin authorization used by existing admin methods (non-admin callers receive an authorization error)."
+        "The Add/Edit Room dialog no longer shows a \"Room Number\" input (screenshot-highlighted field removed).",
+        "Backend Room/RoomView types no longer contain a roomNumber field.",
+        "Frontend types (e.g., RoomView) no longer contain roomNumber.",
+        "All backend methods and frontend hooks that previously accepted/returned roomNumber are updated accordingly and compile successfully.",
+        "Existing room data from previous deployments is safely handled on upgrade (no traps due to missing/extra fields), and legacy roomNumber values are discarded."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure hotel dashboard access is blocked after a purge until the hotel re-registers and is activated again by admin invite token consumption.",
+      "text": "Add a numeric promo percentage field to rooms (0–100) and automatically calculate the discounted nightly price from the base price and promo percentage; display and use the discounted price consistently in hotel room management and guest booking flows.",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-9"
+          "msg-5",
+          "msg-10"
         ],
         "quotes": [
-          "ketika hotel belum melakukan aktivasi ke admin, dashboard hotel tidak bisa di akses, kecuali sudah melakukan aktivasi ke andmin",
-          "hotel harus daftar ulang yang di lakukan hotel itu sendiri."
+          "untuk promo kamar angka saja, jadi misal nya harga kamar 500 ribu, promo 20% maka langsung di hitung otomatis setelah di potong promo.",
+          "fokus ke yang saya minta. Jangan ganggu fitur-fitur yang lain yang sudah berjalan normal"
         ]
       },
       "acceptanceCriteria": [
-        "After the purge, logging in as the purged hotel principal cannot access Hotel Area routes; the user is shown the existing Access Denied flow requiring activation.",
-        "After the purge, the purged principal is not considered “activated” by backend logic (activation checks return false).",
-        "After admin generates a NEW invite token for the same principal and the hotel consumes it, the hotel can access Hotel Area again and can create a new hotel profile (re-registration).",
-        "Existing guest flows (browse hotels, view hotel detail, create booking, view my bookings) continue to function for other hotels without errors."
+        "Room create/edit UI includes a required/visible Promo (%) numeric input (allow 0, max 100).",
+        "When promo is entered, the UI shows the computed discounted price (basePrice minus promo%) before saving.",
+        "Room data stored in the backend includes promoPercent and retains the base price; the discounted price is computed deterministically (no floating rounding inconsistencies).",
+        "Guest-facing room displays and booking price calculations use the discounted nightly price (not the base price) whenever promoPercent > 0.",
+        "Promo validation prevents values outside 0–100 and prevents negative/zero base price."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add an Admin Panel UI action to run the full principal purge safely (with explicit confirmation) and refresh affected cached queries so the UI immediately reflects the deletion.",
-      "target": "frontend",
+      "text": "Add Edit and Delete actions for each room entry in the hotel \"Rooms\" list, allowing the hotel owner to update or remove a room without impacting other existing dashboards/features.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1",
+          "msg-3",
+          "msg-5",
           "msg-10"
         ],
         "quotes": [
-          "hapus total saja.",
-          "build sekarang dan jangan sampai error dan mengganggu fitur-fitur yang lain ayang sudah berjalan."
+          "tambahkan juga tombol edit dan delete. Jadi hotel bisa edit dan delete.",
+          "Tombol edit dan delete tampilkan di setiap foto yang di upload...",
+          "fokus ke yang saya minta. Jangan ganggu fitur-fitur yang lain yang sudah berjalan normal"
         ]
       },
       "acceptanceCriteria": [
-        "Admin UI provides an input for a hotel Principal ID and a destructive purge button that requires a clear confirmation step (e.g., typing the principal or a confirmation phrase) before executing.",
-        "On success, the UI invalidates/refetches relevant React Query caches (at minimum hotels list, invite tokens list, admin bookings views, and any hotel-profile queries) so removed data disappears without requiring a hard refresh.",
-        "On failure, the UI shows a user-friendly error message and does not crash the app.",
-        "Non-admin users cannot see or use the purge UI (consistent with existing admin route/role gating)."
+        "Each room card in the hotel Rooms list shows an Edit button (existing) and a Delete button.",
+        "Delete prompts a confirmation before removing.",
+        "Deleting a room removes it from the hotel profile rooms list and room storage in the backend.",
+        "After delete/update, relevant queries are invalidated/refetched so the UI updates without a hard refresh.",
+        "Non-room features (profile, payments, bookings, admin panels) remain functional (no route/component breakage)."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Add regression checks and guardrails to prevent runtime errors or cross-feature breakage after introducing purge behavior.",
+      "text": "Add Edit/Delete controls for each uploaded room photo (each picture item), so hotel owners can remove individual photos and optionally replace a specific photo, with changes persisted to the backend room pictures array.",
       "target": "both",
       "source": {
         "messageIds": [
+          "msg-5",
           "msg-10"
         ],
         "quotes": [
-          "jangan sampai error dan mengganggu fitur-fitur yang lain ayang sudah berjalan."
+          "Tombol edit dan delete tampilkan di setiap foto yang di upload... jadi setiap satu upload foto ada tombol edit dan delete.",
+          "fokus ke yang saya minta. Jangan ganggu fitur-fitur yang lain yang sudah berjalan normal"
         ]
       },
       "acceptanceCriteria": [
-        "Guest Browse Hotels page renders successfully after purge and does not show placeholder/ghost rooms for any hotel.",
-        "Admin Invite Tokens panel renders and works after purge (can still generate/copy tokens for other principals).",
-        "Hotel activation flow still works end-to-end for a new hotel principal (admin creates token → hotel consumes → hotel can access Hotel Area).",
-        "No infinite loading states are introduced in role/activation guards (RequireRole continues to show loading/error/denied states correctly)."
+        "In the room photo gallery shown for a room, each thumbnail has a Delete control to remove that specific image from the room.",
+        "Optional: each thumbnail provides a Replace/Edit control that lets the hotel upload a new image to replace that specific slot; replacement updates only that one picture URL in the room’s pictures array.",
+        "Photo delete/replace persists by calling the room update API (or a dedicated backend method) and updates the UI immediately after success.",
+        "Removing the last photo shows the existing \"No photos available\" empty state.",
+        "Guest-facing room photos reflect the updated pictures array after hotel edits."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Update frontend room management components and hooks to match the new room schema (no roomNumber; includes promoPercent and discounted-price display), specifically updating the existing hotel room management UI implementation in frontend/src/components/hotel/RoomsPanel.tsx and related query hooks.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3",
+          "msg-5"
+        ],
+        "quotes": [
+          "Cukup tipe kamar, harga kamar, promo dan upload foto",
+          "ya mulai build sekarang"
+        ]
+      },
+      "acceptanceCriteria": [
+        "frontend/src/components/hotel/RoomsPanel.tsx no longer uses roomNumber state/inputs and no longer renders \"Room {roomNumber}\" in the room card title.",
+        "Create/update mutations invoked from the UI match the updated hook signatures (no roomNumber; include promoPercent).",
+        "Room list UI shows roomType, base price, promo percent, and discounted price per night in a clear English format.",
+        "No TypeScript errors related to RoomView or room mutations."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Implement a safe state upgrade path for the room schema change (removing roomNumber and adding promoPercent/base/discounted price representation), ensuring existing canister data upgrades without data loss beyond dropping roomNumber, and without breaking running features.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-5",
+          "msg-10"
+        ],
+        "quotes": [
+          "Ya struktur di backend juga di hapus untuk Room Number. jadi tidak ada sampah di database yang tidak gunakan.",
+          "Jangan ganggu fitur-fitur yang lain yang sudah berjalan normal"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Upgrade does not trap when loading existing room records that previously included roomNumber.",
+        "Legacy roomNumber data is not retained in the new state.",
+        "Rooms that predate promo support default to promoPercent=0 and discounted price equals base price.",
+        "Post-upgrade, hotel profile queries and guest browsing queries continue to return rooms successfully."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/components/ui or other frontend immutable paths listed in SYSTEM_CONTEXT.",
-    "Backend must remain a single Motoko actor (all logic in backend/main.mo).",
-    "The purge must be strictly scoped to the specified principal ID and must not impact unrelated hotels, bookings, rooms, tokens, or users.",
-    "All user-facing text introduced/changed by this build must be in English."
+    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or anything under frontend/src/components/ui (compose existing UI components instead).",
+    "Keep the backend as a single Motoko actor (all logic in backend/main.mo).",
+    "Focus only on the requested room upload/schema changes; do not change unrelated features that are already working normally."
   ],
   "nonGoals": [
-    "Adding new authentication providers (only Internet Identity remains).",
-    "Implementing external database backups/restore tooling.",
-    "Building real-time updates (WebSockets) or notifications."
+    "Adding new authentication providers (only Internet Identity is supported).",
+    "Adding real-time updates via websockets.",
+    "Introducing external databases or services.",
+    "Redesigning unrelated admin, booking, payment, invite-token, or activation flows beyond what is necessary to keep them working with the updated room schema."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [
-      "User prefers English for user-facing text in build artifacts/specs."
-    ],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

@@ -10,20 +10,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { useGetHotels, useSetHotelActiveStatus, useSetHotelSubscriptionStatus } from '../../hooks/useQueries';
+import { useAdminGetAllHotels, useAdminToggleHotelActivation, useAdminUpdateHotelSubscription } from '../../hooks/useQueries';
 import { toast } from 'sonner';
 import { Building2, Loader2 } from 'lucide-react';
 
 export function HotelVisibilityPanel() {
-  const { data: hotels, isLoading } = useGetHotels();
-  const setActiveStatus = useSetHotelActiveStatus();
-  const setSubscriptionStatus = useSetHotelSubscriptionStatus();
+  const { data: hotels, isLoading } = useAdminGetAllHotels();
+  const toggleActivation = useAdminToggleHotelActivation();
+  const updateSubscription = useAdminUpdateHotelSubscription();
 
   const handleToggleActive = async (hotelId: any, currentStatus: boolean) => {
     try {
-      await setActiveStatus.mutateAsync({
+      await toggleActivation.mutateAsync({
         hotelId,
-        active: !currentStatus,
+        activate: !currentStatus,
       });
       toast.success(`Hotel ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
     } catch (error: any) {
@@ -33,7 +33,7 @@ export function HotelVisibilityPanel() {
 
   const handleSubscriptionChange = async (hotelId: any, status: string) => {
     try {
-      await setSubscriptionStatus.mutateAsync({
+      await updateSubscription.mutateAsync({
         hotelId,
         status,
       });
@@ -50,6 +50,12 @@ export function HotelVisibilityPanel() {
       if ('test' in status) return 'test';
     }
     return 'test';
+  };
+
+  const getSubscriptionBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' => {
+    if (status === 'paid') return 'default';
+    if (status === 'unpaid') return 'destructive';
+    return 'secondary';
   };
 
   return (
@@ -98,27 +104,32 @@ export function HotelVisibilityPanel() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={subscriptionStatus}
-                          onValueChange={(value) => handleSubscriptionChange(hotel.id, value)}
-                          disabled={setSubscriptionStatus.isPending}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="paid">Paid</SelectItem>
-                            <SelectItem value="unpaid">Unpaid</SelectItem>
-                            <SelectItem value="test">Test</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={getSubscriptionBadgeVariant(subscriptionStatus)}>
+                            {subscriptionStatus === 'paid' ? 'Paid' : subscriptionStatus === 'unpaid' ? 'Unpaid' : 'Test'}
+                          </Badge>
+                          <Select
+                            value={subscriptionStatus}
+                            onValueChange={(value) => handleSubscriptionChange(hotel.id, value)}
+                            disabled={updateSubscription.isPending}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="paid">Paid</SelectItem>
+                              <SelectItem value="unpaid">Unpaid</SelectItem>
+                              <SelectItem value="test">Test</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Button
                           variant={hotel.active ? 'outline' : 'default'}
                           size="sm"
                           onClick={() => handleToggleActive(hotel.id, hotel.active)}
-                          disabled={setActiveStatus.isPending}
+                          disabled={toggleActivation.isPending}
                         >
                           {hotel.active ? 'Deactivate' : 'Activate'}
                         </Button>

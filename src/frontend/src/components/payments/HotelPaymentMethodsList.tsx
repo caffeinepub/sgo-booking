@@ -1,94 +1,66 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Separator } from '../ui/separator';
-import { CreditCard, MessageCircle, Mail } from 'lucide-react';
-import type { PaymentMethod, HotelContact } from '../../backend';
+import { Phone, Mail } from 'lucide-react';
+import type { HotelDataView } from '../../types/extended-backend';
 
 interface HotelPaymentMethodsListProps {
-  paymentMethods: PaymentMethod[];
-  contact: HotelContact;
-  hotelName: string;
+  hotel: HotelDataView;
 }
 
-export function HotelPaymentMethodsList({ paymentMethods, contact, hotelName }: HotelPaymentMethodsListProps) {
-  const hasPaymentMethods = paymentMethods && paymentMethods.length > 0;
-  const hasWhatsApp = contact?.whatsapp;
-  const hasEmail = contact?.email;
-  const hasAnyContact = hasWhatsApp || hasEmail;
+export function HotelPaymentMethodsList({ hotel }: HotelPaymentMethodsListProps) {
+  const handleWhatsAppClick = () => {
+    if (hotel.contact.whatsapp) {
+      const cleanNumber = hotel.contact.whatsapp.replace(/\D/g, '');
+      window.open(`https://wa.me/${cleanNumber}`, '_blank');
+    }
+  };
 
-  if (!hasPaymentMethods && !hasAnyContact) {
-    return null;
-  }
+  const handleEmailClick = () => {
+    if (hotel.contact.email) {
+      window.location.href = `mailto:${hotel.contact.email}`;
+    }
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Payment & Contact Information</CardTitle>
-        <CardDescription>
-          Payment methods and contact details for {hotelName}
-        </CardDescription>
+        <CardTitle>Payment Methods</CardTitle>
+        <CardDescription>Available payment options for this hotel</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {hasPaymentMethods && (
-          <div className="space-y-4">
-            <h3 className="font-semibold flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              Accepted Payment Methods
-            </h3>
-            <div className="space-y-3">
-              {paymentMethods.map((method, index) => (
-                <Card key={index} className="bg-muted/50">
-                  <CardContent className="p-4">
-                    <h4 className="font-semibold mb-2">{method.name}</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {method.details}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+      <CardContent className="space-y-4">
+        {hotel.paymentMethods && hotel.paymentMethods.length > 0 ? (
+          <div className="space-y-3">
+            {hotel.paymentMethods.map((method, index) => (
+              <div key={index} className="p-3 border rounded-lg">
+                <p className="font-semibold">{method.name}</p>
+                <p className="text-sm text-muted-foreground mt-1">{method.details}</p>
+              </div>
+            ))}
           </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No payment methods listed. Please contact the hotel directly.
+          </p>
         )}
 
-        {hasAnyContact && (
-          <>
-            {hasPaymentMethods && <Separator />}
-            <div className="space-y-4">
-              <h3 className="font-semibold">Contact Hotel</h3>
-              <div className="flex flex-col gap-2">
-                {hasWhatsApp && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    asChild
-                  >
-                    <a
-                      href={`https://wa.me/${contact.whatsapp?.replace(/[^0-9]/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      WhatsApp: {contact.whatsapp}
-                    </a>
-                  </Button>
-                )}
-                {hasEmail && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    asChild
-                  >
-                    <a href={`mailto:${contact.email}`}>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Email: {contact.email}
-                    </a>
-                  </Button>
-                )}
-              </div>
-            </div>
-          </>
-        )}
+        <div className="pt-4 border-t">
+          <p className="text-sm font-medium mb-3">Contact Hotel</p>
+          <div className="flex flex-col gap-2">
+            {hotel.contact.whatsapp && (
+              <Button variant="outline" className="w-full justify-start" onClick={handleWhatsAppClick}>
+                <Phone className="h-4 w-4 mr-2" />
+                WhatsApp: {hotel.contact.whatsapp}
+              </Button>
+            )}
+            {hotel.contact.email && (
+              <Button variant="outline" className="w-full justify-start" onClick={handleEmailClick}>
+                <Mail className="h-4 w-4 mr-2" />
+                {hotel.contact.email}
+              </Button>
+            )}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

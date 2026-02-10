@@ -1,12 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Allow admins to fully purge all backend data for a specific hotel Principal ID, forcing the hotel to re-register and be re-activated before accessing the Hotel Dashboard again.
+**Goal:** Simplify hotel room management by removing Room Number, adding promo-based pricing, and enabling edit/delete for rooms and individual room photos without affecting other working features.
 
 **Planned changes:**
-- Add an admin-only backend API that hard-deletes all data associated with hotel Principal ID `opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae`, including hotel profile, rooms, activation/ownership mappings, invite tokens, and any bookings/payments tied to that hotel, without impacting other principals.
-- Update backend activation/access logic so the purged principal is not considered activated and cannot access Hotel Area routes until a new admin invite token is generated and consumed and the hotel re-registers.
-- Add an Admin Panel UI action to run the purge by Principal ID with an explicit destructive confirmation step, and refresh/invalidate relevant cached queries so deleted data disappears immediately.
-- Add regression checks/guardrails to ensure guest browsing, admin invite tokens, and the hotel activation flow continue working without runtime errors or infinite loading states.
+- Remove the `roomNumber` field end-to-end (backend Motoko types/state + frontend types/UI), including safe upgrade handling to discard legacy `roomNumber` data.
+- Add `promoPercent` (0–100) to room data, validate inputs, and compute a deterministic discounted nightly price from base price + promo percent.
+- Update guest-facing room display/booking calculations to use the discounted nightly price whenever promoPercent > 0.
+- Add Edit and Delete actions to each room entry in the hotel Rooms list, including confirmation on delete and UI refresh after mutations.
+- Add per-photo Delete and optional Replace/Edit controls for each uploaded room photo, persisting changes to the backend pictures array and reflecting updates in guest views.
+- Update `frontend/src/components/hotel/RoomsPanel.tsx` and related hooks/mutations to match the new room schema (no roomNumber; includes promoPercent and discounted-price display).
 
-**User-visible outcome:** Admins can safely purge a specified hotel principal’s data from the system via the Admin Panel; the affected hotel account loses dashboard access until it re-registers and is re-activated with a newly generated admin invite token, while all other hotel/guest/admin features continue to work normally.
+**User-visible outcome:** Hotel owners can create rooms using only room type, base price, promo percent, and photos; see the discounted price automatically; edit/delete rooms; and delete/replace individual room photos. Guests see updated room photos and promo-adjusted nightly prices during browsing and booking.
