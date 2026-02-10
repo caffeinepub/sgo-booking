@@ -22,11 +22,13 @@ import { Calendar, Users, Hotel, AlertCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function MyBookingsTable() {
-  const { data: bookings, isLoading, error } = useGetBookings();
+  const { data: bookingResult, isLoading, error } = useGetBookings();
   const { data: hotels } = useGetHotels();
   const cancelBooking = useCancelBooking();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState<bigint | null>(null);
+
+  const bookings = bookingResult?.bookings || [];
 
   const getHotelName = (hotelId: any) => {
     if (!hotelId || !hotels) return 'Unknown Hotel';
@@ -91,7 +93,7 @@ export function MyBookingsTable() {
     );
   }
 
-  if (!bookings || bookings.length === 0) {
+  if (bookings.length === 0) {
     return (
       <Card>
         <CardHeader>

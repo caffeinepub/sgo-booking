@@ -101,6 +101,81 @@ This checklist must be completed before each production deployment to ensure cri
   - Verify email is displayed in contact section
   - Verify email link works (mailto:)
 
+## Hotel Activation Gating (New in V43)
+- [ ] **Unactivated hotel cannot access Hotel Area**
+  - Log in as a hotel principal that has NOT consumed an invite token
+  - Attempt to navigate to /hotel
+  - Verify AccessDeniedScreen is displayed with hotel activation message
+  - Verify HotelActivationForm is embedded in the access denied screen
+
+- [ ] **Purged hotel must re-activate**
+  - Admin purges a hotel principal via Admin Panel → Purge Hotel Data
+  - Log in as the purged hotel principal
+  - Attempt to navigate to /hotel
+  - Verify AccessDeniedScreen is displayed (hotel is no longer activated)
+  - Admin generates a NEW invite token for the same principal
+  - Hotel consumes the new token
+  - Verify hotel can now access /hotel and create a new profile
+
+- [ ] **Admin bypass for Hotel Area**
+  - Log in as admin
+  - Navigate to /hotel
+  - Verify admin can access Hotel Area even without hotel activation
+
+## Admin Principal Purge (New in V43)
+- [ ] **Purge UI visibility**
+  - Log in as non-admin user
+  - Verify Purge Hotel Data panel is NOT visible
+  - Log in as admin
+  - Navigate to Admin Panel
+  - Verify Purge Hotel Data panel is visible
+
+- [ ] **Purge confirmation flow**
+  - Admin enters a hotel Principal ID
+  - Click "Initiate Purge"
+  - Verify confirmation step appears
+  - Verify confirmation requires typing exact Principal ID
+  - Type incorrect Principal ID → verify error message
+  - Type correct Principal ID → verify purge executes
+
+- [ ] **Purge data removal**
+  - Admin purges a hotel principal
+  - Verify hotel profile is removed from Browse Hotels
+  - Verify all rooms for that hotel are removed
+  - Verify all bookings for that hotel are removed
+  - Verify invite tokens bound to that principal are removed
+  - Verify activation status for that principal is removed
+
+- [ ] **Purge cache invalidation**
+  - Admin purges a hotel principal
+  - Verify Browse Hotels page updates immediately (no hard refresh needed)
+  - Verify Admin Panel → Invite Tokens updates immediately
+  - Verify Admin Panel → Bookings Overview updates immediately
+  - Verify no ghost/orphan data appears in any view
+
+- [ ] **Purge does not affect other hotels**
+  - Admin purges one hotel principal
+  - Verify other hotels remain in Browse Hotels
+  - Verify other hotels' rooms are intact
+  - Verify other hotels' bookings are intact
+  - Verify guest booking flow still works for other hotels
+
+## Browse Hotels Hardening (New in V43)
+- [ ] **Missing rooms data handling**
+  - Verify Browse Hotels page renders without errors when a hotel has no rooms
+  - Verify "0 rooms available" is displayed correctly
+  - Verify no placeholder/ghost rooms appear
+
+- [ ] **Missing pictures data handling**
+  - Verify Browse Hotels page renders without errors when rooms have no pictures
+  - Verify "No photos available" placeholder is displayed
+  - Verify no broken image icons or console errors
+
+- [ ] **Malformed hotel data handling**
+  - Verify Browse Hotels page handles hotels with missing/null fields gracefully
+  - Verify no runtime errors or blank screens
+  - Verify fallback text is displayed for missing data
+
 ## HOTEL DUMMY One-Time Purge Verification (CRITICAL - V40+)
 **Context:** This release includes a one-time backend cleanup that removes ALL room data (photos, descriptions, prices, types) for HOTEL DUMMY only. The cleanup runs automatically during canister upgrade and is idempotent (safe to run multiple times).
 
@@ -234,3 +309,4 @@ This checklist must be completed before each production deployment to ensure cri
 - Document any known issues or workarounds in this section
 - **V39 Note:** If ghost photos or legacy payment methods still appear after deployment, use Admin Panel → Data Cleanup Utility to manually remove them by hotel principal and room ID
 - **V40+ Note:** The HOTEL DUMMY purge is a one-time operation that runs automatically during upgrade. If HOTEL DUMMY still shows rooms after deployment, contact the development team immediately.
+- **V43 Note:** Hotel activation gating is now enforced for /hotel route. Purged hotels must re-activate via new invite token before accessing Hotel Area.

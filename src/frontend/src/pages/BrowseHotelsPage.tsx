@@ -14,10 +14,12 @@ export function BrowseHotelsPage() {
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const getRepresentativePhoto = (hotel: any): string | null => {
-    if (!hotel.rooms || hotel.rooms.length === 0) return null;
+    if (!hotel?.rooms || !Array.isArray(hotel.rooms) || hotel.rooms.length === 0) {
+      return null;
+    }
     
     for (const room of hotel.rooms) {
-      if (room.pictures && room.pictures.length > 0) {
+      if (room?.pictures && Array.isArray(room.pictures) && room.pictures.length > 0) {
         const validPic = getFirstValidPicture(room.pictures);
         if (validPic) return validPic;
       }
@@ -58,6 +60,7 @@ export function BrowseHotelsPage() {
               const representativePhoto = getRepresentativePhoto(hotel);
               const hasImageError = imageErrors.has(hotelKey);
               const showPhoto = representativePhoto && !hasImageError;
+              const roomCount = hotel?.rooms?.length || 0;
               
               return (
                 <Card key={hotelKey} className="hover:shadow-lg transition-shadow overflow-hidden">
@@ -88,18 +91,18 @@ export function BrowseHotelsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-xl">{hotel.name}</CardTitle>
+                        <CardTitle className="text-xl">{hotel.name || 'Unnamed Hotel'}</CardTitle>
                       </div>
                     </div>
                     <CardDescription className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
-                      {hotel.location}
+                      {hotel.location || 'Location not specified'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       <div className="text-sm text-muted-foreground">
-                        {hotel.rooms.length} room{hotel.rooms.length !== 1 ? 's' : ''} available
+                        {roomCount} room{roomCount !== 1 ? 's' : ''} available
                       </div>
                       <Button
                         onClick={() => navigate({ to: '/browse/$hotelId', params: { hotelId: hotel.id.toString() } })}

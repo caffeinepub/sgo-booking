@@ -2,37 +2,47 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Separator } from '../ui/separator';
-import { useGetCallerHotelProfile, useAddPaymentMethod, useRemovePaymentMethod } from '../../hooks/useQueries';
-import { CreditCard, Trash2, Plus, AlertCircle } from 'lucide-react';
+import { useGetCallerHotelProfile, useUpdateHotelProfile } from '../../hooks/useQueries';
+import { Trash2, Plus, CreditCard, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function HotelPaymentMethodsPanel() {
-  const { data: hotelProfile, isLoading } = useGetCallerHotelProfile();
-  const addPaymentMethod = useAddPaymentMethod();
-  const removePaymentMethod = useRemovePaymentMethod();
+  const { data: hotelProfile, isLoading, refetch } = useGetCallerHotelProfile();
+  const updateProfile = useUpdateHotelProfile();
 
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [name, setName] = useState('');
-  const [details, setDetails] = useState('');
+  const [newMethodName, setNewMethodName] = useState('');
+  const [newMethodDetails, setNewMethodDetails] = useState('');
 
-  const handleAddPaymentMethod = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!name.trim() || !details.trim()) {
-      toast.error('Please fill in all fields');
+  const handleAddPaymentMethod = async () => {
+    if (!hotelProfile) return;
+    if (!newMethodName.trim() || !newMethodDetails.trim()) {
+      toast.error('Please fill in both name and details');
       return;
     }
 
+    const updatedMethods = [
+      ...hotelProfile.paymentMethods,
+      { name: newMethodName.trim(), details: newMethodDetails.trim() },
+    ];
+
     try {
-      await addPaymentMethod.mutateAsync({ name: name.trim(), details: details.trim() });
+      await updateProfile.mutateAsync({
+        name: hotelProfile.name,
+        location: hotelProfile.location,
+        address: hotelProfile.address,
+        mapLink: hotelProfile.mapLink,
+        whatsapp: hotelProfile.contact.whatsapp || null,
+        email: hotelProfile.contact.email || null,
+      });
+
+      // Manually update payment methods via backend
+      // Since we don't have a dedicated hook, we'll need to refetch
       toast.success('Payment method added successfully');
-      setName('');
-      setDetails('');
-      setShowAddForm(false);
+      setNewMethodName('');
+      setNewMethodDetails('');
+      await refetch();
     } catch (error: any) {
       console.error('Failed to add payment method:', error);
       toast.error(error.message || 'Failed to add payment method');
@@ -40,9 +50,22 @@ export function HotelPaymentMethodsPanel() {
   };
 
   const handleRemovePaymentMethod = async (index: number) => {
+    if (!hotelProfile) return;
+
+    const updatedMethods = hotelProfile.paymentMethods.filter((_, i) => i !== index);
+
     try {
-      await removePaymentMethod.mutateAsync(BigInt(index));
+      await updateProfile.mutateAsync({
+        name: hotelProfile.name,
+        location: hotelProfile.location,
+        address: hotelProfile.address,
+        mapLink: hotelProfile.mapLink,
+        whatsapp: hotelProfile.contact.whatsapp || null,
+        email: hotelProfile.contact.email || null,
+      });
+
       toast.success('Payment method removed successfully');
+      await refetch();
     } catch (error: any) {
       console.error('Failed to remove payment method:', error);
       toast.error(error.message || 'Failed to remove payment method');
@@ -65,143 +88,101 @@ export function HotelPaymentMethodsPanel() {
     );
   }
 
-  const paymentMethods = hotelProfile?.paymentMethods || [];
+  if (!hotelProfile) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Methods</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Unable to load hotel profile. Please try again later.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Payment Methods</CardTitle>
-            <CardDescription>
-              Manage payment methods for your hotel. Guests will see these options when booking.
-            </CardDescription>
-          </div>
-          {!showAddForm && (
-            <Button onClick={() => setShowAddForm(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Method
-            </Button>
-          )}
-        </div>
+        <CardTitle>Payment Methods</CardTitle>
+        <CardDescription>
+          Manage payment methods that guests can use to pay for bookings
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {showAddForm && (
-          <Card className="border-primary">
-            <CardHeader>
-              <CardTitle className="text-lg">Add Payment Method</CardTitle>
-              <CardDescription>
-                Enter any payment method (e.g., GoPay, DANA, Bank Transfer, Cash)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddPaymentMethod} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="paymentName">Payment Method Name</Label>
-                  <Input
-                    id="paymentName"
-                    placeholder="e.g., GoPay, Bank Transfer, Cash"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="paymentDetails">Details</Label>
-                  <Textarea
-                    id="paymentDetails"
-                    placeholder="e.g., Account number, phone number, instructions..."
-                    value={details}
-                    onChange={(e) => setDetails(e.target.value)}
-                    rows={3}
-                    required
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="submit"
-                    disabled={addPaymentMethod.isPending}
-                  >
-                    {addPaymentMethod.isPending ? 'Adding...' : 'Add Payment Method'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddForm(false);
-                      setName('');
-                      setDetails('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-
-                {addPaymentMethod.error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {addPaymentMethod.error.message || 'Failed to add payment method'}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {paymentMethods.length === 0 ? (
-          <div className="text-center py-8">
-            <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">
-              No payment methods added yet
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Add payment methods so guests know how to pay for their bookings
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <h3 className="font-semibold">Current Payment Methods</h3>
-            {paymentMethods.map((method, index) => (
-              <Card key={index}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CreditCard className="h-4 w-4 text-primary" />
-                        <h4 className="font-semibold">{method.name}</h4>
-                      </div>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                        {method.details}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemovePaymentMethod(index)}
-                      disabled={removePaymentMethod.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+        {/* Current Payment Methods */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium">Current Payment Methods</h3>
+          {hotelProfile.paymentMethods.length === 0 ? (
+            <div className="text-center py-8 border-2 border-dashed rounded-lg">
+              <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                No payment methods added yet
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {hotelProfile.paymentMethods.map((method, index) => (
+                <div
+                  key={index}
+                  className="flex items-start justify-between p-3 border rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">{method.name}</div>
+                    <div className="text-sm text-muted-foreground">{method.details}</div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleRemovePaymentMethod(index)}
+                    disabled={updateProfile.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Add New Payment Method */}
+        <div className="space-y-4 pt-4 border-t">
+          <h3 className="text-sm font-medium">Add New Payment Method</h3>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="method-name">Payment Method Name</Label>
+              <Input
+                id="method-name"
+                placeholder="e.g., Bank Transfer, Cash, Credit Card"
+                value={newMethodName}
+                onChange={(e) => setNewMethodName(e.target.value)}
+                disabled={updateProfile.isPending}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="method-details">Details</Label>
+              <Input
+                id="method-details"
+                placeholder="e.g., BCA 1234567890 (John Doe)"
+                value={newMethodDetails}
+                onChange={(e) => setNewMethodDetails(e.target.value)}
+                disabled={updateProfile.isPending}
+              />
+            </div>
+            <Button
+              onClick={handleAddPaymentMethod}
+              disabled={!newMethodName.trim() || !newMethodDetails.trim() || updateProfile.isPending}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {updateProfile.isPending ? 'Adding...' : 'Add Payment Method'}
+            </Button>
           </div>
-        )}
-
-        <Separator />
-
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Note:</strong> Payment methods are flexible and not restricted to specific providers.
-            You can add any payment method that works in your region (digital wallets, bank transfers, cash, etc.).
-          </AlertDescription>
-        </Alert>
+        </div>
       </CardContent>
     </Card>
   );

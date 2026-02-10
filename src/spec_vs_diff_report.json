@@ -1,57 +1,64 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T23:40:06.823Z",
-  "summary": "Implemented the frontend build version bump to v33 and added an admin-facing Caffeine deploy UI notice to the Admin Panel. However, the diff cannot evidence that a build+deploy was executed or that the deploy output included (or still lacked) the Publish URL/Open App link, and the notice text does not clearly state the “pause and retry later” plan requested.",
+  "generatedAt": "2026-02-10T00:21:55.688Z",
+  "summary": "The diff adds an Admin UI purge panel and client-side cache invalidation, plus stronger hotel-area activation gating and several defensive UI/error-state improvements. However, the backend admin-only purge API and backend-side activation/ownership/token cleanup behavior are not clearly evidenced in the provided backend diff (main.mo is truncated), and an unrequested automatic migration-based purge for the hardcoded principal appears to have been added.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Run a new build+deploy after the version bump and record whether Caffeine shows a Publish URL / “Open App” link (or capture the missing-URL outcome/error for follow-up).",
-      "reason": "The diff shows BUILD_VERSION was bumped, but there is no verifiable evidence in the provided file changes that an actual build+deploy was executed, nor any recorded deploy output/outcome as required by the acceptance criteria.",
+      "requirement": "Add a backend admin-only API to fully purge (hard-delete) all data associated with the specified hotel Principal ID without affecting other principals’ data, including deleting hotel profile, rooms, bookings/payments, activation/ownership mappings, and invite tokens bound to that principal.",
+      "reason": "The diff shows a new frontend hook calling `adminDeleteHotelData` and a UI panel to trigger it, but the backend diff snippet for `backend/main.mo` does not include evidence of a new public/admin method implementing the purge, nor explicit deletion of hotels/rooms/bookings/payments/activation/token mappings at call time. The added `backend/migration.mo` performs filtering during upgrade for the hardcoded principal, which is not the same as an admin API.",
       "evidence": [
-        "frontend/src/buildInfo.ts",
-        "frontend/RELEASE_NOTES.md"
+        "frontend/src/hooks/useQueries.ts (mentions new useAdminPurgeHotelData calling adminDeleteHotelData in summary)",
+        "frontend/src/components/admin/PrincipalPurgePanel.tsx (invokes useAdminPurgeHotelData)",
+        "backend/main.mo (truncated; no purge API evidenced in shown portion)",
+        "backend/migration.mo (implements upgrade-time filtering for the hardcoded principal, not an API call)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Admin Panel notice should explain that if Publish URL / “Open App” is missing after a successful deploy, it’s a platform issue and the team will pause and retry later.",
-      "reason": "A notice was added, but its copy focuses on refreshing/switching tabs and states it’s a platform UI issue; it does not clearly communicate the requested “pause and retry later” plan.",
+      "requirement": "Ensure backend activation checks return false after purge and the purged principal must re-register and be re-activated via a new admin invite token consumption.",
+      "reason": "Frontend route gating was updated to require hotel activation for the Hotel Area, but the diff does not provide clear backend evidence that purge removes activation/ownership mappings and that `isCallerHotelActivated()` will return false after the purge operation (backend changes are truncated and migration-based filtering is not equivalent to an admin-triggered purge).",
       "evidence": [
-        "frontend/src/components/admin/CaffeineDeployUiNotice.tsx"
+        "frontend/src/App.tsx (RequireRole requireHotelActivation=true for /hotel)",
+        "frontend-file-summaries.txt (mentions RequireRole uses useIsCallerHotelActivated; activation gating)",
+        "backend/main.mo (truncated; activation/purge linkage not evidenced)",
+        "backend/migration.mo (only upgrade-time cleanup is visible)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added a release notes template file with sections unrelated to this deploy-retry request (e.g., V40+ backend cleanup / HOTEL DUMMY purge content).",
-      "reason": "The BuildRequest is scoped to a deploy retry/release bump and an Admin Panel notice, and explicitly says not to change backend logic; adding extensive release note templates referencing backend cleanup is not requested by the requirements.",
+      "description": "Automatic upgrade-time migration that purges the hardcoded deprecated hotel principal by filtering hotels/rooms/bookings/payments/invite tokens during canister upgrade.",
+      "reason": "The BuildRequest asks for an admin-only API to purge on demand and enforce re-registration/activation; it does not request an automatic migration that deletes data during upgrade. This adds destructive behavior outside the requested admin-triggered flow.",
       "evidence": [
-        "frontend/RELEASE_NOTES.md"
+        "backend/migration.mo (filters out DEPRECATED_GOAT_HOTEL_ID_TEXT across hotelsList/roomsMap/bookingsMap/payments/inviteTokens, etc.)",
+        "backend/main.mo (adds `import Migration \"migration\";` and `(with migration = Migration.run)` indicating migration is used)"
       ]
     },
     {
-      "description": "Updated/added project tracking metadata (project_state.json) including references to out-of-scope admin delete-room feature and other state fields.",
-      "reason": "Project-state tracking files were not requested by REQ-1 or REQ-2 and are outside the stated deploy retry + UI notice scope.",
+      "description": "Changes to global styling, HTML metadata, language selector/locale context, build versioning, and other unrelated UI content not directly required for the purge feature.",
+      "reason": "These items are not part of REQ-1..REQ-4 and go beyond the requested purge API/UI action and guardrails.",
       "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "description": "Modified autogenerated/summary documentation file frontend-file-summaries.txt.",
-      "reason": "This file change is not part of the requested requirements (version bump + admin notice) and appears to be ancillary documentation.",
-      "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend-file-summaries.txt (frontend/src/index.css, frontend/index.html, frontend/src/i18n/LocaleContext.tsx, frontend/src/components/nav/LanguageSelector.tsx, frontend/src/buildInfo.ts)"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/RELEASE_NOTES.md",
-    "frontend/src/buildInfo.ts",
-    "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
+    "frontend/REGRESSION_CHECKLIST.md",
+    "frontend/src/App.tsx",
+    "frontend/src/components/admin/AdminBookingsPanel.tsx",
+    "frontend/src/components/admin/PrincipalPurgePanel.tsx",
+    "frontend/src/components/booking/MyBookingsTable.tsx",
+    "frontend/src/components/hotel/HotelBookingsPanel.tsx",
+    "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/AdminPanelPage.tsx",
+    "frontend/src/pages/BrowseHotelsPage.tsx",
     "project_state.json"
   ]
 }

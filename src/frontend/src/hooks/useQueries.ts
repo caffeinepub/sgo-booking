@@ -449,6 +449,24 @@ function sanitizeBookingQuery(filters: BookingQuery): BookingQuery {
   return sanitized;
 }
 
+export function useGetBookings(filters: BookingQuery = {}) {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  const sanitizedFilters = sanitizeBookingQuery(filters);
+
+  return useQuery({
+    queryKey: ['bookings', sanitizedFilters],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return await actor.getBookings(sanitizedFilters);
+    },
+    enabled: !!actor && !isFetching && !!identity,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+}
+
 export function useCreateBooking() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -474,42 +492,9 @@ export function useCreateBooking() {
         params.currency
       );
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
-  });
-}
-
-export function useGetBookings(filters?: BookingQuery) {
-  const { actor, isFetching } = useActor();
-  const { identity } = useInternetIdentity();
-
-  const sanitizedFilters = filters ? sanitizeBookingQuery(filters) : {};
-
-  const normalizedFilters = {
-    hotelId: sanitizedFilters.hotelId?.toString() || undefined,
-    status: sanitizedFilters.status || undefined,
-    fromDate: sanitizedFilters.fromDate?.toString() || undefined,
-    toDate: sanitizedFilters.toDate?.toString() || undefined,
-    minPrice: sanitizedFilters.minPrice?.toString() || undefined,
-    maxPrice: sanitizedFilters.maxPrice?.toString() || undefined,
-  };
-
-  return useQuery<BookingRequest[]>({
-    queryKey: ['bookings', normalizedFilters],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      try {
-        const result = await actor.getBookings(sanitizedFilters);
-        return result.bookings || [];
-      } catch (error) {
-        console.error('Failed to fetch bookings:', error);
-        return [];
-      }
-    },
-    enabled: !!actor && !isFetching && !!identity,
-    staleTime: 0,
-    refetchOnMount: 'always',
   });
 }
 
@@ -522,8 +507,8 @@ export function useUpdateBookingStatus() {
       if (!actor) throw new Error('Actor not available');
       return await actor.updateBookingStatus(params.bookingId, params.newStatus);
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
   });
 }
@@ -537,50 +522,30 @@ export function useCancelBooking() {
       if (!actor) throw new Error('Actor not available');
       return await actor.cancelBooking(bookingId);
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+}
+
+// ============ ADMIN PURGE HOOK ============
+
+export function useAdminPurgeHotelData() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (hotelPrincipal: Principal) => {
+      if (!actor) throw new Error('Actor not available');
+      return await actor.adminDeleteHotelData(hotelPrincipal);
+    },
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+      await queryClient.invalidateQueries({ queryKey: ['inviteTokens'] });
       await queryClient.invalidateQueries({ queryKey: ['bookings'] });
-    },
-  });
-}
-
-// ============ PAYMENT METHOD HOOKS ============
-
-export function useAddPaymentMethod() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: { name: string; details: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      // Check if method exists
-      if (typeof (actor as any).addPaymentMethod !== 'function') {
-        throw new Error('Payment method management not yet available in backend');
-      }
-      return await (actor as any).addPaymentMethod(params.name, params.details);
-    },
-    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['rooms'] });
       await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
-    },
-  });
-}
-
-export function useRemovePaymentMethod() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (index: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      // Check if method exists
-      if (typeof (actor as any).removePaymentMethod !== 'function') {
-        throw new Error('Payment method management not yet available in backend');
-      }
-      return await (actor as any).removePaymentMethod(index);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      await queryClient.invalidateQueries({ queryKey: ['hotels'] });
+      await queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
     },
   });
 }

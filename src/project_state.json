@@ -1,29 +1,37 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project SGO-Booking (hotel booking app). Current focus: resolve deployment instability on Caffeine (missing publish URL/Open App, intermittent deploy errors) and address legacy room photo/data cleanup—specifically enabling Admin to delete a full room entry (photo + associated room details/description) so stale metadata doesn’t remain visible after photo deletion.",
+  "summary": "Hotel management system: need ability to fully purge all data associated with a given principal ID (including admin-created tokens and legacy photos/descriptions) and enforce hotel dashboard access control requiring admin activation; hotels must re-register after purge.",
   "architectural_notes": [
-    "Prefer admin-side bulk/complete deletion workflow (room record + photo + related metadata) to avoid manual backend cleanup for legacy data."
+    "Implement principal-ID scoped purge as a controlled, audited destructive operation (delete or anonymize all related records, including auth tokens and media metadata).",
+    "Enforce authorization: hotel dashboard access must be denied unless the hotel account is in an admin-activated state."
   ],
   "known_issues": [
-    "Caffeine deploy instability: publish URL/Open App button not shown even after successful deploy; redeploy can fail with 'Deployment error'.",
-    "Deleting room photo via Admin does not remove associated room metadata/description (e.g., price/type), leaving description visible without photo in Admin/Guest views."
+    "Risk: destructive principal-ID purge could accidentally impact unrelated data/features if relationships are not correctly scoped; needs careful safeguards/testing."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-force-a-fresh-deployment-attempt-by-bumping-the-frontend-build-version-string-then-run-build-deploy-so-caffeine-attempts-a-new-publish-and-shows-the-publish-url-open-app-link",
-      "title": "Force a fresh deployment attempt by bumping the frontend build version string, then run build + deploy so Caffeine attempts a new publish and shows the Publish URL / “Open App” link.",
+      "id": "feature-ensure-hotel-dashboard-access-is-blocked-after-a-purge-until-the-hotel-re-registers-and-is-activated-again-by-admin-invite-token-consumption",
+      "title": "Ensure hotel dashboard access is blocked after a purge until the hotel re-registers and is activated again by admin invite token consumption.",
       "reqIds": [
-        "REQ-1"
+        "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-a-short-admin-facing-note-in-the-app-admin-panel-explaining-that-if-the-caffeine-platform-ui-fails-to-show-the-publish-url-open-app-after-a-successful-deploy-it-is-a-platform-issue-and-the-team-will-pause-and-retry-later-without-implying-an-application-bug",
-      "title": "Add a short admin-facing note in the app (Admin Panel) explaining that if the Caffeine platform UI fails to show the Publish URL / “Open App” after a successful deploy, it is a platform issue and the team will pause and retry later, without implying an application bug.",
+      "id": "feature-add-an-admin-panel-ui-action-to-run-the-full-principal-purge-safely-with-explicit-confirmation-and-refresh-affected-cached-queries-so-the-ui-immediately-reflects-the-deletion",
+      "title": "Add an Admin Panel UI action to run the full principal purge safely (with explicit confirmation) and refresh affected cached queries so the UI immediately reflects the deletion.",
       "reqIds": [
-        "REQ-2"
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-regression-checks-and-guardrails-to-prevent-runtime-errors-or-cross-feature-breakage-after-introducing-purge-behavior",
+      "title": "Add regression checks and guardrails to prevent runtime errors or cross-feature breakage after introducing purge behavior.",
+      "reqIds": [
+        "REQ-4"
       ],
       "version": 1
     }
@@ -31,13 +39,26 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Admin feature: delete room data as a whole (photo + associated room details/description) instead of only deleting the photo, to remove legacy/stale backend data cleanly",
+      "summary": "Hard-delete (purge) all data associated with a specified principal ID, including admin-created tokens and any stored photos/descriptions",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "After purge, require hotel to re-register; block hotel dashboard access until admin activates the new registration",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add a backend admin-only API to fully purge (hard-delete) all data associated with the hotel Principal ID `opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae` without affecting any other principals’ data.",
+      "reqIds": [
+        "REQ-1"
+      ],
       "status": "pending"
     }
   ],
-  "gameProjectType": "none",
-  "projectName": "SGO-Booking",
+  "projectName": "Admin purge of all data for a specific hotel Principal ID and enforce re-registration + activation",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

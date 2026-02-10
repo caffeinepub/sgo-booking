@@ -141,6 +141,7 @@ export interface _SERVICE {
   'activateHotelDirectly' : ActorMethod<[Principal], boolean>,
   'adminDeleteAllRoomsForHotel' : ActorMethod<[Principal], undefined>,
   'adminDeleteHotelData' : ActorMethod<[Principal], undefined>,
+  'adminPurgeDeprecatedGoatHotelData' : ActorMethod<[], undefined>,
   'adminRemoveLegacyPaymentMethods' : ActorMethod<[Principal], undefined>,
   'adminRemoveLegacyRoomPhotos' : ActorMethod<[Principal, bigint], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
@@ -162,6 +163,7 @@ export interface _SERVICE {
     [string, string, bigint, string, Array<string>],
     RoomView
   >,
+  'doesCallerHaveDirectActivation' : ActorMethod<[], boolean>,
   'generateInviteCode' : ActorMethod<[], string>,
   'getAllRSVPs' : ActorMethod<[], Array<RSVP>>,
   'getBooking' : ActorMethod<[bigint], [] | [BookingRequest]>,
@@ -178,6 +180,7 @@ export interface _SERVICE {
   'getValidHotelInviteTokens' : ActorMethod<[], Array<string>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerHotelActivated' : ActorMethod<[], boolean>,
+  'isCallerHotelActiveByDirectActivation' : ActorMethod<[], boolean>,
   'isHotelActiveByDirectActivation' : ActorMethod<[Principal], boolean>,
   'isHotelOwner' : ActorMethod<[Principal, Principal], boolean>,
   'isValidHotelInviteToken' : ActorMethod<[Principal], boolean>,

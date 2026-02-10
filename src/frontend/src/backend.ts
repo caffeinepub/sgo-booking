@@ -222,6 +222,7 @@ export interface backendInterface {
     activateHotelDirectly(hotelPrincipal: Principal): Promise<boolean>;
     adminDeleteAllRoomsForHotel(hotelId: Principal): Promise<void>;
     adminDeleteHotelData(hotelId: Principal): Promise<void>;
+    adminPurgeDeprecatedGoatHotelData(): Promise<void>;
     adminRemoveLegacyPaymentMethods(hotelId: Principal): Promise<void>;
     adminRemoveLegacyRoomPhotos(hotelId: Principal, roomId: bigint): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
@@ -231,6 +232,7 @@ export interface backendInterface {
     createHotelInviteToken(_maxUses: bigint, boundPrincipal: Principal | null): Promise<InviteToken>;
     createHotelProfile(name: string, location: string, address: string, mapLink: string, whatsapp: string | null, email: string | null): Promise<void>;
     createRoom(roomNumber: string, roomType: string, pricePerNight: bigint, currency: string, pictures: Array<string>): Promise<RoomView>;
+    doesCallerHaveDirectActivation(): Promise<boolean>;
     generateInviteCode(): Promise<string>;
     getAllRSVPs(): Promise<Array<RSVP>>;
     getBooking(bookingId: bigint): Promise<BookingRequest | null>;
@@ -247,6 +249,7 @@ export interface backendInterface {
     getValidHotelInviteTokens(): Promise<Array<string>>;
     isCallerAdmin(): Promise<boolean>;
     isCallerHotelActivated(): Promise<boolean>;
+    isCallerHotelActiveByDirectActivation(): Promise<boolean>;
     isHotelActiveByDirectActivation(hotelPrincipal: Principal): Promise<boolean>;
     isHotelOwner(callerPrincipal: Principal, hotelId: Principal): Promise<boolean>;
     isValidHotelInviteToken(hotelPrincipal: Principal): Promise<boolean>;
@@ -403,6 +406,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async adminPurgeDeprecatedGoatHotelData(): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.adminPurgeDeprecatedGoatHotelData();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.adminPurgeDeprecatedGoatHotelData();
+            return result;
+        }
+    }
     async adminRemoveLegacyPaymentMethods(arg0: Principal): Promise<void> {
         if (this.processError) {
             try {
@@ -526,6 +543,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.createRoom(arg0, arg1, arg2, arg3, arg4);
+            return result;
+        }
+    }
+    async doesCallerHaveDirectActivation(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.doesCallerHaveDirectActivation();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.doesCallerHaveDirectActivation();
             return result;
         }
     }
@@ -750,6 +781,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.isCallerHotelActivated();
+            return result;
+        }
+    }
+    async isCallerHotelActiveByDirectActivation(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.isCallerHotelActiveByDirectActivation();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.isCallerHotelActiveByDirectActivation();
             return result;
         }
     }

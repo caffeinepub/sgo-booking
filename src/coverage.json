@@ -1,52 +1,84 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-09T23:40:06.826Z",
+  "generatedAt": "2026-02-10T00:21:55.692Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 4,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Force a fresh deployment attempt by bumping the frontend build version string, then run build + deploy so Caffeine attempts a new publish and shows the Publish URL / “Open App” link.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/buildInfo.ts",
-          "frontend/RELEASE_NOTES.md"
-        ],
-        "matchedFiles": [
-          "frontend/src/buildInfo.ts",
-          "frontend/RELEASE_NOTES.md"
-        ]
+        "summary": "Add a backend admin-only API to fully purge (hard-delete) all data associated with the hotel Principal ID `opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae` without affecting any other principals’ data.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Add a short admin-facing note in the app (Admin Panel) explaining that if the Caffeine platform UI fails to show the Publish URL / “Open App” after a successful deploy, it is a platform issue and the team will pause and retry later, without implying an application bug.",
+        "summary": "Ensure hotel dashboard access is blocked after a purge until the hotel re-registers and is activated again by admin invite token consumption.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Add an Admin Panel UI action to run the full principal purge safely (with explicit confirmation) and refresh affected cached queries so the UI immediately reflects the deletion.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/PrincipalPurgePanel.tsx",
           "frontend/src/pages/AdminPanelPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/PrincipalPurgePanel.tsx",
           "frontend/src/pages/AdminPanelPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add regression checks and guardrails to prevent runtime errors or cross-feature breakage after introducing purge behavior.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/BrowseHotelsPage.tsx",
+          "frontend/REGRESSION_CHECKLIST.md"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/BrowseHotelsPage.tsx",
+          "frontend/REGRESSION_CHECKLIST.md"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/RELEASE_NOTES.md",
-    "frontend/src/buildInfo.ts",
-    "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
+    "frontend/REGRESSION_CHECKLIST.md",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/admin/AdminBookingsPanel.tsx",
+    "frontend/src/components/admin/PrincipalPurgePanel.tsx",
+    "frontend/src/components/booking/MyBookingsTable.tsx",
+    "frontend/src/components/hotel/HotelBookingsPanel.tsx",
+    "frontend/src/components/hotel/HotelPaymentMethodsPanel.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/AdminPanelPage.tsx",
+    "frontend/src/pages/BrowseHotelsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

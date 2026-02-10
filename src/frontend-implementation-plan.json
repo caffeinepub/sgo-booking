@@ -1,46 +1,70 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fresh deploy retry via frontend build version bump + admin note about missing Publish URL",
+  "title": "Admin principal purge UI + post-purge access enforcement and regression guardrails",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Bump the frontend build version string to force a new build artifact and document the deploy retry outcome regarding the Publish URL / Open App link.",
+      "id": "REQ-2",
+      "summary": "Block Hotel Area access until hotel activation is true, ensuring a purged hotel must re-activate and re-register before accessing the dashboard.",
       "acceptanceCriteria": [
-        "`frontend/src/buildInfo.ts` BUILD_VERSION is incremented from its current value to a new value (e.g., v33) to trigger a new build artifact.",
-        "A new build+deploy is executed after the version bump.",
-        "The resulting Caffeine deploy output includes a visible Publish URL / “Open App” link; if it is still missing, record the deploy attempt outcome for follow-up (error message or confirmation that deploy succeeded but URL did not appear)."
+        "After the purge, logging in as the purged hotel principal cannot access Hotel Area routes; the user is shown the existing Access Denied flow requiring activation.",
+        "After admin generates a NEW invite token for the same principal and the hotel consumes it, the hotel can access Hotel Area again and can create a new hotel profile (re-registration).",
+        "Existing guest flows (browse hotels, view hotel detail, create booking, view my bookings) continue to function for other hotels without errors."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/buildInfo.ts",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Increment BUILD_VERSION (currently 'v32') to a new value to force a fresh frontend build artifact for the next deploy attempt."
-        },
-        {
-          "path": "frontend/RELEASE_NOTES.md",
-          "operation": "modify",
-          "description": "Add a short section/template to record the deploy retry outcome, including whether Caffeine showed a Publish URL / “Open App” link and any relevant deploy output if it remains missing."
+          "description": "Enforce activation gating for the Hotel Area route by setting RequireRole's requireHotelActivation=true for /hotel, so unactivated (including purged) hotel principals see the existing AccessDeniedScreen + HotelActivationForm flow. Uses the authorization component's role/activation checks already wired through RequireRole. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
-      "id": "REQ-2",
-      "summary": "Add a concise admin-facing notice in the Admin Panel about the Caffeine UI sometimes not showing the Publish URL / Open App link after successful deploys.",
+      "id": "REQ-3",
+      "summary": "Add an admin-only UI action to purge all data for a specified hotel Principal ID with explicit confirmation and immediate React Query cache refresh.",
       "acceptanceCriteria": [
-        "Admin Panel contains a concise English notice about the potential Caffeine deploy UI issue (missing Publish URL / Open App) and the plan to retry later if it happens.",
-        "The notice does not change any business logic and does not block normal app usage."
+        "Admin UI provides an input for a hotel Principal ID and a destructive purge button that requires a clear confirmation step (e.g., typing the principal or a confirmation phrase) before executing.",
+        "On success, the UI invalidates/refetches relevant React Query caches (at minimum hotels list, invite tokens list, admin bookings views, and any hotel-profile queries) so removed data disappears without requiring a hard refresh.",
+        "On failure, the UI shows a user-friendly error message and does not crash the app.",
+        "Non-admin users cannot see or use the purge UI (consistent with existing admin route/role gating)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a dedicated React Query mutation hook for the new backend admin purge capability (added in REQ-1) that accepts a hotel Principal ID, performs the purge call, and on success invalidates relevant caches (e.g., hotels, inviteTokens, bookings, callerHotelProfile, isCallerHotelActivated). Keep user-facing error handling in the UI layer. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/admin/PrincipalPurgePanel.tsx",
           "operation": "create",
-          "description": "Create a small, admin-facing informational notice component. Use shadcn-ui (compose via existing UI primitives like Card/typography) to display a non-blocking message; verify the component's usage instructions before implementing."
+          "description": "Create an Admin Panel section to run a destructive purge for a hotel Principal ID with explicit confirmation (e.g., require typing the exact principal ID or a fixed confirmation phrase). Use shadcn-ui building blocks already used elsewhere (Card, Alert, Input, Button) for consistent styling, and use the authorization-gated admin route as the visibility control. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/pages/AdminPanelPage.tsx",
           "operation": "modify",
-          "description": "Render the new CaffeineDeployUiNotice near the top of the Admin Panel (above existing panels), ensuring it is informational only and does not affect any admin tools or app flows."
+          "description": "Wire the new PrincipalPurgePanel into the Admin Panel page (admin-only area) in an appropriate location alongside existing admin tools, ensuring it is not an orphan component. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Add frontend regression guardrails and checklist updates to reduce runtime errors and ensure key pages still render correctly after purge behavior.",
+      "acceptanceCriteria": [
+        "Guest Browse Hotels page renders successfully after purge and does not show placeholder/ghost rooms for any hotel.",
+        "Admin Invite Tokens panel renders and works after purge (can still generate/copy tokens for other principals).",
+        "Hotel activation flow still works end-to-end for a new hotel principal (admin creates token → hotel consumes → hotel can access Hotel Area).",
+        "No infinite loading states are introduced in role/activation guards (RequireRole continues to show loading/error/denied states correctly)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/BrowseHotelsPage.tsx",
+          "operation": "modify",
+          "description": "Harden rendering against unexpected missing/empty nested data by adding defensive checks around rooms/pictures usage (e.g., avoid assuming hotel.rooms is always present) so the page cannot crash if a query returns partial data after a purge. Ensure any user-facing text remains in English. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/REGRESSION_CHECKLIST.md",
+          "operation": "modify",
+          "description": "Extend the existing regression checklist with explicit post-purge verification steps covering: Browse Hotels rendering, Admin Invite Tokens functionality, Admin Bookings view rendering, and Hotel activation gating (AccessDeniedScreen + HotelActivationForm) to ensure no cross-feature breakage. Ensure newly added checklist text is in English."
         }
       ]
     }

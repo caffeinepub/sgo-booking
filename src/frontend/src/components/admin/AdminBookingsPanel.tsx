@@ -9,8 +9,10 @@ import { formatMoney } from '../../utils/money';
 import { Calendar, Users, Hotel, AlertCircle } from 'lucide-react';
 
 export function AdminBookingsPanel() {
-  const { data: bookings, isLoading, error } = useGetBookings();
+  const { data: bookingResult, isLoading, error } = useGetBookings();
   const { data: hotels } = useGetHotels();
+
+  const bookings = bookingResult?.bookings || [];
 
   const getHotelName = (hotelId: any) => {
     if (!hotelId || !hotels) return 'Unknown Hotel';
@@ -52,7 +54,7 @@ export function AdminBookingsPanel() {
     );
   }
 
-  if (!bookings || bookings.length === 0) {
+  if (bookings.length === 0) {
     return (
       <Card>
         <CardHeader>

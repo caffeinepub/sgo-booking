@@ -14,11 +14,14 @@ import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import InviteLinksModule "invite-links/invite-links-module";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
   let HARDCODED_ADMIN : Principal = Principal.fromText("ayatf-afj3q-z5wvo-4ocoi-x7lve-uel5k-yhe6p-ahp57-ww5ch-bc72g-wae");
+  let DEPRECATED_GOAT_HOTEL_ID_TEXT = "opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae";
 
   public type BookingStatus = {
     #pendingTransfer;
@@ -193,15 +196,16 @@ actor {
   };
 
   private func isHotelActivated(hotelPrincipal : Principal) : Bool {
+    if (hotelPrincipal.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) {
+      return false;
+    };
     let isDirectActive = switch (directHotelActivations.get(hotelPrincipal)) {
       case (?directActivated) { directActivated };
       case (null) { false };
     };
-
     if (isDirectActive) { 
       return true;
     };
-
     switch (inviteTokens.get(hotelPrincipal.toText())) {
       case (?inviteToken) { 
         not inviteToken.isActive and inviteToken.usageCount > 0
@@ -861,6 +865,10 @@ actor {
 
   // Hotel activation
   public query ({ caller }) func isValidHotelInviteToken(hotelPrincipal : Principal) : async Bool {
+    if (hotelPrincipal.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) {
+      return false;
+    };
+
     let isDirectActive = switch (directHotelActivations.get(hotelPrincipal)) {
       case (?directActivated) { directActivated };
       case (null) { false };
@@ -884,6 +892,11 @@ actor {
   };
 
   public query ({ caller }) func isHotelActiveByDirectActivation(hotelPrincipal : Principal) : async Bool {
+    // Direct check for deprecated hotel ID
+    if (hotelPrincipal.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) {
+      return false;
+    };
+
     switch (directHotelActivations.get(hotelPrincipal)) {
       case (?status) { status };
       case (null) { false };
@@ -891,7 +904,25 @@ actor {
   };
 
   public query ({ caller }) func isCallerHotelActivated() : async Bool {
-    isHotelActivated(caller);
+    not (caller.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT) and isHotelActivated(caller);
+  };
+
+  public query ({ caller }) func isCallerHotelActiveByDirectActivation() : async Bool {
+    if (not (caller.toText() == DEPRECATED_GOAT_HOTEL_ID_TEXT)) {
+      switch (directHotelActivations.get(caller)) {
+        case (?status) { status };
+        case (null) { false };
+      };
+    } else {
+      false;
+    };
+  };
+
+  public query ({ caller }) func doesCallerHaveDirectActivation() : async Bool {
+    switch (directHotelActivations.get(caller)) {
+      case (?hasActivation) { hasActivation };
+      case (null) { false };
+    };
   };
 
   // Invite token management
@@ -972,6 +1003,63 @@ actor {
         Runtime.trap("Invalid token: Token not found");
       };
     };
+  };
+
+  public shared ({ caller }) func adminPurgeDeprecatedGoatHotelData() : async () {
+    if (not isAdminUser(caller)) {
+      Runtime.trap("Unauthorized: Only admins can purge deprecated hotel data");
+    };
+
+    // Remove deprecated hotel from list
+    let filtered = hotelsList.toArray().filter(func(h) { not Principal.equal(h.id, Principal.fromText(DEPRECATED_GOAT_HOTEL_ID_TEXT)) });
+    hotelsList.clear();
+    filtered.forEach(func(h) { hotelsList.add(h) });
+
+    // Remove all rooms belonging to the deprecated hotel
+    let allRooms = roomsMap.toArray();
+    for ((roomId, room) in allRooms.vals()) {
+      if (Principal.equal(room.hotelId, Principal.fromText(DEPRECATED_GOAT_HOTEL_ID_TEXT))) {
+        roomsMap.remove(roomId);
+      };
+    };
+
+    // Remove all bookings associated with the deprecated hotel
+    let allBookings = bookingsMap.toArray();
+    for ((bookingId, booking) in allBookings.vals()) {
+      switch (booking.hotelId) {
+        case (?hotelId) {
+          if (Principal.equal(hotelId, Principal.fromText(DEPRECATED_GOAT_HOTEL_ID_TEXT))) {
+            bookingsMap.remove(bookingId);
+            
+            // Remove associated payments
+            let allPayments = payments.toArray();
+            for ((paymentId, payment) in allPayments.vals()) {
+              if (payment.bookingId == bookingId) {
+                payments.remove(paymentId);
+              };
+            };
+          };
+        };
+        case (null) {};
+      };
+    };
+
+    // Remove invite tokens bound to the deprecated hotel
+    let allInviteTokens = inviteTokens.toArray();
+    for ((tokenKey, token) in allInviteTokens.vals()) {
+      switch (token.boundPrincipal) {
+        case (?boundPrincipal) {
+          if (Principal.equal(boundPrincipal, Principal.fromText(DEPRECATED_GOAT_HOTEL_ID_TEXT))) {
+            inviteTokens.remove(tokenKey);
+          };
+        };
+        case (null) {};
+      };
+    };
+
+    // Remove deprecated hotel activation status
+    directHotelActivations.remove(Principal.fromText(DEPRECATED_GOAT_HOTEL_ID_TEXT));
+    hotelOwners.remove(Principal.fromText(DEPRECATED_GOAT_HOTEL_ID_TEXT));
   };
 
   // Invite-links public methods

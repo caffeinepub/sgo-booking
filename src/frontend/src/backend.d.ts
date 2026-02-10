@@ -122,6 +122,7 @@ export interface backendInterface {
     activateHotelDirectly(hotelPrincipal: Principal): Promise<boolean>;
     adminDeleteAllRoomsForHotel(hotelId: Principal): Promise<void>;
     adminDeleteHotelData(hotelId: Principal): Promise<void>;
+    adminPurgeDeprecatedGoatHotelData(): Promise<void>;
     adminRemoveLegacyPaymentMethods(hotelId: Principal): Promise<void>;
     adminRemoveLegacyRoomPhotos(hotelId: Principal, roomId: bigint): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
@@ -131,6 +132,7 @@ export interface backendInterface {
     createHotelInviteToken(_maxUses: bigint, boundPrincipal: Principal | null): Promise<InviteToken>;
     createHotelProfile(name: string, location: string, address: string, mapLink: string, whatsapp: string | null, email: string | null): Promise<void>;
     createRoom(roomNumber: string, roomType: string, pricePerNight: bigint, currency: string, pictures: Array<string>): Promise<RoomView>;
+    doesCallerHaveDirectActivation(): Promise<boolean>;
     generateInviteCode(): Promise<string>;
     getAllRSVPs(): Promise<Array<RSVP>>;
     getBooking(bookingId: bigint): Promise<BookingRequest | null>;
@@ -147,6 +149,7 @@ export interface backendInterface {
     getValidHotelInviteTokens(): Promise<Array<string>>;
     isCallerAdmin(): Promise<boolean>;
     isCallerHotelActivated(): Promise<boolean>;
+    isCallerHotelActiveByDirectActivation(): Promise<boolean>;
     isHotelActiveByDirectActivation(hotelPrincipal: Principal): Promise<boolean>;
     isHotelOwner(callerPrincipal: Principal, hotelId: Principal): Promise<boolean>;
     isValidHotelInviteToken(hotelPrincipal: Principal): Promise<boolean>;

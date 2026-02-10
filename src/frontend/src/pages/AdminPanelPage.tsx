@@ -4,6 +4,7 @@ import { InviteTokensPanel } from '../components/admin/InviteTokensPanel';
 import { HotelVisibilityPanel } from '../components/admin/HotelVisibilityPanel';
 import { AdminBookingsPanel } from '../components/admin/AdminBookingsPanel';
 import { DataCleanupPanel } from '../components/admin/DataCleanupPanel';
+import { PrincipalPurgePanel } from '../components/admin/PrincipalPurgePanel';
 import { CaffeineDeployUiNotice } from '../components/admin/CaffeineDeployUiNotice';
 import { Separator } from '../components/ui/separator';
 import { Shield } from 'lucide-react';
@@ -30,6 +31,10 @@ export default function AdminPanelPage() {
       <Separator />
       
       <AdminBookingsPanel />
+      
+      <Separator />
+      
+      <PrincipalPurgePanel />
       
       <Separator />
       

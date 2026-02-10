@@ -2,33 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-force-a-fresh-deployment-attempt-by-bumping-the-frontend-build-version-string-then-run-build-deploy-so-caffeine-attempts-a-new-publish-and-shows-the-publish-url-open-app-link",
-      "featureTitle": "Force a fresh deployment attempt by bumping the frontend build version string, then run build + deploy so Caffeine attempts a new publish and shows the Publish URL / “Open App” link.",
+      "featureId": "feature-ensure-hotel-dashboard-access-is-blocked-after-a-purge-until-the-hotel-re-registers-and-is-activated-again-by-admin-invite-token-consumption",
+      "featureTitle": "Ensure hotel dashboard access is blocked after a purge until the hotel re-registers and is activated again by admin invite token consumption.",
       "files": [
-        "frontend/RELEASE_NOTES.md",
-        "frontend/src/buildInfo.ts"
-      ],
-      "components": [
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "authorization@4.0.0",
-        "invite-links@3.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-a-short-admin-facing-note-in-the-app-admin-panel-explaining-that-if-the-caffeine-platform-ui-fails-to-show-the-publish-url-open-app-after-a-successful-deploy-it-is-a-platform-issue-and-the-team-will-pause-and-retry-later-without-implying-an-application-bug",
-      "featureTitle": "Add a short admin-facing note in the app (Admin Panel) explaining that if the Caffeine platform UI fails to show the Publish URL / “Open App” after a successful deploy, it is a platform issue and the team will pause and retry later, without implying an application bug.",
-      "files": [
-        "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
-        "frontend/src/pages/AdminPanelPage.tsx"
+        "frontend/src/App.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -42,6 +19,51 @@
       ],
       "testIds": [
         "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-an-admin-panel-ui-action-to-run-the-full-principal-purge-safely-with-explicit-confirmation-and-refresh-affected-cached-queries-so-the-ui-immediately-reflects-the-deletion",
+      "featureTitle": "Add an Admin Panel UI action to run the full principal purge safely (with explicit confirmation) and refresh affected cached queries so the UI immediately reflects the deletion.",
+      "files": [
+        "frontend/src/components/admin/PrincipalPurgePanel.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AdminPanelPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-regression-checks-and-guardrails-to-prevent-runtime-errors-or-cross-feature-breakage-after-introducing-purge-behavior",
+      "featureTitle": "Add regression checks and guardrails to prevent runtime errors or cross-feature breakage after introducing purge behavior.",
+      "files": [
+        "frontend/REGRESSION_CHECKLIST.md",
+        "frontend/src/pages/BrowseHotelsPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0",
+        "invite-links@3.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

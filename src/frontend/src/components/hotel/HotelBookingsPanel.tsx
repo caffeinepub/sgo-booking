@@ -23,13 +23,15 @@ import { toast } from 'sonner';
 
 export function HotelBookingsPanel() {
   const { data: hotelProfile } = useGetCallerHotelProfile();
-  const { data: bookings, isLoading, error } = useGetBookings(
-    hotelProfile ? { hotelId: hotelProfile.id } : undefined
+  const { data: bookingResult, isLoading, error } = useGetBookings(
+    hotelProfile ? { hotelId: hotelProfile.id } : {}
   );
   const updateStatus = useUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState<bigint | null>(null);
+
+  const bookings = bookingResult?.bookings || [];
 
   const handleConfirmBooking = async (bookingId: bigint) => {
     try {
@@ -101,7 +103,7 @@ export function HotelBookingsPanel() {
     );
   }
 
-  if (!bookings || bookings.length === 0) {
+  if (bookings.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -183,7 +185,7 @@ export function HotelBookingsPanel() {
                             <Button
                               size="sm"
                               onClick={() => handleConfirmBooking(booking.id)}
-                              disabled={updateStatus.isPending || cancelBooking.isPending}
+                              disabled={updateStatus.isPending}
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Confirm
@@ -192,7 +194,7 @@ export function HotelBookingsPanel() {
                               size="sm"
                               variant="destructive"
                               onClick={() => handleCancelClick(booking.id)}
-                              disabled={updateStatus.isPending || cancelBooking.isPending}
+                              disabled={cancelBooking.isPending}
                             >
                               <XCircle className="h-4 w-4 mr-1" />
                               Cancel
@@ -267,7 +269,7 @@ export function HotelBookingsPanel() {
                               size="sm"
                               variant="destructive"
                               onClick={() => handleCancelClick(booking.id)}
-                              disabled={updateStatus.isPending || cancelBooking.isPending}
+                              disabled={cancelBooking.isPending}
                             >
                               <XCircle className="h-4 w-4 mr-1" />
                               Cancel
@@ -290,7 +292,7 @@ export function HotelBookingsPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel this booking? This action cannot be undone. The guest will be notified of the cancellation.
+              Are you sure you want to cancel this booking? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
