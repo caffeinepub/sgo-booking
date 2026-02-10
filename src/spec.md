@@ -1,14 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Simplify hotel room management by removing Room Number, adding promo-based pricing, and enabling edit/delete for rooms and individual room photos without affecting other working features.
+**Goal:** Restore the previously stable hotel activation/admin invite-token/role behavior and fix the room (“upload kamar”) photo upload flow so it reliably stores and reloads photos.
 
 **Planned changes:**
-- Remove the `roomNumber` field end-to-end (backend Motoko types/state + frontend types/UI), including safe upgrade handling to discard legacy `roomNumber` data.
-- Add `promoPercent` (0–100) to room data, validate inputs, and compute a deterministic discounted nightly price from base price + promo percent.
-- Update guest-facing room display/booking calculations to use the discounted nightly price whenever promoPercent > 0.
-- Add Edit and Delete actions to each room entry in the hotel Rooms list, including confirmation on delete and UI refresh after mutations.
-- Add per-photo Delete and optional Replace/Edit controls for each uploaded room photo, persisting changes to the backend pictures array and reflecting updates in guest views.
-- Update `frontend/src/components/hotel/RoomsPanel.tsx` and related hooks/mutations to match the new room schema (no roomNumber; includes promoPercent and discounted-price display).
+- Restore backend canister method exports and candid alignment for the frontend’s existing auth/admin/hotel-profile flows (roles/guards, hotel activation/visibility/subscription admin actions, invite-token list/CRUD/validation/consumption) so results are consistent and no UI calls fail.
+- Fix Hotel Area > Rooms “upload kamar” create/edit flow to validate image files, show clear English errors, and preserve existing photos unless explicitly replaced or deleted.
+- Update room photo handling to store uploaded images in canister blob storage and save stable retrievable references/identifiers in `RoomInput.pictures` (no long-term base64 `data:` URLs), ensuring photos remain usable after refresh/re-login.
+- Run the relevant regression checklist sections (auth/roles, activation, admin panel) and document what changed and what was verified in release notes, including a rollback note if the regression reappears.
 
-**User-visible outcome:** Hotel owners can create rooms using only room type, base price, promo percent, and photos; see the discounted price automatically; edit/delete rooms; and delete/replace individual room photos. Guests see updated room photos and promo-adjusted nightly prices during browsing and booking.
+**User-visible outcome:** Hotel accounts no longer appear incorrectly inactive, the Admin Panel invite tokens reappear and load normally, role-protected pages work without runtime method errors, and rooms can be created/edited with photos that persist correctly across reloads (with clear English upload errors when files are invalid).

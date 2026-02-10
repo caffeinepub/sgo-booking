@@ -6,13 +6,15 @@ import Nat "mo:core/Nat";
 import Time "mo:core/Time";
 import Array "mo:core/Array";
 import Principal "mo:core/Principal";
+import Int "mo:core/Int";
 import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
+import Migration "migration";
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Storage "blob-storage/Storage";
 import AccessControl "authorization/access-control";
 import InviteLinksModule "invite-links/invite-links-module";
-import Migration "migration";
 
 (with migration = Migration.run)
 actor {
@@ -196,7 +198,6 @@ actor {
   let legacyActiveHotels = List.empty<Principal>();
   let legacyDeactivatedHotels = List.empty<Principal>();
 
-  // Include authorization mixin
   include MixinAuthorization(accessControlState);
 
   private func isHardcodedAdmin(caller : Principal) : Bool {
@@ -241,6 +242,28 @@ actor {
     hotelsList.add(updatedHotel);
   };
 
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.get(caller);
+  };
+
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    // Users can view their own profile, admins can view any profile
+    if (not Principal.equal(caller, user) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
+  };
+
   public shared ({ caller }) func makeMeAdmin() : async () {
     if (not isHardcodedAdmin(caller)) {
       Runtime.trap("Unauthorized: Only the hardcoded admin can elevate privileges");
@@ -281,7 +304,7 @@ actor {
           id = caller;
           name = "New Hotel";
           location = "";
-          rooms = List.fromArray([roomId]);
+          rooms = List.fromArray<Nat>([roomId]);
           address = "";
           mapLink = "";
           active = true;
@@ -371,4 +394,3 @@ actor {
     };
   };
 };
-

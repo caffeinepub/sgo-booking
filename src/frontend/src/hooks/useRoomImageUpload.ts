@@ -1,100 +1,89 @@
 import { useState } from 'react';
+import { uploadImageToBlob } from '../utils/roomBlobStorage';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 
 export interface UploadProgress {
-  fileName: string;
+  file: string;
   percentage: number;
 }
 
-/**
- * Hook for handling room image uploads.
- * Converts image files to data URLs for storage.
- * Note: For production use with large images, consider implementing
- * a proper blob storage solution to avoid storing large base64 strings.
- */
+export interface UploadResult {
+  url: string;
+  file: File;
+}
+
 export function useRoomImageUpload() {
-  const [uploadProgress, setUploadProgress] = useState<Map<string, number>>(new Map());
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<UploadProgress[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const validateFile = (file: File): string | null => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return `Invalid file type: ${file.type}. Allowed types: JPEG, PNG, WebP, GIF`;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return `File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum size: 5MB`;
+    }
+    return null;
+  };
 
   const uploadImages = async (files: File[]): Promise<string[]> => {
-    if (files.length === 0) return [];
-
-    setIsUploading(true);
-    const uploadedUrls: string[] = [];
+    setUploading(true);
+    setError(null);
+    setProgress([]);
 
     try {
+      // Validate all files first
       for (const file of files) {
-        // Simulate upload progress
-        setUploadProgress((prev) => {
-          const updated = new Map(prev);
-          updated.set(file.name, 0);
-          return updated;
-        });
-
-        // Read file as data URL
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const result = event.target?.result as string;
-            resolve(result);
-          };
-          reader.onerror = () => {
-            reject(new Error(`Failed to read file: ${file.name}`));
-          };
-          reader.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percentage = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress((prev) => {
-                const updated = new Map(prev);
-                updated.set(file.name, percentage);
-                return updated;
-              });
-            }
-          };
-          reader.readAsDataURL(file);
-        });
-
-        uploadedUrls.push(dataUrl);
-
-        // Clear progress for this file
-        setUploadProgress((prev) => {
-          const updated = new Map(prev);
-          updated.delete(file.name);
-          return updated;
-        });
+        const validationError = validateFile(file);
+        if (validationError) {
+          throw new Error(validationError);
+        }
       }
 
-      return uploadedUrls;
-    } catch (error) {
-      console.error('Image upload error:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to upload images. Please try again.');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(new Map());
+      const urls: string[] = [];
+
+      // Upload files sequentially with progress tracking
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        try {
+          const url = await uploadImageToBlob(file, ({ percentage }) => {
+            setProgress((prev) => {
+              const updated = [...prev];
+              updated[i] = { file: file.name, percentage };
+              return updated;
+            });
+          });
+          
+          urls.push(url);
+        } catch (uploadError) {
+          throw new Error(`Failed to upload ${file.name}: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
+        }
+      }
+
+      setUploading(false);
+      return urls;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload images';
+      setError(errorMessage);
+      setUploading(false);
+      throw new Error(errorMessage);
     }
   };
 
-  const uploadImagesFromDataUrls = async (dataUrls: string[]): Promise<string[]> => {
-    // Data URLs are already in the correct format, just return them
-    // This function exists for consistency with the upload flow
-    if (dataUrls.length === 0) return [];
-    
-    try {
-      return dataUrls;
-    } catch (error) {
-      console.error('Image processing error:', error);
-      throw new Error('Failed to process images. Please try again.');
-    }
+  const uploadSingleImage = async (file: File): Promise<string> => {
+    const urls = await uploadImages([file]);
+    return urls[0];
   };
-
-  // Calculate overall progress percentage
-  const overallProgress = uploadProgress.size > 0
-    ? Math.round(Array.from(uploadProgress.values()).reduce((sum, val) => sum + val, 0) / uploadProgress.size)
-    : 0;
 
   return {
     uploadImages,
-    uploadImagesFromDataUrls,
-    uploadProgress: overallProgress,
-    isUploading,
+    uploadSingleImage,
+    uploading,
+    progress,
+    error,
   };
 }

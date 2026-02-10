@@ -39,6 +39,11 @@ export interface RoomView {
   'discountedPrice' : bigint,
 }
 export type Time = bigint;
+export interface UserProfile {
+  'name' : string,
+  'email' : [] | [string],
+  'phone' : [] | [string],
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -74,10 +79,13 @@ export interface _SERVICE {
   'createRoom' : ActorMethod<[RoomInput], RoomView>,
   'generateInviteCode' : ActorMethod<[], string>,
   'getAllRSVPs' : ActorMethod<[], Array<RSVP>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getInviteCodes' : ActorMethod<[], Array<InviteCode>>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'makeMeAdmin' : ActorMethod<[], undefined>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'submitRSVP' : ActorMethod<[string, boolean, string], undefined>,
   'updateRoom' : ActorMethod<[bigint, RoomInput], RoomView>,
 }

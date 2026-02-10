@@ -100,7 +100,7 @@ const hotelAreaRoute = createRoute({
   component: () => (
     <RequireAuth>
       <ProfileCompletionGate>
-        <RequireRole allowedRoles={[UserRole.user, UserRole.admin]} requireHotelActivation={true}>
+        <RequireRole requiredRoles={[UserRole.user, UserRole.admin]} requireHotelActivation={true}>
           <HotelAreaPage />
         </RequireRole>
       </ProfileCompletionGate>
@@ -114,7 +114,7 @@ const adminPanelRoute = createRoute({
   component: () => (
     <RequireAuth>
       <ProfileCompletionGate>
-        <RequireRole allowedRoles={[UserRole.admin]}>
+        <RequireRole requiredRoles={[UserRole.admin]}>
           <AdminPanelPage />
         </RequireRole>
       </ProfileCompletionGate>

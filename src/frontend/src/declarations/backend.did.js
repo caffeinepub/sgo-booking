@@ -48,6 +48,11 @@ export const RSVP = IDL.Record({
   'timestamp' : Time,
   'attending' : IDL.Bool,
 });
+export const UserProfile = IDL.Record({
+  'name' : IDL.Text,
+  'email' : IDL.Opt(IDL.Text),
+  'phone' : IDL.Opt(IDL.Text),
+});
 export const InviteCode = IDL.Record({
   'created' : Time,
   'code' : IDL.Text,
@@ -86,10 +91,17 @@ export const idlService = IDL.Service({
   'createRoom' : IDL.Func([RoomInput], [RoomView], []),
   'generateInviteCode' : IDL.Func([], [IDL.Text], []),
   'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'makeMeAdmin' : IDL.Func([], [], []),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
   'updateRoom' : IDL.Func([IDL.Nat, RoomInput], [RoomView], []),
 });
@@ -137,6 +149,11 @@ export const idlFactory = ({ IDL }) => {
     'timestamp' : Time,
     'attending' : IDL.Bool,
   });
+  const UserProfile = IDL.Record({
+    'name' : IDL.Text,
+    'email' : IDL.Opt(IDL.Text),
+    'phone' : IDL.Opt(IDL.Text),
+  });
   const InviteCode = IDL.Record({
     'created' : Time,
     'code' : IDL.Text,
@@ -175,10 +192,17 @@ export const idlFactory = ({ IDL }) => {
     'createRoom' : IDL.Func([RoomInput], [RoomView], []),
     'generateInviteCode' : IDL.Func([], [IDL.Text], []),
     'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'makeMeAdmin' : IDL.Func([], [], []),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
     'updateRoom' : IDL.Func([IDL.Nat, RoomInput], [RoomView], []),
   });

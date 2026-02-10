@@ -1,51 +1,50 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Hotel dashboard/admin enhancements: simplify room upload (remove Room Number), add promo percentage with automatic discounted price calculation, and provide edit/delete controls for uploaded room photos and room entries without impacting other existing features.",
+  "summary": "Restore system to previous stable version to revert regressions (hotel activation/admin tokens/roles) and then only work on the requested 'upload kamar' (room upload) feature.",
   "architectural_notes": [
-    "Promo is stored as numeric percentage and used to compute discounted price automatically.",
-    "Backend schema must be updated to fully remove roomNumber to avoid unused data in the database."
+    "Project policy: avoid modifying unrelated features; changes should be limited to the requested scope (room upload) after restoring stable baseline."
   ],
   "known_issues": [
-    "Build/deployment automation returned a generic error ('unable to implement your request'); user requested to retry the build."
+    "Regression after latest deployment caused hotel accounts to appear inactive and admin-created hotel tokens to disappear from the UI; user requests rollback to stable."
   ],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-remove-the-room-number-field-from-the-hotel-room-data-model-end-to-end-backend-frontend-so-rooms-are-identified-without-any-stored-roomnumber-and-no-unused-legacy-roomnumber-data-remains-in-canister-state",
-      "title": "Remove the \"Room Number\" field from the hotel room data model end-to-end (backend + frontend), so rooms are identified without any stored roomNumber and no unused/legacy roomNumber data remains in canister state.",
+      "id": "feature-restore-the-previously-stable-behavior-for-hotel-activation-admin-invite-token-visibility-and-role-based-access-by-ensuring-the-backend-canister-exports-all-methods-currently-called-by-the-frontend-auth-admin-hotel-profile-flows-and-that-these-methods-return-consistent-results-so-hotel-accounts-do-not-appear-incorrectly-inactive-and-existing-admin-created-tokens-are-visible-again",
+      "title": "Restore the previously stable behavior for hotel activation, admin invite-token visibility, and role-based access by ensuring the backend canister exports all methods currently called by the frontend auth/admin/hotel-profile flows, and that these methods return consistent results so hotel accounts do not appear incorrectly inactive and existing admin-created tokens are visible again.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-a-numeric-promo-percentage-field-to-rooms-0-100-and-automatically-calculate-the-discounted-nightly-price-from-the-base-price-and-promo-percentage-display-and-use-the-discounted-price-consistently-in-hotel-room-management-and-guest-booking-flows",
-      "title": "Add a numeric promo percentage field to rooms (0–100) and automatically calculate the discounted nightly price from the base price and promo percentage; display and use the discounted price consistently in hotel room management and guest booking flows.",
+      "id": "feature-limit-changes-strictly-to-a-restoring-the-broken-stable-features-and-b-the-requested-upload-kamar-room-upload-flow-do-not-refactor-or-change-unrelated-functionality-booking-payments-browsing-etc-beyond-what-is-necessary-to-remove-the-regression",
+      "title": "Limit changes strictly to (a) restoring the broken stable features and (b) the requested 'upload kamar' (room upload) flow; do not refactor or change unrelated functionality (booking, payments, browsing, etc.) beyond what is necessary to remove the regression.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-edit-and-delete-actions-for-each-room-entry-in-the-hotel-rooms-list-allowing-the-hotel-owner-to-update-or-remove-a-room-without-impacting-other-existing-dashboards-features",
-      "title": "Add Edit and Delete actions for each room entry in the hotel \"Rooms\" list, allowing the hotel owner to update or remove a room without impacting other existing dashboards/features.",
+      "id": "feature-fix-and-harden-the-upload-kamar-flow-in-the-rooms-panel-so-adding-editing-a-room-with-photos-is-reliable-validate-selected-image-files-provide-clear-errors-preserve-existing-photos-when-editing-unless-explicitly-replaced-deleted-and-ensure-the-saved-room-s-picture-urls-remain-usable-after-page-reload",
+      "title": "Fix and harden the 'upload kamar' flow in the Rooms panel so adding/editing a room with photos is reliable: validate selected image files, provide clear errors, preserve existing photos when editing unless explicitly replaced/deleted, and ensure the saved room's picture URLs remain usable after page reload.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-edit-delete-controls-for-each-uploaded-room-photo-each-picture-item-so-hotel-owners-can-remove-individual-photos-and-optionally-replace-a-specific-photo-with-changes-persisted-to-the-backend-room-pictures-array",
-      "title": "Add Edit/Delete controls for each uploaded room photo (each picture item), so hotel owners can remove individual photos and optionally replace a specific photo, with changes persisted to the backend room pictures array.",
+      "id": "feature-update-the-room-photo-upload-implementation-so-it-does-not-rely-on-large-base64-data-urls-for-long-term-storage-store-uploaded-images-in-the-canister-s-blob-storage-mechanism-and-save-stable-retrievable-urls-identifiers-in-roominput-pictures-instead",
+      "title": "Update the room photo upload implementation so it does not rely on large base64 data URLs for long-term storage; store uploaded images in the canister’s blob storage mechanism and save stable retrievable URLs/identifiers in `RoomInput.pictures` instead.",
       "reqIds": [
         "REQ-4"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-frontend-room-management-components-and-hooks-to-match-the-new-room-schema-no-roomnumber-includes-promopercent-and-discounted-price-display-specifically-updating-the-existing-hotel-room-management-ui-implementation-in-frontend-src-components-hotel-roomspanel-tsx-and-related-query-hooks",
-      "title": "Update frontend room management components and hooks to match the new room schema (no roomNumber; includes promoPercent and discounted-price display), specifically updating the existing hotel room management UI implementation in frontend/src/components/hotel/RoomsPanel.tsx and related query hooks.",
+      "id": "feature-add-a-focused-regression-verification-pass-using-the-existing-regression-checklist-to-confirm-the-restored-stable-behaviors-auth-roles-hotel-activation-admin-tokens-and-the-updated-room-upload-behavior-before-deployment-record-the-verification-steps-in-the-release-notes",
+      "title": "Add a focused regression verification pass using the existing regression checklist to confirm the restored stable behaviors (auth/roles, hotel activation, admin tokens) and the updated room upload behavior before deployment; record the verification steps in the release notes.",
       "reqIds": [
         "REQ-5"
       ],
@@ -55,38 +54,18 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Remove Room Number field from room upload/UI and delete roomNumber from backend schema/storage (no unused DB fields).",
+      "summary": "Rollback/restore the app to the previous stable version so existing features behave normally again (hotel activation, admin token visibility, role/routing).",
       "reqIds": [],
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": "AR-2",
-      "summary": "Add promo as numeric percentage and automatically calculate discounted room price based on base price and promo %.",
+      "summary": "Fix/improve only the 'upload kamar' (room upload) feature as requested, without touching unrelated features.",
       "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Add Edit/Delete actions per uploaded room photo/item so hotels can edit/delete each uploaded room photo entry.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Ensure requested room upload changes do not affect other existing features that are already working normally.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-10",
-      "summary": "Implement a safe state upgrade path for the room schema change (removing roomNumber and adding promoPercent/base/discounted price representation), ensuring existing canister data upgrades without data loss beyond dropping roomNumber, and without breaking running features.",
-      "reqIds": [
-        "REQ-6"
-      ],
       "status": "pending"
     }
   ],
-  "projectName": "Simplify room management: remove Room Number, add promo pricing, and enable edit/delete for rooms and room photos",
+  "projectName": "Restore stable hotel activation/admin token behavior and fix room photo upload only",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

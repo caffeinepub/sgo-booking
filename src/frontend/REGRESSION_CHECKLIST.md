@@ -2,6 +2,76 @@
 
 This checklist must be completed before each production deployment to ensure critical functionality remains intact.
 
+## V47 Compatibility Restoration Verification
+
+### Critical Startup Checks
+- [ ] **App loads without errors**
+  - No runtime errors in browser console
+  - No "actor.<method> is not a function" errors
+  - No blank screens or infinite loading states
+
+- [ ] **Authentication works**
+  - Internet Identity login succeeds
+  - User can log out and log back in
+  - Principal ID is displayed correctly
+
+### Admin Functionality
+- [ ] **Admin access**
+  - Hard-coded admin principal can log in
+  - Admin Panel link appears in navigation
+  - Admin Panel page loads without errors
+
+- [ ] **Invite code generation**
+  - Admin can generate invite codes
+  - Generated codes appear in Active Invite Codes section
+  - Informational notice about restoration is displayed
+  - No runtime errors when generating codes
+
+### Hotel Functionality
+- [ ] **Room creation with blob storage**
+  - Hotel user can create a new room
+  - Photo upload works with progress indicator
+  - Photos display immediately after upload
+  - Room appears in rooms list after creation
+  - File validation works (type and size limits)
+  - Clear error messages for invalid files
+
+- [ ] **Room photo persistence**
+  - Room photos persist after page refresh
+  - Room photos persist after logout and re-login
+  - Photo URLs are stable blob URLs (not data: URLs)
+
+- [ ] **Room editing**
+  - Hotel user can edit existing room
+  - Existing photos are preserved when not changed
+  - New photos can be added to existing room
+  - Photos can be replaced individually
+  - Photos can be deleted individually
+
+### Graceful Degradation
+- [ ] **Unavailable features show clear messages**
+  - Hotel activation shows "currently unavailable" message
+  - Hotel profile update shows clear error message
+  - Booking creation shows clear error message
+  - Payment method management shows clear error message
+  - All error messages are in English
+
+- [ ] **No crashes on unavailable features**
+  - Attempting unavailable actions shows error toast
+  - App remains functional after error
+  - User can continue using available features
+
+### User Experience
+- [ ] **Loading states**
+  - All queries show appropriate loading indicators
+  - No infinite loading states
+  - Proper error handling for failed queries
+
+- [ ] **Navigation**
+  - All routes are accessible
+  - No undefined routes
+  - Back buttons and navigation links work
+
 ## Authentication & Authorization
 
 ### V24 Verification Steps (Post-Rollback)
@@ -310,3 +380,4 @@ This checklist must be completed before each production deployment to ensure cri
 - **V39 Note:** If ghost photos or legacy payment methods still appear after deployment, use Admin Panel → Data Cleanup Utility to manually remove them by hotel principal and room ID
 - **V40+ Note:** The HOTEL DUMMY purge is a one-time operation that runs automatically during upgrade. If HOTEL DUMMY still shows rooms after deployment, contact the development team immediately.
 - **V43 Note:** Hotel activation gating is now enforced for /hotel route. Purged hotels must re-activate via new invite token before accessing Hotel Area.
+- **V47 Note:** This release focuses on compatibility restoration. Most features are temporarily unavailable with clear error messages. Only room creation with blob storage is fully functional.

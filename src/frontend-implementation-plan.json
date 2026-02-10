@@ -1,155 +1,141 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Room schema updates: remove Room Number, add promo pricing, and enable room/photo edit & delete (frontend-only)",
+  "title": "Restore stable admin/activation behavior and make room photo upload blob-based (frontend-only)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Remove all frontend usage of roomNumber so rooms are identified/displayed without a Room Number field.",
+      "summary": "Stop auth/admin/hotel-profile flows from breaking when backend methods differ by adding a safe compatibility layer for role checks, activation status reads, and admin invite-token visibility.",
       "acceptanceCriteria": [
-        "The Add/Edit Room dialog no longer shows a \"Room Number\" input (screenshot-highlighted field removed).",
-        "Frontend types (e.g., RoomView) no longer contain roomNumber.",
-        "All backend methods and frontend hooks that previously accepted/returned roomNumber are updated accordingly and compile successfully."
+        "A hotel principal that was previously considered active is shown as active again in the UI (no false 'inactive' state caused by missing/failed API calls).",
+        "The Admin Panel invite token list loads successfully and shows previously created tokens (no empty list due to missing backend methods).",
+        "Role/guarded routes work without throwing runtime errors (e.g., no 'actor.<method> is not a function' errors) and the user can navigate to the same pages as in the last stable version.",
+        "Backend candid interface is aligned with the methods used in frontend query/mutation hooks for: caller role/admin checks, invite token CRUD/validation/consumption, hotel visibility/activation/subscription admin actions, and hotel profile fetch/update (as applicable to current UI)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Remove roomNumber state/input and any rendering that labels rooms as \"Room {roomNumber}\"; update edit form initialization accordingly. Verify the component's usage instructions before implementing."
+          "description": "Harden query/mutation hooks used by auth/admin/hotel-profile flows by adding runtime method-availability checks before calling actor functions (preventing 'actor.<method> is not a function' crashes) and normalizing errors into English user-facing messages where handled by callers. Add a small compatibility mapping for admin invite tokens so the Admin Panel can load previously created tokens regardless of whether the backend exposes legacy invite-token methods or invite-code methods. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/hotel/RoomPhotosSection.tsx",
+          "path": "frontend/src/components/admin/InviteTokensPanel.tsx",
           "operation": "modify",
-          "description": "Remove required roomNumber prop; update alt text/labels to use roomType or a generic label so callers don’t need roomNumber. Verify the component's usage instructions before implementing."
+          "description": "Update the Admin Panel invite token UI to rely on the hardened hooks/compat layer so token list rendering is resilient and previously created tokens are visible again. Keep existing UI/UX and only adjust data-shape mapping and error handling (English). Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/booking/BookingForm.tsx",
+          "path": "frontend/src/components/auth/RequireRole.tsx",
           "operation": "modify",
-          "description": "Remove any UI text that references room.roomNumber (e.g., subtitle) and rely on roomType/other existing fields. Verify the component's usage instructions before implementing."
+          "description": "Ensure guarded routes do not misclassify users as inactive solely due to transient query failures: keep admin-bypass behavior, and ensure errors route to GuardErrorScreen rather than creating an incorrect 'inactive' AccessDenied state. Any text changes must remain English. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/HotelDetailPage.tsx",
+          "path": "frontend/src/components/auth/HotelActivationForm.tsx",
           "operation": "modify",
-          "description": "Remove any roomNumber references in guest room cards and photo section props; use roomType and/or generic labels instead. Verify the component's usage instructions before implementing."
+          "description": "Use the hardened invite-token hooks and provide clear English error states when activation-related backend capabilities are unavailable (no runtime crashes). Keep the existing activation UX and navigation behavior. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/types/extended-backend.ts",
+          "path": "frontend/src/backend.d.ts",
           "operation": "modify",
-          "description": "Update RoomView to remove roomNumber and align with current backend RoomView fields used in the app. Verify the component's usage instructions before implementing."
+          "description": "Align frontend type declarations with the backend methods actually called by current auth/admin/hotel-profile flows (add missing method signatures used in hooks/components and remove reliance on 'any' where safe) to prevent integration drift and improve compile-time safety. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add promoPercent input (0–100) in room create/edit UI and display deterministic discounted nightly price across hotel management and guest booking flows.",
+      "summary": "Constrain the frontend changes to only the activation/token/role regression area and the Rooms photo upload flow, avoiding unrelated UI/UX behavior changes.",
       "acceptanceCriteria": [
-        "Room create/edit UI includes a required/visible Promo (%) numeric input (allow 0, max 100).",
-        "When promo is entered, the UI shows the computed discounted price (basePrice minus promo%) before saving.",
-        "Guest-facing room displays and booking price calculations use the discounted nightly price (not the base price) whenever promoPercent > 0.",
-        "Promo validation prevents values outside 0–100 and prevents negative/zero base price."
+        "No UI/UX or behavior changes are introduced outside the activation/token/role regression fix and the room upload flow.",
+        "Regression checklist items unrelated to rooms/admin activation (e.g., guest browsing and booking flows) continue to work as before."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/roomPricing.ts",
-          "operation": "create",
-          "description": "Add bigint-safe helpers to validate promoPercent (0–100) and compute discounted nightly price deterministically using integer math (base - (base*promo/100)). Verify the component's usage instructions before implementing."
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Keep changes strictly scoped: only touch hooks used by role checks, activation gating, admin token visibility, hotel profile reads needed by those gates, and the room create/update flows required by upload-kamar. Do not alter booking/payment/browsing hooks except to prevent the specific regression crash pattern. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/components/hotel/RoomsPanel.tsx",
           "operation": "modify",
-          "description": "Add Promo (%) numeric input to create/edit form; validate 0–100 and compute/show discounted price preview using bigint-safe helper; include promoPercent when building RoomInput for create/update. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/HotelDetailPage.tsx",
-          "operation": "modify",
-          "description": "Display promoPercent and show discounted price (and optionally base price) consistently in guest-facing room cards when promoPercent > 0; prefer backend-provided discountedPrice when available and fall back to deterministic local computation. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/booking/BookingForm.tsx",
-          "operation": "modify",
-          "description": "Update price-per-night and total price calculations to use the discounted nightly price when promoPercent > 0 (prefer room.discountedPrice); ensure UI displays the same discounted price used in totals. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/types/extended-backend.ts",
-          "operation": "modify",
-          "description": "Extend RoomView to include promoPercent and discountedPrice fields (and keep pricePerNight as the base price) so management + guest flows can render both consistently. Verify the component's usage instructions before implementing."
+          "description": "Limit changes to room photo selection/upload/replace/delete and room save behavior only; preserve existing room pricing/promo UX and all non-room flows. Ensure any new/changed text remains English. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Add Delete action for each room in the hotel Rooms list and ensure UI refetches after updates/deletes.",
+      "summary": "Make the Rooms panel photo handling reliable with validation, clear English errors, and correct preservation of existing photos on edit unless explicitly changed.",
       "acceptanceCriteria": [
-        "Each room card in the hotel Rooms list shows an Edit button (existing) and a Delete button.",
-        "Delete prompts a confirmation before removing.",
-        "After delete/update, relevant queries are invalidated/refetched so the UI updates without a hard refresh.",
-        "Non-room features (profile, payments, bookings, admin panels) remain functional (no route/component breakage)."
+        "In the Hotel Area > Rooms panel, creating a room with one or more photos completes successfully and the photos render immediately in the room card.",
+        "Editing an existing room without selecting new files keeps the existing photo list unchanged.",
+        "Replacing a photo uploads the new image and updates only the replaced image URL in the room.",
+        "Deleting a photo removes it from the room and it stays removed after refresh.",
+        "If an image file cannot be processed (unsupported type/too large/read failure), the UI shows an English error message and does not create/update the room."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/hooks/useRoomImageUpload.ts",
           "operation": "modify",
-          "description": "Add a room delete mutation hook that calls the existing backend capability for deleting a room (use the actor typing strategy already used elsewhere in the app when a method is not present in generated types); invalidate rooms + callerHotelProfile + hotels/adminHotels queries on success. Verify the component's usage instructions before implementing."
+          "description": "Replace the current data-URL conversion implementation with a validated file pipeline: enforce allowed MIME types, enforce a maximum file size, handle read failures deterministically, and expose per-upload progress plus a single English error message suitable for toasts/inline alerts. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/components/hotel/RoomsPanel.tsx",
           "operation": "modify",
-          "description": "Add a Delete button per room card with a confirmation prompt (use shadcn-ui AlertDialog if present, otherwise a safe fallback); call the new delete mutation; ensure list updates via query invalidation. Verify the component's usage instructions before implementing."
+          "description": "Integrate the hardened upload hook: validate before upload, block create/update on upload failure, keep existing photos on edit when no new files are selected, and ensure replace/delete actions update only the intended photo URLs. Ensure all introduced/changed user-facing messages are English. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/hotel/RoomPhotosSection.tsx",
+          "operation": "modify",
+          "description": "Harden replace/delete UX interactions so replace selection cannot accidentally trigger preview/navigation, and ensure invalid/broken images are handled gracefully (no crashes) while preserving existing behavior. Any new/changed text must be English. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/roomPictures.ts",
+          "operation": "modify",
+          "description": "Update picture URL validation rules (if needed) to treat the new stable blob references/URLs as valid, while continuing to filter malformed entries and track failures without breaking rendering. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Provide per-photo Delete and optional Replace controls in room management, persisting changes by updating the room pictures array and reflecting updates in guest-facing views.",
+      "summary": "Switch room photo upload away from long-lived base64 data URLs to stable blob-storage-backed URLs/identifiers saved in RoomInput.pictures, while keeping progress UI and English toasts.",
       "acceptanceCriteria": [
-        "In the room photo gallery shown for a room, each thumbnail has a Delete control to remove that specific image from the room.",
-        "Optional: each thumbnail provides a Replace/Edit control that lets the hotel upload a new image to replace that specific slot; replacement updates only that one picture URL in the room’s pictures array.",
-        "Photo delete/replace persists by calling the room update API (or a dedicated backend method) and updates the UI immediately after success.",
-        "Removing the last photo shows the existing \"No photos available\" empty state.",
-        "Guest-facing room photos reflect the updated pictures array after hotel edits."
+        "After uploading room photos and saving a room, `RoomView.pictures` contains stable references (not raw `data:` URLs).",
+        "Room photos still load correctly after a full page refresh and re-login.",
+        "Upload progress UI continues to function and the user receives an English success/failure toast for the upload step."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/hotel/RoomPhotosSection.tsx",
+          "path": "frontend/src/utils/roomBlobStorage.ts",
+          "operation": "create",
+          "description": "Add a small frontend helper that uses the selected blob-storage component (ExternalBlob) to upload image bytes and return stable retrievable references (prefer direct URLs) suitable for persisting in RoomInput.pictures, with progress callbacks. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useRoomImageUpload.ts",
           "operation": "modify",
-          "description": "Add an optional \"editable\" mode for management views that renders per-image action controls (Delete + optional Replace) without changing the existing guest display behavior; keep the current empty state when pictures array becomes empty. Verify the component's usage instructions before implementing."
+          "description": "Use the selected blob-storage component to upload images (instead of generating data: URLs) and return stable references for RoomInput.pictures. Preserve upload progress reporting and ensure returned strings are not raw data URLs. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/components/hotel/RoomsPanel.tsx",
           "operation": "modify",
-          "description": "Wire RoomPhotosSection editable mode for each room card; implement per-photo delete/replace handlers that compute an updated pictures array and call updateRoom with the full current RoomInput (roomType/base price/currency/promoPercent + updated pictures). Use the existing useRoomImageUpload for replacement uploads (single-file upload). Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/HotelDetailPage.tsx",
-          "operation": "modify",
-          "description": "Ensure guest photo rendering uses the room.pictures array as returned from queries (no cached/legacy roomNumber props); after hotel edits, refreshed room queries should reflect updated pictures. Verify the component's usage instructions before implementing."
+          "description": "Ensure the room save flow persists only stable blob references/URLs in pictures, and keep the existing progress UI and English success/failure toasts for the upload step. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-5",
-      "summary": "Update RoomsPanel and related hooks/types to match the new room schema: no roomNumber; include promoPercent and discounted-price display.",
+      "summary": "Document and verify regressions using the existing checklist and record the verification steps in release notes before deployment.",
       "acceptanceCriteria": [
-        "frontend/src/components/hotel/RoomsPanel.tsx no longer uses roomNumber state/inputs and no longer renders \"Room {roomNumber}\" in the room card title.",
-        "Create/update mutations invoked from the UI match the updated hook signatures (no roomNumber; include promoPercent).",
-        "Room list UI shows roomType, base price, promo percent, and discounted price per night in a clear English format.",
-        "No TypeScript errors related to RoomView or room mutations."
+        "`frontend/REGRESSION_CHECKLIST.md` relevant sections for auth/roles, activation, and admin panel are executed and pass.",
+        "`frontend/RELEASE_NOTES.md` is updated with: what changed, what was verified, and a rollback note if the regression reappears."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/REGRESSION_CHECKLIST.md",
           "operation": "modify",
-          "description": "Update useCreateRoom/useUpdateRoom to match current generated backend interface signatures: createRoom(input: RoomInput) and updateRoom(roomId, input); update params accordingly (roomType, pricePerNight, currency, promoPercent, pictures). Verify the component's usage instructions before implementing."
+          "description": "Update only the relevant checklist items (auth/roles, activation gating, admin invite tokens, room management photo upload/replace/delete) to reflect the restored stable behavior and the new blob-based room upload expectations, without changing unrelated sections. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
+          "path": "frontend/RELEASE_NOTES.md",
           "operation": "modify",
-          "description": "Update create/update calls to use the updated hook signatures and RoomInput shape (no roomNumber; include promoPercent); display base price, promo percent, and discounted price per night on each room card in English using shared formatting utilities. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/types/extended-backend.ts",
-          "operation": "modify",
-          "description": "Align extended RoomView definition with the generated backend RoomView (promoPercent, discountedPrice, no roomNumber) and ensure all internal typing remains consistent across hotel management and guest pages. Verify the component's usage instructions before implementing."
+          "description": "Add a new release entry documenting: (1) what changed (activation/token/role regression hardening + room photo upload storage change), (2) exactly which checklist items were executed and passed, and (3) a rollback note describing what to do if the regression reappears. Keep all text in English. Verify the component's usage instructions before implementing."
         }
       ]
     }

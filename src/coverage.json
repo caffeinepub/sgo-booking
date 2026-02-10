@@ -1,56 +1,37 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T13:36:54.413Z",
+  "generatedAt": "2026-02-10T14:29:26.884Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 6,
+    "total": 5,
     "implemented": 5,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Remove the \"Room Number\" field from the hotel room data model end-to-end (backend + frontend), so rooms are identified without any stored roomNumber and no unused/legacy roomNumber data remains in canister state.",
+        "summary": "Restore the previously stable behavior for hotel activation, admin invite-token visibility, and role-based access by ensuring the backend canister exports all methods currently called by the frontend auth/admin/hotel-profile flows, and that these methods return consistent results so hotel accounts do not appear incorrectly inactive and existing admin-created tokens are visible again.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/components/hotel/RoomPhotosSection.tsx",
-          "frontend/src/components/booking/BookingForm.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx",
-          "frontend/src/types/extended-backend.ts"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/InviteTokensPanel.tsx",
+          "frontend/src/components/auth/RequireRole.tsx",
+          "frontend/src/components/auth/HotelActivationForm.tsx",
+          "frontend/src/backend.d.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/components/hotel/RoomPhotosSection.tsx",
-          "frontend/src/components/booking/BookingForm.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx",
-          "frontend/src/types/extended-backend.ts"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/admin/InviteTokensPanel.tsx",
+          "frontend/src/components/auth/RequireRole.tsx",
+          "frontend/src/components/auth/HotelActivationForm.tsx",
+          "frontend/src/backend.d.ts"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Add a numeric promo percentage field to rooms (0–100) and automatically calculate the discounted nightly price from the base price and promo percentage; display and use the discounted price consistently in hotel room management and guest booking flows.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/utils/roomPricing.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx",
-          "frontend/src/components/booking/BookingForm.tsx",
-          "frontend/src/types/extended-backend.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/utils/roomPricing.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx",
-          "frontend/src/components/booking/BookingForm.tsx",
-          "frontend/src/types/extended-backend.ts"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Add Edit and Delete actions for each room entry in the hotel \"Rooms\" list, allowing the hotel owner to update or remove a room without impacting other existing dashboards/features.",
+        "summary": "Limit changes strictly to (a) restoring the broken stable features and (b) the requested 'upload kamar' (room upload) flow; do not refactor or change unrelated functionality (booking, payments, browsing, etc.) beyond what is necessary to remove the regression.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/hooks/useQueries.ts",
@@ -58,45 +39,51 @@
         ],
         "matchedFiles": [
           "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/hotel/RoomsPanel.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Fix and harden the 'upload kamar' flow in the Rooms panel so adding/editing a room with photos is reliable: validate selected image files, provide clear errors, preserve existing photos when editing unless explicitly replaced/deleted, and ensure the saved room's picture URLs remain usable after page reload.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useRoomImageUpload.ts",
+          "frontend/src/components/hotel/RoomsPanel.tsx",
+          "frontend/src/components/hotel/RoomPhotosSection.tsx",
+          "frontend/src/utils/roomPictures.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useRoomImageUpload.ts",
           "frontend/src/components/hotel/RoomsPanel.tsx"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Add Edit/Delete controls for each uploaded room photo (each picture item), so hotel owners can remove individual photos and optionally replace a specific photo, with changes persisted to the backend room pictures array.",
+        "summary": "Update the room photo upload implementation so it does not rely on large base64 data URLs for long-term storage; store uploaded images in the canister’s blob storage mechanism and save stable retrievable URLs/identifiers in `RoomInput.pictures` instead.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/hotel/RoomPhotosSection.tsx",
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx"
+          "frontend/src/utils/roomBlobStorage.ts",
+          "frontend/src/hooks/useRoomImageUpload.ts",
+          "frontend/src/components/hotel/RoomsPanel.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/hotel/RoomPhotosSection.tsx",
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/pages/HotelDetailPage.tsx"
+          "frontend/src/utils/roomBlobStorage.ts",
+          "frontend/src/hooks/useRoomImageUpload.ts",
+          "frontend/src/components/hotel/RoomsPanel.tsx"
         ]
       },
       {
         "id": "REQ-5",
-        "summary": "Update frontend room management components and hooks to match the new room schema (no roomNumber; includes promoPercent and discounted-price display), specifically updating the existing hotel room management UI implementation in frontend/src/components/hotel/RoomsPanel.tsx and related query hooks.",
+        "summary": "Add a focused regression verification pass using the existing regression checklist to confirm the restored stable behaviors (auth/roles, hotel activation, admin tokens) and the updated room upload behavior before deployment; record the verification steps in the release notes.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/types/extended-backend.ts"
+          "frontend/REGRESSION_CHECKLIST.md",
+          "frontend/RELEASE_NOTES.md"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/types/extended-backend.ts"
+          "frontend/REGRESSION_CHECKLIST.md",
+          "frontend/RELEASE_NOTES.md"
         ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Implement a safe state upgrade path for the room schema change (removing roomNumber and adding promoPercent/base/discounted price representation), ensuring existing canister data upgrades without data loss beyond dropping roomNumber, and without breaking running features.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
       }
     ]
   },
@@ -107,28 +94,21 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/REGRESSION_CHECKLIST.md",
+    "frontend/RELEASE_NOTES.md",
     "frontend/src/App.tsx",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/admin/AdminBookingsPanel.tsx",
-    "frontend/src/components/admin/HotelVisibilityPanel.tsx",
+    "frontend/src/buildInfo.ts",
     "frontend/src/components/admin/InviteTokensPanel.tsx",
-    "frontend/src/components/admin/PrincipalPurgePanel.tsx",
-    "frontend/src/components/auth/ProfileCompletionGate.tsx",
-    "frontend/src/components/booking/BookingDetailsDialog.tsx",
-    "frontend/src/components/booking/BookingForm.tsx",
-    "frontend/src/components/booking/BookingStatusBadge.tsx",
-    "frontend/src/components/booking/MyBookingsTable.tsx",
-    "frontend/src/components/hotel/HotelBookingsPanel.tsx",
-    "frontend/src/components/hotel/RoomPhotosSection.tsx",
+    "frontend/src/components/auth/HotelActivationForm.tsx",
+    "frontend/src/components/auth/RequireRole.tsx",
     "frontend/src/components/hotel/RoomsPanel.tsx",
-    "frontend/src/components/payments/HotelPaymentMethodsList.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/HotelDetailPage.tsx",
-    "frontend/src/types/extended-backend.ts",
-    "frontend/src/utils/roomPricing.ts",
+    "frontend/src/hooks/useRoomImageUpload.ts",
+    "frontend/src/utils/roomBlobStorage.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

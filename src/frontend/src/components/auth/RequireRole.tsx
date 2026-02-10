@@ -1,75 +1,76 @@
 import React from 'react';
-import { useGetCallerUserRole, useIsCurrentUserAdmin, useIsCallerHotelActivated } from '../../hooks/useQueries';
-import { UserRole } from '../../backend';
+import { useGetCallerUserRole, useIsCurrentUserAdmin, useGetCallerHotelProfile } from '../../hooks/useQueries';
+import { useInternetIdentity } from '../../hooks/useInternetIdentity';
+import { Loader2 } from 'lucide-react';
 import { AccessDeniedScreen } from './AccessDeniedScreen';
 import { GuardErrorScreen } from './GuardErrorScreen';
+import type { UserRole } from '../../backend';
 
 interface RequireRoleProps {
   children: React.ReactNode;
-  allowedRoles: UserRole[];
+  requiredRoles: UserRole[];
   requireHotelActivation?: boolean;
 }
 
-export function RequireRole({ children, allowedRoles, requireHotelActivation = false }: RequireRoleProps) {
-  const { data: currentRole, isLoading: roleLoading, isError: roleError, error: roleErrorObj, isFetched: roleFetched } = useGetCallerUserRole();
-  const { data: isAdmin, isLoading: adminLoading, isError: adminError, error: adminErrorObj, isFetched: adminFetched } = useIsCurrentUserAdmin();
-  const { data: isHotelActivated, isLoading: activationLoading, isError: activationError, error: activationErrorObj, isFetched: activationFetched } = useIsCallerHotelActivated();
+export function RequireRole({ children, requiredRoles, requireHotelActivation = false }: RequireRoleProps) {
+  const { identity } = useInternetIdentity();
+  const { data: userRole, isLoading: roleLoading, error: roleError, isFetched: roleFetched } = useGetCallerUserRole();
+  const { data: isAdmin, isLoading: adminLoading, isFetched: adminFetched } = useIsCurrentUserAdmin();
+  const { data: hotelProfile, isLoading: hotelLoading, error: hotelError, isFetched: hotelFetched } = useGetCallerHotelProfile();
 
-  // Wait for all queries to be fetched before making access decisions
-  const allFetched = roleFetched && adminFetched && activationFetched;
-  const anyLoading = roleLoading || adminLoading || activationLoading;
-  const anyError = roleError || adminError || activationError;
-
-  // Show loading state while queries are in progress
-  if (anyLoading || !allFetched) {
+  // Wait for identity and queries to complete
+  if (!identity || roleLoading || adminLoading || (requireHotelActivation && hotelLoading)) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Checking permissions...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  // Show error screen if permission check failed
-  if (anyError) {
-    const error = roleErrorObj || adminErrorObj || activationErrorObj || new Error('Permission check failed');
-    return <GuardErrorScreen error={error} />;
+  // Handle role check errors
+  if (roleError && roleFetched) {
+    return <GuardErrorScreen error={roleError} />;
   }
 
-  // Admin bypass: admins can access everything
-  if (isAdmin === true) {
+  // Admin bypass - admins can access everything
+  if (isAdmin && adminFetched) {
     return <>{children}</>;
   }
 
-  // Check if user's role is in the allowed list
-  const hasRequiredRole = currentRole && allowedRoles.includes(currentRole);
+  // Check if user has required role
+  const hasRequiredRole = userRole && requiredRoles.includes(userRole);
 
-  // If hotel activation is required, check activation status
-  if (requireHotelActivation && hasRequiredRole) {
-    if (isHotelActivated !== true) {
+  if (!hasRequiredRole && roleFetched) {
+    return (
+      <AccessDeniedScreen
+        currentRole={userRole}
+        requiredRoles={requiredRoles}
+        isHotelActivated={false}
+      />
+    );
+  }
+
+  // Check hotel activation if required
+  if (requireHotelActivation && hotelFetched) {
+    // If hotel profile doesn't exist or is not active, show access denied
+    const isHotelActivated = hotelProfile?.active === true;
+    
+    if (!isHotelActivated) {
       return (
         <AccessDeniedScreen
-          currentRole={currentRole}
-          requiredRoles={allowedRoles}
+          currentRole={userRole}
+          requiredRoles={requiredRoles}
           isHotelActivated={false}
         />
       );
     }
   }
 
-  // Grant access if role matches
-  if (hasRequiredRole) {
-    return <>{children}</>;
+  // Handle hotel profile check errors (non-blocking)
+  if (requireHotelActivation && hotelError && hotelFetched) {
+    // Don't block access on hotel profile errors, just log
+    console.warn('Hotel profile check failed:', hotelError);
   }
 
-  // Deny access
-  return (
-    <AccessDeniedScreen
-      currentRole={currentRole}
-      requiredRoles={allowedRoles}
-      isHotelActivated={isHotelActivated}
-    />
-  );
+  return <>{children}</>;
 }

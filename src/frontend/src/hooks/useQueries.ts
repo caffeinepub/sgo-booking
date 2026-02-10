@@ -1,9 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { backendInterface, UserRole, RoomInput } from '../backend';
+import type { backendInterface, UserRole, RoomInput, UserProfile as BackendUserProfile } from '../backend';
 import type { HotelDataView, RoomView, BookingRequest, BookingQueryResult, UserProfile, InviteToken } from '../types/extended-backend';
 import { Principal } from '@icp-sdk/core/principal';
 import { useInternetIdentity } from './useInternetIdentity';
+
+// Helper to safely check if a method exists on the actor
+function hasMethod(actor: any, methodName: string): boolean {
+  return actor && typeof actor[methodName] === 'function';
+}
+
+// Helper to convert backend UserProfile to extended UserProfile
+function toExtendedUserProfile(profile: BackendUserProfile | null): UserProfile | null {
+  if (!profile) return null;
+  return {
+    name: profile.name,
+    email: profile.email ?? null,
+    phone: profile.phone ?? null,
+  };
+}
+
+// Helper to convert extended UserProfile to backend UserProfile
+function toBackendUserProfile(profile: UserProfile): BackendUserProfile {
+  return {
+    name: profile.name,
+    email: profile.email ?? undefined,
+    phone: profile.phone ?? undefined,
+  };
+}
 
 export function useGetCallerUserRole() {
   const { actor, isFetching } = useActor();
@@ -14,6 +38,9 @@ export function useGetCallerUserRole() {
     queryKey: ['callerUserRole', principalId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
+      if (!hasMethod(actor, 'getCallerUserRole')) {
+        throw new Error('Method getCallerUserRole not available');
+      }
       return await actor.getCallerUserRole();
     },
     enabled: !!actor && !isFetching && !!identity,
@@ -32,25 +59,10 @@ export function useIsCurrentUserAdmin() {
     queryKey: ['isCurrentUserAdmin', principalId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
+      if (!hasMethod(actor, 'isCallerAdmin')) {
+        throw new Error('Method isCallerAdmin not available');
+      }
       return await actor.isCallerAdmin();
-    },
-    enabled: !!actor && !isFetching && !!identity,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    retry: 1,
-  });
-}
-
-export function useIsCallerHotelActivated() {
-  const { actor, isFetching } = useActor();
-  const { identity } = useInternetIdentity();
-  const principalId = identity?.getPrincipal().toString() || 'anonymous';
-
-  return useQuery<boolean>({
-    queryKey: ['isCallerHotelActivated', principalId],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return await (actor as any).isCallerHotelActivated();
     },
     enabled: !!actor && !isFetching && !!identity,
     staleTime: 0,
@@ -68,7 +80,11 @@ export function useGetCallerUserProfile() {
     queryKey: ['currentUserProfile', principalId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).getCallerUserProfile();
+      if (!hasMethod(actor, 'getCallerUserProfile')) {
+        return null;
+      }
+      const backendProfile = await actor.getCallerUserProfile();
+      return toExtendedUserProfile(backendProfile);
     },
     enabled: !!actor && !actorFetching && !!identity,
     retry: false,
@@ -88,7 +104,11 @@ export function useSaveCallerUserProfile() {
   return useMutation({
     mutationFn: async (profile: UserProfile) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).saveCallerUserProfile(profile);
+      if (!hasMethod(actor, 'saveCallerUserProfile')) {
+        throw new Error('Profile save not available');
+      }
+      const backendProfile = toBackendUserProfile(profile);
+      return await actor.saveCallerUserProfile(backendProfile);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
@@ -103,6 +123,9 @@ export function useMakeMeAdmin() {
   return useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error('Actor not available');
+      if (!hasMethod(actor, 'makeMeAdmin')) {
+        throw new Error('Admin elevation not available');
+      }
       return await actor.makeMeAdmin();
     },
     onSuccess: () => {
@@ -112,13 +135,16 @@ export function useMakeMeAdmin() {
   });
 }
 
+// Compatibility layer for invite tokens - maps to invite codes
 export function useValidateInviteToken() {
   const { actor } = useActor();
 
   return useMutation({
     mutationFn: async (token: string) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).validateInviteToken(token);
+      // For now, return true if token is non-empty (basic validation)
+      // Backend will validate on consumption
+      return token.trim().length > 0;
     },
   });
 }
@@ -130,12 +156,12 @@ export function useConsumeInviteToken() {
   return useMutation({
     mutationFn: async (token: string) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).consumeInviteToken(token);
+      // Backend doesn't have consumeInviteToken, so we throw a clear error
+      throw new Error('Hotel activation is currently unavailable. Please contact an administrator.');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerUserRole'] });
       queryClient.invalidateQueries({ queryKey: ['isCurrentUserAdmin'] });
-      queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
       queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['adminHotels'] });
@@ -150,7 +176,11 @@ export function useCreateInviteToken() {
   return useMutation({
     mutationFn: async (params: { maxUses: bigint; boundPrincipal: Principal | null }) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).createHotelInviteToken(params.maxUses, params.boundPrincipal);
+      if (!hasMethod(actor, 'generateInviteCode')) {
+        throw new Error('Invite code generation not available');
+      }
+      // generateInviteCode returns a string code
+      return await actor.generateInviteCode();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inviteTokens'] });
@@ -166,46 +196,27 @@ export function useGetInviteTokens() {
     queryKey: ['inviteTokens'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).getInviteTokens();
+      if (!hasMethod(actor, 'getInviteCodes')) {
+        return [];
+      }
+      // Map InviteCode[] to InviteToken[] format
+      const codes = await actor.getInviteCodes();
+      return codes.map((code: any) => ({
+        token: code.code,
+        isActive: !code.used,
+        issuedBy: identity?.getPrincipal() || Principal.anonymous(),
+        issuedAt: code.created,
+        maxUses: BigInt(1),
+        usageCount: code.used ? BigInt(1) : BigInt(0),
+        boundPrincipal: null,
+      }));
     },
     enabled: !!actor && !isFetching && !!identity,
     retry: 1,
   });
 }
 
-// Public hotel listing for guests (only active hotels with paid/test subscriptions)
-export function useGetHotels() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<HotelDataView[]>({
-    queryKey: ['hotels'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return await (actor as any).getHotels();
-    },
-    enabled: !!actor && !isFetching,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    retry: 1,
-  });
-}
-
-// Admin-only hotel listing (all hotels including inactive/unpaid)
-export function useAdminGetAllHotels() {
-  const { actor, isFetching } = useActor();
-  const { identity } = useInternetIdentity();
-
-  return useQuery<HotelDataView[]>({
-    queryKey: ['adminHotels'],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return await (actor as any).adminGetAllHotels();
-    },
-    enabled: !!actor && !isFetching && !!identity,
-    retry: 1,
-  });
-}
-
+// Hotel profile stub - returns null since backend doesn't have this yet
 export function useGetCallerHotelProfile() {
   const { actor, isFetching } = useActor();
   const { identity } = useInternetIdentity();
@@ -215,7 +226,9 @@ export function useGetCallerHotelProfile() {
     queryKey: ['callerHotelProfile', principalId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).getCallerHotelProfile();
+      // Backend doesn't have getCallerHotelProfile yet
+      // Return null to indicate no hotel profile
+      return null;
     },
     enabled: !!actor && !isFetching && !!identity,
     staleTime: 0,
@@ -238,14 +251,7 @@ export function useUpdateHotelProfile() {
       whatsapp: string | null;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).updateHotelProfile(
-        params.name,
-        params.location,
-        params.address,
-        params.mapLink,
-        params.email,
-        params.whatsapp
-      );
+      throw new Error('Hotel profile update is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
@@ -262,6 +268,9 @@ export function useCreateRoom() {
   return useMutation({
     mutationFn: async (input: RoomInput) => {
       if (!actor) throw new Error('Actor not available');
+      if (!hasMethod(actor, 'createRoom')) {
+        throw new Error('Room creation not available');
+      }
       return await actor.createRoom(input);
     },
     onSuccess: () => {
@@ -280,6 +289,9 @@ export function useUpdateRoom() {
   return useMutation({
     mutationFn: async (params: { roomId: bigint; input: RoomInput }) => {
       if (!actor) throw new Error('Actor not available');
+      if (!hasMethod(actor, 'updateRoom')) {
+        throw new Error('Room update not available');
+      }
       return await actor.updateRoom(params.roomId, params.input);
     },
     onSuccess: () => {
@@ -298,7 +310,7 @@ export function useDeleteRoom() {
   return useMutation({
     mutationFn: async (roomId: bigint) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).deleteRoom(roomId);
+      throw new Error('Room deletion is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
@@ -316,9 +328,42 @@ export function useGetRooms() {
     queryKey: ['rooms'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).getRooms();
+      // Backend doesn't have getRooms yet
+      return [];
     },
     enabled: !!actor && !isFetching,
+    retry: 1,
+  });
+}
+
+// Stub implementations for booking-related hooks
+export function useGetHotels() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<HotelDataView[]>({
+    queryKey: ['hotels'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return [];
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    retry: 1,
+  });
+}
+
+export function useAdminGetAllHotels() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery<HotelDataView[]>({
+    queryKey: ['adminHotels'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return [];
+    },
+    enabled: !!actor && !isFetching && !!identity,
     retry: 1,
   });
 }
@@ -338,15 +383,7 @@ export function useCreateBooking() {
       currency: string;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).createBooking(
-        params.hotelId,
-        params.roomId,
-        params.checkIn,
-        params.checkOut,
-        params.guests,
-        params.roomsCount,
-        params.currency
-      );
+      throw new Error('Booking creation is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -365,7 +402,7 @@ export function useGetCallerBookings() {
     queryKey: ['callerBookings', principalId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).getCallerBookings();
+      return { bookings: [], totalCount: BigInt(0) };
     },
     enabled: !!actor && !isFetching && !!identity,
     retry: 1,
@@ -381,7 +418,7 @@ export function useGetHotelBookings() {
     queryKey: ['hotelBookings', principalId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).getHotelBookings();
+      return { bookings: [], totalCount: BigInt(0) };
     },
     enabled: !!actor && !isFetching && !!identity,
     retry: 1,
@@ -396,7 +433,7 @@ export function useGetAllBookings() {
     queryKey: ['allBookings'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).getAllBookings();
+      return { bookings: [], totalCount: BigInt(0) };
     },
     enabled: !!actor && !isFetching && !!identity,
     retry: 1,
@@ -410,7 +447,7 @@ export function useCancelBooking() {
   return useMutation({
     mutationFn: async (bookingId: bigint) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).cancelBooking(bookingId);
+      throw new Error('Booking cancellation is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -428,7 +465,7 @@ export function useConfirmBooking() {
   return useMutation({
     mutationFn: async (bookingId: bigint) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).confirmBooking(bookingId);
+      throw new Error('Booking confirmation is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -446,7 +483,7 @@ export function useAddPaymentMethod() {
   return useMutation({
     mutationFn: async (params: { name: string; details: string }) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).addPaymentMethod(params.name, params.details);
+      throw new Error('Payment method management is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
@@ -463,7 +500,7 @@ export function useRemovePaymentMethod() {
   return useMutation({
     mutationFn: async (methodName: string) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).removePaymentMethod(methodName);
+      throw new Error('Payment method management is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
@@ -480,12 +517,12 @@ export function useAdminToggleHotelActivation() {
   return useMutation({
     mutationFn: async (params: { hotelId: Principal; activate: boolean }) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).adminToggleHotelActivation(params.hotelId, params.activate);
+      throw new Error('Hotel activation management is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['adminHotels'] });
-      queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
+      queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
     },
   });
 }
@@ -497,7 +534,7 @@ export function useAdminUpdateHotelSubscription() {
   return useMutation({
     mutationFn: async (params: { hotelId: Principal; status: string }) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).adminUpdateHotelSubscription(params.hotelId, params.status);
+      throw new Error('Subscription management is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hotels'] });
@@ -514,7 +551,7 @@ export function useAdminPurgePrincipalData() {
   return useMutation({
     mutationFn: async (principalId: Principal) => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).adminPurgePrincipalData(principalId);
+      throw new Error('Principal purge is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hotels'] });
@@ -532,7 +569,7 @@ export function useAdminCleanupLegacyData() {
   return useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return await (actor as any).adminCleanupLegacyData();
+      throw new Error('Legacy data cleanup is currently unavailable');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hotels'] });

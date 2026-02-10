@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Key, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Key, CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
 import { useValidateInviteToken, useConsumeInviteToken } from '../../hooks/useQueries';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
@@ -32,9 +32,9 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
       const isValid = await validateToken.mutateAsync(token.trim());
       setValidationStatus(isValid ? 'valid' : 'invalid');
       if (isValid) {
-        toast.success('Token is valid');
+        toast.success('Token format is valid');
       } else {
-        toast.error('Token is invalid or expired');
+        toast.error('Token format is invalid');
       }
     } catch (error: any) {
       setValidationStatus('invalid');
@@ -53,7 +53,6 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
       
       // Wait for all queries to refetch
       await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['isCallerHotelActivated'] }),
         queryClient.refetchQueries({ queryKey: ['callerHotelProfile'] }),
         queryClient.refetchQueries({ queryKey: ['hotels'] }),
         queryClient.refetchQueries({ queryKey: ['adminHotels'] }),
@@ -86,6 +85,13 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Hotel activation is currently being restored. Please contact an administrator for assistance.
+          </AlertDescription>
+        </Alert>
+
         {validationStatus === 'idle' && (
           <Alert>
             <AlertDescription>
@@ -98,7 +104,7 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
           <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800 dark:text-green-200">
-              Token is valid and ready to use
+              Token format is valid
             </AlertDescription>
           </Alert>
         )}
@@ -107,7 +113,7 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertDescription>
-              Token is invalid or expired
+              Token format is invalid
             </AlertDescription>
           </Alert>
         )}

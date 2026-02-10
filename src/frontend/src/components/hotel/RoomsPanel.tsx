@@ -13,25 +13,27 @@ import { useRoomImageUpload } from '../../hooks/useRoomImageUpload';
 import { toast } from 'sonner';
 import type { RoomView, RoomInput } from '../../types/extended-backend';
 import { RoomPhotosSection } from './RoomPhotosSection';
-import { formatMoney } from '../../utils/money';
 import { validatePromoPercent, computeDiscountedPrice } from '../../utils/roomPricing';
 
 export function RoomsPanel() {
-  const { data: hotelProfile } = useGetCallerHotelProfile();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const { data: hotelProfile, isLoading: profileLoading } = useGetCallerHotelProfile();
+  const createRoom = useCreateRoom();
+  const updateRoom = useUpdateRoom();
+  const deleteRoom = useDeleteRoom();
+  const { uploadImages, uploadSingleImage, uploading: imageUploading, error: uploadError } = useRoomImageUpload();
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<RoomView | null>(null);
+  const [deleteConfirmRoom, setDeleteConfirmRoom] = useState<RoomView | null>(null);
+
   const [roomType, setRoomType] = useState('');
   const [pricePerNight, setPricePerNight] = useState('');
   const [promoPercent, setPromoPercent] = useState('0');
   const [currency, setCurrency] = useState('IDR');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [deleteConfirmRoom, setDeleteConfirmRoom] = useState<RoomView | null>(null);
+  const [existingPictures, setExistingPictures] = useState<string[]>([]);
 
-  const createRoom = useCreateRoom();
-  const updateRoom = useUpdateRoom();
-  const deleteRoom = useDeleteRoom();
-  const { uploadImages, isUploading, uploadProgress } = useRoomImageUpload();
+  const rooms = hotelProfile?.rooms || [];
 
   const resetForm = () => {
     setRoomType('');
@@ -39,96 +41,89 @@ export function RoomsPanel() {
     setPromoPercent('0');
     setCurrency('IDR');
     setSelectedFiles([]);
+    setExistingPictures([]);
     setEditingRoom(null);
-    setUploadError(null);
+  };
+
+  const openCreateDialog = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (room: RoomView) => {
+    setEditingRoom(room);
+    setRoomType(room.roomType);
+    setPricePerNight(room.pricePerNight.toString());
+    setPromoPercent(room.promoPercent.toString());
+    setCurrency(room.currency);
+    setExistingPictures(room.pictures);
+    setSelectedFiles([]);
+    setIsDialogOpen(true);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const fileArray = Array.from(files);
-      setSelectedFiles(fileArray);
-      setUploadError(null);
-    }
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(files);
   };
 
-  const getDiscountedPrice = (): bigint => {
-    const price = BigInt(Math.round(parseFloat(pricePerNight || '0')));
-    const promo = BigInt(Math.round(parseFloat(promoPercent || '0')));
-    return computeDiscountedPrice(price, promo);
+  const handlePhotoDelete = (photoUrl: string) => {
+    setExistingPictures((prev) => prev.filter((url) => url !== photoUrl));
+  };
+
+  const handlePhotoReplace = async (oldPhotoUrl: string, newFile: File) => {
+    try {
+      const newUrl = await uploadSingleImage(newFile);
+      setExistingPictures((prev) => prev.map((url) => (url === oldPhotoUrl ? newUrl : url)));
+      toast.success('Photo replaced successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to replace photo');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setUploadError(null);
 
-    if (!roomType.trim() || !pricePerNight.trim()) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
+    const price = BigInt(pricePerNight);
+    const promo = BigInt(promoPercent);
 
-    const price = BigInt(Math.round(parseFloat(pricePerNight)));
-    if (price <= 0) {
-      toast.error('Price must be greater than 0');
-      return;
-    }
-
-    const promo = BigInt(Math.round(parseFloat(promoPercent)));
     if (!validatePromoPercent(promo)) {
       toast.error('Promo percent must be between 0 and 100');
       return;
     }
 
     try {
-      let pictureUrls: string[] = [];
+      let finalPictures = [...existingPictures];
 
+      // Upload new files if any
       if (selectedFiles.length > 0) {
-        try {
-          pictureUrls = await uploadImages(selectedFiles);
-        } catch (error: any) {
-          setUploadError(error.message || 'Failed to upload images');
-          toast.error('Image upload failed: ' + (error.message || 'Unknown error'));
-          return;
-        }
-      } else if (editingRoom) {
-        pictureUrls = editingRoom.pictures;
+        const newUrls = await uploadImages(selectedFiles);
+        finalPictures = [...finalPictures, ...newUrls];
+        toast.success(`${selectedFiles.length} photo(s) uploaded successfully`);
       }
 
-      const roomInput: RoomInput = {
-        roomType: roomType.trim(),
+      const discountedPrice = computeDiscountedPrice(price, promo);
+
+      const input: RoomInput = {
+        roomType,
         pricePerNight: price,
         promoPercent: promo,
         currency,
-        pictures: pictureUrls,
+        pictures: finalPictures,
       };
 
       if (editingRoom) {
-        await updateRoom.mutateAsync({
-          roomId: editingRoom.id,
-          input: roomInput,
-        });
+        await updateRoom.mutateAsync({ roomId: editingRoom.id, input });
         toast.success('Room updated successfully');
       } else {
-        await createRoom.mutateAsync(roomInput);
+        await createRoom.mutateAsync(input);
         toast.success('Room created successfully');
       }
 
+      setIsDialogOpen(false);
       resetForm();
-      setIsAddDialogOpen(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to save room');
     }
-  };
-
-  const handleEdit = (room: RoomView) => {
-    setEditingRoom(room);
-    setRoomType(room.roomType);
-    setPricePerNight(room.pricePerNight.toString());
-    setPromoPercent(room.promoPercent.toString());
-    setCurrency(room.currency);
-    setSelectedFiles([]);
-    setUploadError(null);
-    setIsAddDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -143,283 +138,73 @@ export function RoomsPanel() {
     }
   };
 
-  const handlePhotoDelete = async (room: RoomView, photoUrl: string) => {
-    try {
-      const updatedPictures = room.pictures.filter((url) => url !== photoUrl);
-      const roomInput: RoomInput = {
-        roomType: room.roomType,
-        pricePerNight: room.pricePerNight,
-        promoPercent: room.promoPercent,
-        currency: room.currency,
-        pictures: updatedPictures,
-      };
-      await updateRoom.mutateAsync({
-        roomId: room.id,
-        input: roomInput,
-      });
-      toast.success('Photo deleted successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete photo');
-    }
-  };
+  const currentPromo = BigInt(promoPercent || '0');
+  const currentPrice = BigInt(pricePerNight || '0');
+  const discountedPrice = validatePromoPercent(currentPromo) ? computeDiscountedPrice(currentPrice, currentPromo) : currentPrice;
 
-  const handlePhotoReplace = async (room: RoomView, oldPhotoUrl: string, file: File) => {
-    try {
-      const newUrls = await uploadImages([file]);
-      if (newUrls.length === 0) {
-        throw new Error('Failed to upload replacement image');
-      }
-      const updatedPictures = room.pictures.map((url) => (url === oldPhotoUrl ? newUrls[0] : url));
-      const roomInput: RoomInput = {
-        roomType: room.roomType,
-        pricePerNight: room.pricePerNight,
-        promoPercent: room.promoPercent,
-        currency: room.currency,
-        pictures: updatedPictures,
-      };
-      await updateRoom.mutateAsync({
-        roomId: room.id,
-        input: roomInput,
-      });
-      toast.success('Photo replaced successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to replace photo');
-    }
-  };
-
-  const handleDialogClose = (open: boolean) => {
-    if (!open) {
-      resetForm();
-    }
-    setIsAddDialogOpen(open);
-  };
-
-  const isPending = createRoom.isPending || updateRoom.isPending || isUploading;
-  const rooms = hotelProfile?.rooms || [];
-
-  const discountedPreview = getDiscountedPrice();
-  const showPromoPreview = pricePerNight && parseFloat(promoPercent) > 0;
+  if (profileLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <>
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Rooms</CardTitle>
-              <CardDescription>Manage your hotel rooms and offers</CardDescription>
+              <CardTitle>Room Management</CardTitle>
+              <CardDescription>Manage your hotel rooms and pricing</CardDescription>
             </div>
-            <Dialog open={isAddDialogOpen} onOpenChange={handleDialogClose}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Room
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>{editingRoom ? 'Edit Room' : 'Add New Room'}</DialogTitle>
-                  <DialogDescription>
-                    {editingRoom ? 'Update room details and photos' : 'Create a new room with details and photos'}
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="roomType">Room Type *</Label>
-                    <Input
-                      id="roomType"
-                      value={roomType}
-                      onChange={(e) => setRoomType(e.target.value)}
-                      placeholder="e.g., Deluxe, Standard, Suite"
-                      disabled={isPending}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Base Price per Night *</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        value={pricePerNight}
-                        onChange={(e) => setPricePerNight(e.target.value)}
-                        placeholder="e.g., 500000"
-                        disabled={isPending}
-                        required
-                        min="1"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="currency">Currency *</Label>
-                      <Select value={currency} onValueChange={setCurrency} disabled={isPending}>
-                        <SelectTrigger id="currency">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="IDR">IDR (Rp)</SelectItem>
-                          <SelectItem value="USD">USD ($)</SelectItem>
-                          <SelectItem value="SGD">SGD (S$)</SelectItem>
-                          <SelectItem value="BRL">BRL (R$)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="promo">Promo (%) *</Label>
-                    <Input
-                      id="promo"
-                      type="number"
-                      value={promoPercent}
-                      onChange={(e) => setPromoPercent(e.target.value)}
-                      placeholder="e.g., 20"
-                      disabled={isPending}
-                      required
-                      min="0"
-                      max="100"
-                    />
-                    <p className="text-sm text-muted-foreground">Enter discount percentage (0-100)</p>
-                  </div>
-
-                  {showPromoPreview && (
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        <div className="space-y-1">
-                          <p className="font-medium">Price Preview:</p>
-                          <p className="text-sm">
-                            Base Price: <span className="line-through">{formatMoney(BigInt(Math.round(parseFloat(pricePerNight))), currency)}</span>
-                          </p>
-                          <p className="text-sm font-semibold text-green-600">
-                            Discounted Price: {formatMoney(discountedPreview, currency)} per night
-                          </p>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="photos">Room Photos</Label>
-                    <Input
-                      id="photos"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileSelect}
-                      disabled={isPending}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      {selectedFiles.length > 0
-                        ? `${selectedFiles.length} file(s) selected`
-                        : editingRoom
-                          ? `Current: ${editingRoom.pictures.length} photo(s)`
-                          : 'Select one or more images'}
-                    </p>
-                    {isUploading && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Uploading images... {uploadProgress}%
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all"
-                            style={{ width: `${uploadProgress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {uploadError && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{uploadError}</AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => handleDialogClose(false)} disabled={isPending}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isPending}>
-                      {isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {isUploading ? 'Uploading...' : 'Saving...'}
-                        </>
-                      ) : editingRoom ? (
-                        'Update Room'
-                      ) : (
-                        'Create Room'
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button onClick={openCreateDialog}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Room
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
           {rooms.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">
-                No rooms yet. Click "Add Room" to create your first room.
-              </p>
+            <div className="text-center py-12 text-muted-foreground">
+              <p>No rooms added yet. Click "Add Room" to create your first room.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {rooms.map((room) => (
                 <Card key={room.id.toString()}>
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{room.roomType}</CardTitle>
-                        <CardDescription className="space-y-1">
-                          {room.promoPercent > BigInt(0) ? (
-                            <>
-                              <div className="flex items-center gap-2">
-                                <span className="line-through text-muted-foreground">
-                                  {formatMoney(room.pricePerNight, room.currency)}
-                                </span>
-                                <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-0.5 rounded">
-                                  {room.promoPercent.toString()}% OFF
-                                </span>
-                              </div>
-                              <div className="font-semibold text-green-600">
-                                {formatMoney(room.discountedPrice, room.currency)} per night
-                              </div>
-                            </>
-                          ) : (
-                            <div>{formatMoney(room.pricePerNight, room.currency)} per night</div>
-                          )}
-                        </CardDescription>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(room)} className="gap-2">
-                          <Edit className="h-4 w-4" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setDeleteConfirmRoom(room)}
-                          className="gap-2 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                    <CardTitle className="text-lg">{room.roomType}</CardTitle>
+                    <CardDescription>
+                      {room.currency} {room.pricePerNight.toLocaleString()} / night
+                      {room.promoPercent > 0 && (
+                        <span className="block text-sm text-green-600 dark:text-green-400 mt-1">
+                          {room.promoPercent}% off → {room.currency} {room.discountedPrice.toLocaleString()}
+                        </span>
+                      )}
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
                     <RoomPhotosSection
                       pictures={room.pictures}
                       roomType={room.roomType}
                       editable={true}
-                      onPhotoDelete={(photoUrl) => handlePhotoDelete(room, photoUrl)}
-                      onPhotoReplace={(oldUrl, file) => handlePhotoReplace(room, oldUrl, file)}
+                      onPhotoDelete={handlePhotoDelete}
+                      onPhotoReplace={handlePhotoReplace}
                     />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => openEditDialog(room)} className="flex-1">
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteConfirmRoom(room)} className="flex-1">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -428,27 +213,149 @@ export function RoomsPanel() {
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!deleteConfirmRoom} onOpenChange={(open) => !open && setDeleteConfirmRoom(null)}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingRoom ? 'Edit Room' : 'Add New Room'}</DialogTitle>
+            <DialogDescription>
+              {editingRoom ? 'Update room details and pricing' : 'Create a new room for your hotel'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="roomType">Room Type</Label>
+              <Input
+                id="roomType"
+                value={roomType}
+                onChange={(e) => setRoomType(e.target.value)}
+                placeholder="e.g., Deluxe Suite, Standard Room"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pricePerNight">Price per Night</Label>
+                <Input
+                  id="pricePerNight"
+                  type="number"
+                  min="0"
+                  value={pricePerNight}
+                  onChange={(e) => setPricePerNight(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger id="currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="IDR">IDR</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="SGD">SGD</SelectItem>
+                    <SelectItem value="BRL">BRL</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="promoPercent">Promo Discount (%)</Label>
+              <Input
+                id="promoPercent"
+                type="number"
+                min="0"
+                max="100"
+                value={promoPercent}
+                onChange={(e) => setPromoPercent(e.target.value)}
+              />
+              {currentPromo > 0 && validatePromoPercent(currentPromo) && (
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Discounted price: {currency} {discountedPrice.toLocaleString()} / night
+                </p>
+              )}
+            </div>
+
+            {editingRoom && existingPictures.length > 0 && (
+              <div className="space-y-2">
+                <Label>Current Photos</Label>
+                <RoomPhotosSection
+                  pictures={existingPictures}
+                  roomType={roomType}
+                  editable={true}
+                  onPhotoDelete={handlePhotoDelete}
+                  onPhotoReplace={handlePhotoReplace}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="photos">{editingRoom ? 'Add More Photos' : 'Room Photos'}</Label>
+              <Input
+                id="photos"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+              />
+              {selectedFiles.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedFiles.length} file(s) selected
+                </p>
+              )}
+              {uploadError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{uploadError}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="flex-1"
+                disabled={createRoom.isPending || updateRoom.isPending || imageUploading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={createRoom.isPending || updateRoom.isPending || imageUploading}
+              >
+                {(createRoom.isPending || updateRoom.isPending || imageUploading) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {imageUploading ? 'Uploading...' : editingRoom ? 'Update Room' : 'Create Room'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteConfirmRoom} onOpenChange={() => setDeleteConfirmRoom(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Room</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this room? This action cannot be undone.
-              {deleteConfirmRoom && (
-                <div className="mt-2 font-medium">
-                  Room: {deleteConfirmRoom.roomType}
-                </div>
-              )}
+              Are you sure you want to delete "{deleteConfirmRoom?.roomType}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={handleDelete} disabled={deleteRoom.isPending}>
+              {deleteRoom.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }
