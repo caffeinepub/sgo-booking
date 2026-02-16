@@ -10,6 +10,7 @@ import { HotelBookingsPanel } from '../components/hotel/HotelBookingsPanel';
 import { RecordStayPanel } from '../components/hotel/RecordStayPanel';
 import { SubscriptionPanel } from '../components/hotel/SubscriptionPanel';
 import { useGetCallerHotelProfile, useIsCurrentUserAdmin } from '../hooks/useQueries';
+import type { HotelDataView } from '../types/extended-backend';
 
 export function HotelAreaPage() {
   const { data: hotelProfile, isLoading: profileLoading, error: profileError } = useGetCallerHotelProfile();
@@ -51,7 +52,7 @@ export function HotelAreaPage() {
               Hotel Profile Not Found
             </CardTitle>
             <CardDescription>
-              Your hotel account has not been activated yet. Please contact an administrator for an invite token.
+              Your hotel account has not been set up yet. Please create your first room to initialize your hotel profile.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -59,7 +60,8 @@ export function HotelAreaPage() {
     );
   }
 
-  const isDeactivated = !hotelProfile.active && !isAdmin;
+  const typedHotelProfile = hotelProfile as HotelDataView;
+  const isDeactivated = !typedHotelProfile.active && !isAdmin;
 
   if (isDeactivated) {
     return (
@@ -76,65 +78,65 @@ export function HotelAreaPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Building2 className="h-8 w-8" />
-          Hotel Management Area
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold flex items-center gap-3 mb-2">
+          <Building2 className="h-9 w-9 text-primary" />
+          Hotel Management
         </h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your hotel profile, rooms, bookings, and more
+        <p className="text-muted-foreground text-lg">
+          Manage your hotel profile, rooms, bookings, and subscription
         </p>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto">
-          <TabsTrigger value="profile" className="gap-2">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto bg-muted/50 p-1">
+          <TabsTrigger value="profile" className="gap-2 data-[state=active]:bg-background">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="rooms" className="gap-2">
+          <TabsTrigger value="rooms" className="gap-2 data-[state=active]:bg-background">
             <Bed className="h-4 w-4" />
             <span className="hidden sm:inline">Rooms</span>
           </TabsTrigger>
-          <TabsTrigger value="payments" className="gap-2">
+          <TabsTrigger value="payments" className="gap-2 data-[state=active]:bg-background">
             <CreditCard className="h-4 w-4" />
             <span className="hidden sm:inline">Payments</span>
           </TabsTrigger>
-          <TabsTrigger value="bookings" className="gap-2">
+          <TabsTrigger value="bookings" className="gap-2 data-[state=active]:bg-background">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Bookings</span>
           </TabsTrigger>
-          <TabsTrigger value="stays" className="gap-2">
+          <TabsTrigger value="stays" className="gap-2 data-[state=active]:bg-background">
             <ClipboardCheck className="h-4 w-4" />
             <span className="hidden sm:inline">Record Stays</span>
           </TabsTrigger>
-          <TabsTrigger value="subscription" className="gap-2">
+          <TabsTrigger value="subscription" className="gap-2 data-[state=active]:bg-background">
             <Crown className="h-4 w-4" />
             <span className="hidden sm:inline">Subscription</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profile">
+        <TabsContent value="profile" className="mt-6">
           <HotelProfilePanel />
         </TabsContent>
 
-        <TabsContent value="rooms">
+        <TabsContent value="rooms" className="mt-6">
           <RoomsPanel />
         </TabsContent>
 
-        <TabsContent value="payments">
+        <TabsContent value="payments" className="mt-6">
           <HotelPaymentMethodsPanel />
         </TabsContent>
 
-        <TabsContent value="bookings">
+        <TabsContent value="bookings" className="mt-6">
           <HotelBookingsPanel />
         </TabsContent>
 
-        <TabsContent value="stays">
+        <TabsContent value="stays" className="mt-6">
           <RecordStayPanel />
         </TabsContent>
 
-        <TabsContent value="subscription">
+        <TabsContent value="subscription" className="mt-6">
           <SubscriptionPanel />
         </TabsContent>
       </Tabs>

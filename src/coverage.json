@@ -1,114 +1,63 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T14:29:26.884Z",
+  "generatedAt": "2026-02-16T20:19:17.334Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
-    "implemented": 5,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Restore the previously stable behavior for hotel activation, admin invite-token visibility, and role-based access by ensuring the backend canister exports all methods currently called by the frontend auth/admin/hotel-profile flows, and that these methods return consistent results so hotel accounts do not appear incorrectly inactive and existing admin-created tokens are visible again.",
+        "summary": "Add an Admin Panel section that helps admins verify whether the latest deployment is actually being served by the browser, by prominently showing the current BUILD_VERSION and basic runtime info (current URL/origin, detected network/canister host if available) with a one-click copy action.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/admin/InviteTokensPanel.tsx",
-          "frontend/src/components/auth/RequireRole.tsx",
-          "frontend/src/components/auth/HotelActivationForm.tsx",
-          "frontend/src/backend.d.ts"
+          "frontend/src/components/admin/DeploymentPublishInfoPanel.tsx",
+          "frontend/src/pages/AdminPanelPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/admin/InviteTokensPanel.tsx",
-          "frontend/src/components/auth/RequireRole.tsx",
-          "frontend/src/components/auth/HotelActivationForm.tsx",
-          "frontend/src/backend.d.ts"
+          "frontend/src/components/admin/DeploymentPublishInfoPanel.tsx",
+          "frontend/src/pages/AdminPanelPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Limit changes strictly to (a) restoring the broken stable features and (b) the requested 'upload kamar' (room upload) flow; do not refactor or change unrelated functionality (booking, payments, browsing, etc.) beyond what is necessary to remove the regression.",
+        "summary": "Extend the existing deploy/publish guidance UI so that it explicitly tells users how to obtain the platform Publish URL/Open App link, and includes cache-busting steps when changes are not visible (hard refresh instructions and an in-app reload button). All user-facing text must be in English.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx"
+          "frontend/src/components/admin/CaffeineDeployUiNotice.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx"
+          "frontend/src/components/admin/CaffeineDeployUiNotice.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Fix and harden the 'upload kamar' flow in the Rooms panel so adding/editing a room with photos is reliable: validate selected image files, provide clear errors, preserve existing photos when editing unless explicitly replaced/deleted, and ensure the saved room's picture URLs remain usable after page reload.",
+        "summary": "Ensure the application visibly changes its build identifier whenever a new release is produced by updating the frontend build version constant so users can confirm they are on the latest version.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useRoomImageUpload.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx",
-          "frontend/src/components/hotel/RoomPhotosSection.tsx",
-          "frontend/src/utils/roomPictures.ts"
+          "frontend/src/buildInfo.ts"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useRoomImageUpload.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Update the room photo upload implementation so it does not rely on large base64 data URLs for long-term storage; store uploaded images in the canister’s blob storage mechanism and save stable retrievable URLs/identifiers in `RoomInput.pictures` instead.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/utils/roomBlobStorage.ts",
-          "frontend/src/hooks/useRoomImageUpload.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/utils/roomBlobStorage.ts",
-          "frontend/src/hooks/useRoomImageUpload.ts",
-          "frontend/src/components/hotel/RoomsPanel.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Add a focused regression verification pass using the existing regression checklist to confirm the restored stable behaviors (auth/roles, hotel activation, admin tokens) and the updated room upload behavior before deployment; record the verification steps in the release notes.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/REGRESSION_CHECKLIST.md",
-          "frontend/RELEASE_NOTES.md"
-        ],
-        "matchedFiles": [
-          "frontend/REGRESSION_CHECKLIST.md",
-          "frontend/RELEASE_NOTES.md"
+          "frontend/src/buildInfo.ts"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/REGRESSION_CHECKLIST.md",
-    "frontend/RELEASE_NOTES.md",
-    "frontend/src/App.tsx",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
     "frontend/src/buildInfo.ts",
-    "frontend/src/components/admin/InviteTokensPanel.tsx",
-    "frontend/src/components/auth/HotelActivationForm.tsx",
-    "frontend/src/components/auth/RequireRole.tsx",
-    "frontend/src/components/hotel/RoomsPanel.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/hooks/useRoomImageUpload.ts",
-    "frontend/src/utils/roomBlobStorage.ts",
+    "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
+    "frontend/src/components/admin/DeploymentPublishInfoPanel.tsx",
+    "frontend/src/config.ts",
+    "frontend/src/pages/AdminPanelPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

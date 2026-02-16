@@ -1,141 +1,61 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restore stable admin/activation behavior and make room photo upload blob-based (frontend-only)",
+  "title": "Admin deploy/publish guidance and build version verification UI",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Stop auth/admin/hotel-profile flows from breaking when backend methods differ by adding a safe compatibility layer for role checks, activation status reads, and admin invite-token visibility.",
+      "summary": "Add an admin-only \"Deployment / Publish Info\" section showing BUILD_VERSION and runtime info with one-click copy + success toast.",
       "acceptanceCriteria": [
-        "A hotel principal that was previously considered active is shown as active again in the UI (no false 'inactive' state caused by missing/failed API calls).",
-        "The Admin Panel invite token list loads successfully and shows previously created tokens (no empty list due to missing backend methods).",
-        "Role/guarded routes work without throwing runtime errors (e.g., no 'actor.<method> is not a function' errors) and the user can navigate to the same pages as in the last stable version.",
-        "Backend candid interface is aligned with the methods used in frontend query/mutation hooks for: caller role/admin checks, invite token CRUD/validation/consumption, hotel visibility/activation/subscription admin actions, and hotel profile fetch/update (as applicable to current UI)."
+        "Admin Panel includes a clearly labeled card/section (e.g., \"Deployment / Publish Info\")",
+        "The section displays the same build version string used in the footer (BUILD_VERSION)",
+        "The section displays the current window location (at least origin + pathname) and provides a copy-to-clipboard button",
+        "Copy action shows a success toast and copies the displayed value exactly",
+        "Section is visible only to admins (i.e., only on /admin behind existing RequireRole)"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Harden query/mutation hooks used by auth/admin/hotel-profile flows by adding runtime method-availability checks before calling actor functions (preventing 'actor.<method> is not a function' crashes) and normalizing errors into English user-facing messages where handled by callers. Add a small compatibility mapping for admin invite tokens so the Admin Panel can load previously created tokens regardless of whether the backend exposes legacy invite-token methods or invite-code methods. Verify the component's usage instructions before implementing."
+          "path": "frontend/src/components/admin/DeploymentPublishInfoPanel.tsx",
+          "operation": "create",
+          "description": "Create an Admin Panel card titled \"Deployment / Publish Info\" that renders BUILD_VERSION (imported from buildInfo), window location info (origin + pathname at minimum), and best-effort detected network/canister host if available (e.g., derived from runtime/agent configuration when present). Include one-click copy-to-clipboard actions for each displayed value and show a success toast on copy using the existing toast system (sonner). Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/admin/InviteTokensPanel.tsx",
+          "path": "frontend/src/pages/AdminPanelPage.tsx",
           "operation": "modify",
-          "description": "Update the Admin Panel invite token UI to rely on the hardened hooks/compat layer so token list rendering is resilient and previously created tokens are visible again. Keep existing UI/UX and only adjust data-shape mapping and error handling (English). Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/auth/RequireRole.tsx",
-          "operation": "modify",
-          "description": "Ensure guarded routes do not misclassify users as inactive solely due to transient query failures: keep admin-bypass behavior, and ensure errors route to GuardErrorScreen rather than creating an incorrect 'inactive' AccessDenied state. Any text changes must remain English. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/auth/HotelActivationForm.tsx",
-          "operation": "modify",
-          "description": "Use the hardened invite-token hooks and provide clear English error states when activation-related backend capabilities are unavailable (no runtime crashes). Keep the existing activation UX and navigation behavior. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/backend.d.ts",
-          "operation": "modify",
-          "description": "Align frontend type declarations with the backend methods actually called by current auth/admin/hotel-profile flows (add missing method signatures used in hooks/components and remove reliance on 'any' where safe) to prevent integration drift and improve compile-time safety. Verify the component's usage instructions before implementing."
+          "description": "Wire the new DeploymentPublishInfoPanel into the existing Admin Panel page (no new routes), placing it as a clearly labeled section/card (e.g., near the existing deploy notice). Ensure it remains admin-only by relying on the existing /admin route protection (RequireAuth/RequireRole) unchanged. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Constrain the frontend changes to only the activation/token/role regression area and the Rooms photo upload flow, avoiding unrelated UI/UX behavior changes.",
+      "summary": "Improve deploy/publish guidance text in the admin UI with Publish URL/Open App link retrieval steps, cache-busting instructions, and an in-app reload button.",
       "acceptanceCriteria": [
-        "No UI/UX or behavior changes are introduced outside the activation/token/role regression fix and the room upload flow.",
-        "Regression checklist items unrelated to rooms/admin activation (e.g., guest browsing and booking flows) continue to work as before."
+        "The deploy guidance explains that the platform may not display the Publish URL/Open App link reliably and provides concrete steps (refresh page, switch Draft/Live tabs)",
+        "The deploy guidance includes cache-busting steps (hard refresh instructions)",
+        "The UI includes a \"Reload app\" button that triggers a full page reload (location.reload)",
+        "No non-English text is introduced in the new/updated UI"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
           "operation": "modify",
-          "description": "Keep changes strictly scoped: only touch hooks used by role checks, activation gating, admin token visibility, hotel profile reads needed by those gates, and the room create/update flows required by upload-kamar. Do not alter booking/payment/browsing hooks except to prevent the specific regression crash pattern. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
-          "operation": "modify",
-          "description": "Limit changes to room photo selection/upload/replace/delete and room save behavior only; preserve existing room pricing/promo UX and all non-room flows. Ensure any new/changed text remains English. Verify the component's usage instructions before implementing."
+          "description": "Extend the existing deploy/publish guidance UI so all user-facing text is English and explicitly explains how to obtain the platform Publish URL/Open App link (including steps like refreshing and switching Draft/Live tabs), includes cache-busting instructions (hard refresh), and adds a \"Reload app\" button that performs a full page reload via location.reload. Use existing shadcn UI components already present in the project without modifying files under frontend/src/components/ui. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Make the Rooms panel photo handling reliable with validation, clear English errors, and correct preservation of existing photos on edit unless explicitly changed.",
+      "summary": "Bump BUILD_VERSION so the current release is visibly identifiable in the footer and the new admin deployment info section.",
       "acceptanceCriteria": [
-        "In the Hotel Area > Rooms panel, creating a room with one or more photos completes successfully and the photos render immediately in the room card.",
-        "Editing an existing room without selecting new files keeps the existing photo list unchanged.",
-        "Replacing a photo uploads the new image and updates only the replaced image URL in the room.",
-        "Deleting a photo removes it from the room and it stays removed after refresh.",
-        "If an image file cannot be processed (unsupported type/too large/read failure), the UI shows an English error message and does not create/update the room."
+        "BUILD_VERSION is changed from its current value to a new value for this release",
+        "The updated build version is visible in the AppShell footer",
+        "The updated build version is also visible in the new Admin \"Deployment / Publish Info\" section"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useRoomImageUpload.ts",
+          "path": "frontend/src/buildInfo.ts",
           "operation": "modify",
-          "description": "Replace the current data-URL conversion implementation with a validated file pipeline: enforce allowed MIME types, enforce a maximum file size, handle read failures deterministically, and expose per-upload progress plus a single English error message suitable for toasts/inline alerts. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
-          "operation": "modify",
-          "description": "Integrate the hardened upload hook: validate before upload, block create/update on upload failure, keep existing photos on edit when no new files are selected, and ensure replace/delete actions update only the intended photo URLs. Ensure all introduced/changed user-facing messages are English. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/hotel/RoomPhotosSection.tsx",
-          "operation": "modify",
-          "description": "Harden replace/delete UX interactions so replace selection cannot accidentally trigger preview/navigation, and ensure invalid/broken images are handled gracefully (no crashes) while preserving existing behavior. Any new/changed text must be English. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/utils/roomPictures.ts",
-          "operation": "modify",
-          "description": "Update picture URL validation rules (if needed) to treat the new stable blob references/URLs as valid, while continuing to filter malformed entries and track failures without breaking rendering. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Switch room photo upload away from long-lived base64 data URLs to stable blob-storage-backed URLs/identifiers saved in RoomInput.pictures, while keeping progress UI and English toasts.",
-      "acceptanceCriteria": [
-        "After uploading room photos and saving a room, `RoomView.pictures` contains stable references (not raw `data:` URLs).",
-        "Room photos still load correctly after a full page refresh and re-login.",
-        "Upload progress UI continues to function and the user receives an English success/failure toast for the upload step."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/roomBlobStorage.ts",
-          "operation": "create",
-          "description": "Add a small frontend helper that uses the selected blob-storage component (ExternalBlob) to upload image bytes and return stable retrievable references (prefer direct URLs) suitable for persisting in RoomInput.pictures, with progress callbacks. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useRoomImageUpload.ts",
-          "operation": "modify",
-          "description": "Use the selected blob-storage component to upload images (instead of generating data: URLs) and return stable references for RoomInput.pictures. Preserve upload progress reporting and ensure returned strings are not raw data URLs. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/hotel/RoomsPanel.tsx",
-          "operation": "modify",
-          "description": "Ensure the room save flow persists only stable blob references/URLs in pictures, and keep the existing progress UI and English success/failure toasts for the upload step. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Document and verify regressions using the existing checklist and record the verification steps in release notes before deployment.",
-      "acceptanceCriteria": [
-        "`frontend/REGRESSION_CHECKLIST.md` relevant sections for auth/roles, activation, and admin panel are executed and pass.",
-        "`frontend/RELEASE_NOTES.md` is updated with: what changed, what was verified, and a rollback note if the regression reappears."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/REGRESSION_CHECKLIST.md",
-          "operation": "modify",
-          "description": "Update only the relevant checklist items (auth/roles, activation gating, admin invite tokens, room management photo upload/replace/delete) to reflect the restored stable behavior and the new blob-based room upload expectations, without changing unrelated sections. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/RELEASE_NOTES.md",
-          "operation": "modify",
-          "description": "Add a new release entry documenting: (1) what changed (activation/token/role regression hardening + room photo upload storage change), (2) exactly which checklist items were executed and passed, and (3) a rollback note describing what to do if the regression reappears. Keep all text in English. Verify the component's usage instructions before implementing."
+          "description": "Update the exported BUILD_VERSION constant from its current value (v44) to a new release value (e.g., v45) so users can visually confirm they are running the latest build in both the AppShell footer and admin deployment info UI. Verify the component's usage instructions before implementing."
         }
       ]
     }

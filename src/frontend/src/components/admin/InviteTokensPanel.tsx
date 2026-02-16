@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Copy, Plus, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Copy, Plus, Loader2, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { useCreateInviteToken, useGetInviteTokens } from '../../hooks/useQueries';
 import { toast } from 'sonner';
 import { Principal } from '@icp-sdk/core/principal';
@@ -29,6 +29,7 @@ export function InviteTokensPanel() {
       setMaxUses('1');
       setBoundPrincipal('');
     } catch (error: any) {
+      console.error('Token generation error:', error);
       toast.error(error.message || 'Failed to generate invite code');
     }
   };
@@ -60,9 +61,9 @@ export function InviteTokensPanel() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
-            <AlertCircle className="h-4 w-4" />
+            <Info className="h-4 w-4" />
             <AlertDescription>
-              Note: Hotel activation functionality is currently being restored. Generated codes may not be immediately usable.
+              Each token must be bound to a specific hotel's Internet Identity Principal. The hotel owner must provide their Principal ID before you generate their activation token.
             </AlertDescription>
           </Alert>
 
@@ -79,7 +80,7 @@ export function InviteTokensPanel() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="boundPrincipal">Bound Principal (Optional)</Label>
+              <Label htmlFor="boundPrincipal">Hotel Principal (Optional)</Label>
               <Input
                 id="boundPrincipal"
                 type="text"

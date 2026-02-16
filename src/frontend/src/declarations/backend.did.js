@@ -41,6 +41,32 @@ export const RoomView = IDL.Record({
   'roomType' : IDL.Text,
   'discountedPrice' : IDL.Nat,
 });
+export const HotelContact = IDL.Record({
+  'whatsapp' : IDL.Opt(IDL.Text),
+  'email' : IDL.Opt(IDL.Text),
+});
+export const SubscriptionStatus = IDL.Variant({
+  'paid' : IDL.Null,
+  'test' : IDL.Null,
+  'unpaid' : IDL.Null,
+});
+export const PaymentMethod = IDL.Record({
+  'name' : IDL.Text,
+  'details' : IDL.Text,
+});
+export const HotelDataView = IDL.Record({
+  'id' : IDL.Principal,
+  'active' : IDL.Bool,
+  'contact' : HotelContact,
+  'mapLink' : IDL.Text,
+  'bookings' : IDL.Vec(IDL.Nat),
+  'name' : IDL.Text,
+  'subscriptionStatus' : SubscriptionStatus,
+  'address' : IDL.Text,
+  'location' : IDL.Text,
+  'paymentMethods' : IDL.Vec(PaymentMethod),
+  'rooms' : IDL.Vec(RoomView),
+});
 export const Time = IDL.Int;
 export const RSVP = IDL.Record({
   'name' : IDL.Text,
@@ -90,7 +116,17 @@ export const idlService = IDL.Service({
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createRoom' : IDL.Func([RoomInput], [RoomView], []),
   'generateInviteCode' : IDL.Func([], [IDL.Text], []),
+  'getAllHotels' : IDL.Func(
+      [],
+      [
+        IDL.Vec(
+          IDL.Record({ 'data' : HotelDataView, 'hotelId' : IDL.Principal })
+        ),
+      ],
+      ['query'],
+    ),
   'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
+  'getCallerHotelProfile' : IDL.Func([], [IDL.Opt(HotelDataView)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
@@ -103,7 +139,13 @@ export const idlService = IDL.Service({
   'makeMeAdmin' : IDL.Func([], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
+  'toggleHotelActiveStatus' : IDL.Func([IDL.Principal], [IDL.Bool], []),
   'updateRoom' : IDL.Func([IDL.Nat, RoomInput], [RoomView], []),
+  'updateSubscriptionStatus' : IDL.Func(
+      [IDL.Principal, SubscriptionStatus],
+      [],
+      [],
+    ),
 });
 
 export const idlInitArgs = [];
@@ -141,6 +183,29 @@ export const idlFactory = ({ IDL }) => {
     'pictures' : IDL.Vec(IDL.Text),
     'roomType' : IDL.Text,
     'discountedPrice' : IDL.Nat,
+  });
+  const HotelContact = IDL.Record({
+    'whatsapp' : IDL.Opt(IDL.Text),
+    'email' : IDL.Opt(IDL.Text),
+  });
+  const SubscriptionStatus = IDL.Variant({
+    'paid' : IDL.Null,
+    'test' : IDL.Null,
+    'unpaid' : IDL.Null,
+  });
+  const PaymentMethod = IDL.Record({ 'name' : IDL.Text, 'details' : IDL.Text });
+  const HotelDataView = IDL.Record({
+    'id' : IDL.Principal,
+    'active' : IDL.Bool,
+    'contact' : HotelContact,
+    'mapLink' : IDL.Text,
+    'bookings' : IDL.Vec(IDL.Nat),
+    'name' : IDL.Text,
+    'subscriptionStatus' : SubscriptionStatus,
+    'address' : IDL.Text,
+    'location' : IDL.Text,
+    'paymentMethods' : IDL.Vec(PaymentMethod),
+    'rooms' : IDL.Vec(RoomView),
   });
   const Time = IDL.Int;
   const RSVP = IDL.Record({
@@ -191,7 +256,17 @@ export const idlFactory = ({ IDL }) => {
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createRoom' : IDL.Func([RoomInput], [RoomView], []),
     'generateInviteCode' : IDL.Func([], [IDL.Text], []),
+    'getAllHotels' : IDL.Func(
+        [],
+        [
+          IDL.Vec(
+            IDL.Record({ 'data' : HotelDataView, 'hotelId' : IDL.Principal })
+          ),
+        ],
+        ['query'],
+      ),
     'getAllRSVPs' : IDL.Func([], [IDL.Vec(RSVP)], ['query']),
+    'getCallerHotelProfile' : IDL.Func([], [IDL.Opt(HotelDataView)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getInviteCodes' : IDL.Func([], [IDL.Vec(InviteCode)], ['query']),
@@ -204,7 +279,13 @@ export const idlFactory = ({ IDL }) => {
     'makeMeAdmin' : IDL.Func([], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'submitRSVP' : IDL.Func([IDL.Text, IDL.Bool, IDL.Text], [], []),
+    'toggleHotelActiveStatus' : IDL.Func([IDL.Principal], [IDL.Bool], []),
     'updateRoom' : IDL.Func([IDL.Nat, RoomInput], [RoomView], []),
+    'updateSubscriptionStatus' : IDL.Func(
+        [IDL.Principal, SubscriptionStatus],
+        [],
+        [],
+      ),
   });
 };
 

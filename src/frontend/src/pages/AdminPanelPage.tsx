@@ -1,43 +1,52 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Separator } from '../components/ui/separator';
+import { Shield } from 'lucide-react';
 import { InviteTokensPanel } from '../components/admin/InviteTokensPanel';
 import { HotelVisibilityPanel } from '../components/admin/HotelVisibilityPanel';
 import { AdminBookingsPanel } from '../components/admin/AdminBookingsPanel';
-import { DataCleanupPanel } from '../components/admin/DataCleanupPanel';
 import { PrincipalPurgePanel } from '../components/admin/PrincipalPurgePanel';
+import { DataCleanupPanel } from '../components/admin/DataCleanupPanel';
 import { CaffeineDeployUiNotice } from '../components/admin/CaffeineDeployUiNotice';
-import { Separator } from '../components/ui/separator';
-import { Shield } from 'lucide-react';
+import { DeploymentPublishInfoPanel } from '../components/admin/DeploymentPublishInfoPanel';
 
-export default function AdminPanelPage() {
+export function AdminPanelPage() {
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Shield className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold">Admin Panel</h1>
-          <p className="text-muted-foreground">Manage hotels, invites, bookings, and system data</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold flex items-center gap-3 mb-2">
+          <Shield className="h-9 w-9 text-primary" />
+          Admin Panel
+        </h1>
+        <p className="text-muted-foreground text-lg">
+          Manage hotels, bookings, invite tokens, and system settings
+        </p>
       </div>
 
       <CaffeineDeployUiNotice />
 
+      <Separator className="my-8" />
+
+      <DeploymentPublishInfoPanel />
+
+      <Separator className="my-8" />
+
       <InviteTokensPanel />
-      
-      <Separator />
-      
+
+      <Separator className="my-8" />
+
       <HotelVisibilityPanel />
-      
-      <Separator />
-      
+
+      <Separator className="my-8" />
+
       <AdminBookingsPanel />
-      
-      <Separator />
-      
+
+      <Separator className="my-8" />
+
       <PrincipalPurgePanel />
-      
-      <Separator />
-      
+
+      <Separator className="my-8" />
+
       <DataCleanupPanel />
     </div>
   );

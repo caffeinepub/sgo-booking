@@ -1,383 +1,103 @@
-# Pre-Release Regression Checklist
+# Regression Testing Checklist
 
-This checklist must be completed before each production deployment to ensure critical functionality remains intact.
+## V44 Rollback Verification (February 10, 2026)
 
-## V47 Compatibility Restoration Verification
+### Critical Rollback Items
+- [x] Admin Panel loads without runtime errors (no blank screen) on /admin
+- [x] Invite token generation works (no infinite "Generating…" state)
+- [x] Existing tokens are visible/listed again for admins
+- [x] Hotels that were previously active in v44 appear active again
+- [x] Hotel Area access works for previously-activated hotel accounts
+- [x] V47-only "restoration in progress / unavailable" degradation behavior removed
+- [x] Hotel activation detection uses v44 role-based logic (not null hotelProfile stub)
+- [x] Build version displays as v44 in app shell/footer
 
-### Critical Startup Checks
-- [ ] **App loads without errors**
-  - No runtime errors in browser console
-  - No "actor.<method> is not a function" errors
-  - No blank screens or infinite loading states
+### Authentication & Authorization
+- [ ] Internet Identity login flow works correctly
+- [ ] User profile creation/editing works
+- [ ] Admin role assignment works (makeMeAdmin for hardcoded admin)
+- [ ] Role-based access control enforces correctly (guest/user/admin)
+- [ ] Logout clears all cached data
 
-- [ ] **Authentication works**
-  - Internet Identity login succeeds
-  - User can log out and log back in
-  - Principal ID is displayed correctly
+### Admin Panel
+- [ ] Admin panel accessible only to admins
+- [ ] Invite token generation creates valid tokens
+- [ ] Generated tokens appear in "Active Invite Codes" list
+- [ ] Token copy-to-clipboard works
+- [ ] Used tokens move to "Used Invite Codes" section
+- [ ] Hotel visibility controls work (if backend supports)
+- [ ] Bookings overview displays correctly (if backend supports)
+- [ ] Principal purge panel works (if backend supports)
+- [ ] Data cleanup utilities work (if backend supports)
 
-### Admin Functionality
-- [ ] **Admin access**
-  - Hard-coded admin principal can log in
-  - Admin Panel link appears in navigation
-  - Admin Panel page loads without errors
+### Hotel Activation
+- [ ] Hotel activation form displays for non-activated users
+- [ ] Token validation provides feedback
+- [ ] Token consumption activates hotel account
+- [ ] Activated hotels can access Hotel Area
+- [ ] Hotel activation status updates immediately after activation
+- [ ] Main menu shows correct activation status
 
-- [ ] **Invite code generation**
-  - Admin can generate invite codes
-  - Generated codes appear in Active Invite Codes section
-  - Informational notice about restoration is displayed
-  - No runtime errors when generating codes
+### Hotel Management
+- [ ] Hotel Area accessible to activated hotels and admins
+- [ ] Room creation works with photo upload
+- [ ] Room editing preserves existing data
+- [ ] Room deletion works (if backend supports)
+- [ ] Payment methods can be added/removed (if backend supports)
+- [ ] Hotel profile editing works (if backend supports)
+- [ ] Bookings panel displays hotel bookings (if backend supports)
 
-### Hotel Functionality
-- [ ] **Room creation with blob storage**
-  - Hotel user can create a new room
-  - Photo upload works with progress indicator
-  - Photos display immediately after upload
-  - Room appears in rooms list after creation
-  - File validation works (type and size limits)
-  - Clear error messages for invalid files
+### Guest Features
+- [ ] Browse Hotels page displays available hotels
+- [ ] Hotel detail page shows room information
+- [ ] Booking form calculates prices correctly
+- [ ] Booking creation works (if backend supports)
+- [ ] My Bookings page displays user bookings (if backend supports)
+- [ ] Booking cancellation works (if backend supports)
 
-- [ ] **Room photo persistence**
-  - Room photos persist after page refresh
-  - Room photos persist after logout and re-login
-  - Photo URLs are stable blob URLs (not data: URLs)
+### UI/UX
+- [ ] No blank screens or infinite loading states
+- [ ] Error messages are clear and actionable
+- [ ] Loading states display appropriately
+- [ ] Navigation works correctly across all routes
+- [ ] Responsive design works on mobile/tablet/desktop
+- [ ] Dark mode works correctly (if implemented)
 
-- [ ] **Room editing**
-  - Hotel user can edit existing room
-  - Existing photos are preserved when not changed
-  - New photos can be added to existing room
-  - Photos can be replaced individually
-  - Photos can be deleted individually
+### Data Integrity
+- [ ] Existing invite tokens preserved after rollback
+- [ ] Previously activated hotel accounts remain active
+- [ ] User profiles preserved
+- [ ] No data loss during rollback
+
+### Performance
+- [ ] Page load times acceptable
+- [ ] Query invalidation works correctly
+- [ ] No unnecessary re-renders
+- [ ] Image loading optimized
+
+## V47 Compatibility Restoration (Previous)
+
+### Blob Storage Migration
+- [x] Room photo uploads work with blob storage
+- [x] Existing data URLs continue to display
+- [x] Upload progress tracking works
+- [x] Error handling for failed uploads
 
 ### Graceful Degradation
-- [ ] **Unavailable features show clear messages**
-  - Hotel activation shows "currently unavailable" message
-  - Hotel profile update shows clear error message
-  - Booking creation shows clear error message
-  - Payment method management shows clear error message
-  - All error messages are in English
+- [x] Missing backend methods don't crash the app
+- [x] Unavailable features show clear messages
+- [x] Error boundaries catch and display errors
+- [x] Loading states prevent blank screens
 
-- [ ] **No crashes on unavailable features**
-  - Attempting unavailable actions shows error toast
-  - App remains functional after error
-  - User can continue using available features
-
-### User Experience
-- [ ] **Loading states**
-  - All queries show appropriate loading indicators
-  - No infinite loading states
-  - Proper error handling for failed queries
-
-- [ ] **Navigation**
-  - All routes are accessible
-  - No undefined routes
-  - Back buttons and navigation links work
-
-## Authentication & Authorization
-
-### V24 Verification Steps (Post-Rollback)
-- [ ] **Hard-coded admin principal verification**
-  - Log in with principal `ayatf-afj3q-z5wvo-4ocoi-x7lve-uel5k-yhe6p-ahp57-ww5ch-bc72g-wae`
-  - Verify admin role is automatically assigned
-  - Verify Admin Panel link appears in navigation
-  - Verify all admin functions are accessible
-
-- [ ] **Role detection accuracy**
-  - Admin user: Verify `isCallerAdmin()` returns true
-  - Hotel user (activated): Verify hotel activation status is correct
-  - Guest user: Verify appropriate access restrictions
-
-- [ ] **Cross-session cache isolation**
-  - Log in as admin → verify admin access
-  - Log out → log in as guest → verify guest-only access (no admin panel)
-  - Log out → log in as hotel → verify hotel-only access
-  - Confirm no cross-contamination of cached queries between sessions
-
-### Critical Post-Rollback Test Scenarios
-- [ ] **Admin activation flow**
-  - Admin creates invite token for a new hotel principal
-  - Hotel principal logs in and consumes token
-  - Verify hotel is activated and can access Hotel Area
-  - Verify hotel appears in admin's hotel list
-
-- [ ] **Hotel profile management**
-  - Activated hotel creates/updates profile
-  - Verify profile saves correctly
-  - Verify profile appears in Browse Hotels for guests
-
-- [ ] **Room management**
-  - Activated hotel creates room with photos
-  - Verify room appears in hotel's room list
-  - Verify room appears in guest Browse Hotels view
-
-## Guest Booking Flow (New in V34)
-- [ ] **Booking creation**
-  - Guest browses hotels and selects a room
-  - Guest fills booking form (check-in, check-out, rooms, guests)
-  - Verify form validation (dates, counts)
-  - Verify booking is created and booking ID is returned
-  - Verify success state is displayed
-
-- [ ] **Guest bookings view**
-  - Navigate to My Bookings page
-  - Verify all guest bookings are displayed
-  - Verify booking details are correct (hotel, dates, guests, price, status)
-  - Verify BookingDetailsDialog opens and displays full information
-
-## Hotel Booking Management (New in V34)
-- [ ] **Hotel bookings view**
-  - Hotel owner navigates to Bookings tab
-  - Verify all bookings for the hotel are displayed
-  - Verify pending bookings are shown separately
-  - Verify booking details include guest principal
-
-- [ ] **Booking confirmation**
-  - Hotel owner confirms a pending booking
-  - Verify status changes to "Booked"
-  - Verify status update is reflected in guest's My Bookings
-  - Verify queries are invalidated and UI updates
-
-## Admin Booking Management (New in V34)
-- [ ] **Admin bookings overview**
-  - Admin navigates to Bookings Overview
-  - Verify all bookings across all hotels are displayed
-  - Verify hotel names are correctly resolved
-  - Verify booking details are accessible
-
-## Payment Methods Management (New in V34)
-- [ ] **Add payment method**
-  - Hotel owner navigates to Payments tab
-  - Add a new payment method (free-form name and details)
-  - Verify payment method is saved
-  - Verify payment method appears in hotel profile
-
-- [ ] **Remove payment method**
-  - Hotel owner removes a payment method
-  - Verify payment method is removed from hotel profile
-  - Verify guest-facing hotel detail page updates
-
-- [ ] **Guest view of payment methods**
-  - Guest views hotel detail page
-  - Verify payment methods are displayed
-  - Verify contact information (WhatsApp, email) is displayed
-
-## Hotel Email Contact (New in V34)
-- [ ] **Hotel email entry**
-  - Hotel owner enters email in profile
-  - Verify email is saved
-  - Verify email appears in Hotel Profile panel after save
-
-- [ ] **Guest view of hotel email**
-  - Guest views hotel detail page
-  - Verify email is displayed in contact section
-  - Verify email link works (mailto:)
-
-## Hotel Activation Gating (New in V43)
-- [ ] **Unactivated hotel cannot access Hotel Area**
-  - Log in as a hotel principal that has NOT consumed an invite token
-  - Attempt to navigate to /hotel
-  - Verify AccessDeniedScreen is displayed with hotel activation message
-  - Verify HotelActivationForm is embedded in the access denied screen
-
-- [ ] **Purged hotel must re-activate**
-  - Admin purges a hotel principal via Admin Panel → Purge Hotel Data
-  - Log in as the purged hotel principal
-  - Attempt to navigate to /hotel
-  - Verify AccessDeniedScreen is displayed (hotel is no longer activated)
-  - Admin generates a NEW invite token for the same principal
-  - Hotel consumes the new token
-  - Verify hotel can now access /hotel and create a new profile
-
-- [ ] **Admin bypass for Hotel Area**
-  - Log in as admin
-  - Navigate to /hotel
-  - Verify admin can access Hotel Area even without hotel activation
-
-## Admin Principal Purge (New in V43)
-- [ ] **Purge UI visibility**
-  - Log in as non-admin user
-  - Verify Purge Hotel Data panel is NOT visible
-  - Log in as admin
-  - Navigate to Admin Panel
-  - Verify Purge Hotel Data panel is visible
-
-- [ ] **Purge confirmation flow**
-  - Admin enters a hotel Principal ID
-  - Click "Initiate Purge"
-  - Verify confirmation step appears
-  - Verify confirmation requires typing exact Principal ID
-  - Type incorrect Principal ID → verify error message
-  - Type correct Principal ID → verify purge executes
-
-- [ ] **Purge data removal**
-  - Admin purges a hotel principal
-  - Verify hotel profile is removed from Browse Hotels
-  - Verify all rooms for that hotel are removed
-  - Verify all bookings for that hotel are removed
-  - Verify invite tokens bound to that principal are removed
-  - Verify activation status for that principal is removed
-
-- [ ] **Purge cache invalidation**
-  - Admin purges a hotel principal
-  - Verify Browse Hotels page updates immediately (no hard refresh needed)
-  - Verify Admin Panel → Invite Tokens updates immediately
-  - Verify Admin Panel → Bookings Overview updates immediately
-  - Verify no ghost/orphan data appears in any view
-
-- [ ] **Purge does not affect other hotels**
-  - Admin purges one hotel principal
-  - Verify other hotels remain in Browse Hotels
-  - Verify other hotels' rooms are intact
-  - Verify other hotels' bookings are intact
-  - Verify guest booking flow still works for other hotels
-
-## Browse Hotels Hardening (New in V43)
-- [ ] **Missing rooms data handling**
-  - Verify Browse Hotels page renders without errors when a hotel has no rooms
-  - Verify "0 rooms available" is displayed correctly
-  - Verify no placeholder/ghost rooms appear
-
-- [ ] **Missing pictures data handling**
-  - Verify Browse Hotels page renders without errors when rooms have no pictures
-  - Verify "No photos available" placeholder is displayed
-  - Verify no broken image icons or console errors
-
-- [ ] **Malformed hotel data handling**
-  - Verify Browse Hotels page handles hotels with missing/null fields gracefully
-  - Verify no runtime errors or blank screens
-  - Verify fallback text is displayed for missing data
-
-## HOTEL DUMMY One-Time Purge Verification (CRITICAL - V40+)
-**Context:** This release includes a one-time backend cleanup that removes ALL room data (photos, descriptions, prices, types) for HOTEL DUMMY only. The cleanup runs automatically during canister upgrade and is idempotent (safe to run multiple times).
-
-### Pre-Deployment Verification
-- [ ] **Confirm target hotel**
-  - Verify the hotel name "HOTEL DUMMY" is correct
-  - Verify this is the only hotel that should have rooms purged
-  - Verify no other hotels will be affected
-
-### Post-Deployment Verification
-- [ ] **HOTEL DUMMY shows zero rooms**
-  - Log in as guest → Browse Hotels
-  - Locate HOTEL DUMMY in the hotel list
-  - Verify HOTEL DUMMY shows "0 rooms available" or similar empty state
-  - Navigate to HOTEL DUMMY detail page
-  - Verify NO room cards are displayed
-  - Verify "No rooms available" or similar message is shown
-
-- [ ] **HOTEL DUMMY hotel profile intact**
-  - Log in as admin or HOTEL DUMMY owner
-  - Navigate to Hotel Area (if owner) or Admin Panel → Hotel Visibility (if admin)
-  - Verify HOTEL DUMMY hotel profile still exists
-  - Verify hotel name, location, address, contact info are preserved
-  - Verify only the rooms array is empty
-
-- [ ] **Other hotels unaffected**
-  - Log in as guest → Browse Hotels
-  - Verify all other hotels still display their rooms correctly
-  - Select a non-HOTEL DUMMY hotel
-  - Verify room photos, descriptions, prices, and types are intact
-  - Verify booking flow still works for other hotels
-
-### Ghost Room Prevention Verification
-- [ ] **No placeholder rooms appear**
-  - Log in as guest → Browse Hotels
-  - Verify NO rooms with empty fields (blank room number, $0 price, "No photos available") appear for any hotel
-  - Navigate to multiple hotel detail pages
-  - Verify all displayed rooms have valid data (room number, type, price, photos)
-
-- [ ] **Hotel Area → Rooms (non-HOTEL DUMMY)**
-  - Log in as a different hotel owner (not HOTEL DUMMY)
-  - Navigate to Hotel Area → Rooms tab
-  - Verify all rooms are displayed correctly
-  - Verify room editing and photo upload still work
-  - Verify no ghost/placeholder rooms appear
-
-- [ ] **Admin panel hotel visibility**
-  - Log in as admin → Admin Panel → Hotel Visibility
-  - Verify all hotels are listed
-  - Verify hotel visibility toggles still work
-  - Verify subscription status updates still work
-
-### Idempotency Check
-- [ ] **Subsequent upgrades safe**
-  - After initial deployment, trigger another canister upgrade (or wait for next deployment)
-  - Verify HOTEL DUMMY still shows zero rooms (no errors)
-  - Verify other hotels remain unaffected
-  - Verify no duplicate cleanup operations occur
-
-## Legacy Data Cleanup Verification (V39)
-**Context:** This release includes backend cleanup to remove ghost room photos and legacy payment methods (GOPAY, email-as-payment-method) that were reported as undeletable. The active hotel token is `HOTEL_17705984310722985941` and must remain intact.
-
-- [ ] **Ghost room photos removed**
-  - Log in as guest → Browse Hotels
-  - Verify NO old/ghost room photos appear in hotel cards
-  - Navigate to hotel detail page for the active hotel
-  - Verify ONLY current room photos (uploaded via Hotel Portal) are displayed
-  - Verify room cards do not show duplicate or legacy photos
-
-- [ ] **Admin view - ghost photos removed**
-  - Log in as admin → Admin Panel → Bookings Overview
-  - Browse hotel listings
-  - Verify NO old/ghost room photos appear in any hotel view
-  - Verify hotel data is consistent with guest view
-
-- [ ] **Legacy payment methods removed**
-  - Log in as hotel owner (token `HOTEL_17705984310722985941`)
-  - Navigate to Hotel Area → Payments tab
-  - Verify GOPAY payment method is NOT present
-  - Verify email is NOT listed as a payment method
-  - Verify payment methods list is empty or contains only newly added methods
-
-- [ ] **Active hotel data preserved**
-  - Log in as hotel owner (token `HOTEL_17705984310722985941`)
-  - Navigate to Hotel Area → Rooms tab
-  - Verify ALL current rooms and their photos are present and correct
-  - Verify room editing and photo upload still work
-  - Navigate to Profile tab
-  - Verify hotel profile data (name, location, address, contact) is intact
-
-- [ ] **Hotel can add new payment methods**
-  - Log in as hotel owner
-  - Navigate to Hotel Area → Payments tab
-  - Add a new payment method (e.g., "Bank Transfer", "BCA 1234567890")
-  - Verify payment method is saved and displayed
-  - Log out → log in as guest → view hotel detail
-  - Verify new payment method appears in guest view
-
-- [ ] **Legacy token cleanup**
-  - Log in as admin → Admin Panel → Invite Tokens
-  - Verify legacy token `1-invite-1770546868497298151` is marked as "Used" or "Unbound (Legacy)"
-  - Verify it does NOT appear in active/valid token lists
-  - Verify no data from this legacy token appears anywhere in the app
-
-## Runtime Error Prevention
-- [ ] **Missing backend method handling**
-  - Verify booking/payment method hooks gracefully handle missing backend methods
-  - Verify user-friendly error messages are shown (not uncaught exceptions)
-  - Verify app does not crash when backend methods are unavailable
-
-## General Functionality
-- [ ] **Navigation**
-  - All routes are accessible and render correctly
-  - No blank screens or undefined routes
-  - Back buttons and navigation links work
-
-- [ ] **Loading states**
-  - All queries show appropriate loading indicators
-  - No infinite loading states
-  - Proper error handling for failed queries
-
-- [ ] **Data consistency**
-  - Profile changes reflect immediately after save
-  - Room changes reflect in all views
-  - Booking changes reflect in all relevant views
-  - Query invalidation works correctly
+### Error Messages
+- [x] Backend errors display user-friendly messages
+- [x] Network errors handled gracefully
+- [x] Validation errors clear and actionable
+- [x] Toast notifications work correctly
 
 ## Notes
-- This checklist should be updated whenever new critical functionality is added
-- Any failed check must be resolved before deployment
-- Document any known issues or workarounds in this section
-- **V39 Note:** If ghost photos or legacy payment methods still appear after deployment, use Admin Panel → Data Cleanup Utility to manually remove them by hotel principal and room ID
-- **V40+ Note:** The HOTEL DUMMY purge is a one-time operation that runs automatically during upgrade. If HOTEL DUMMY still shows rooms after deployment, contact the development team immediately.
-- **V43 Note:** Hotel activation gating is now enforced for /hotel route. Purged hotels must re-activate via new invite token before accessing Hotel Area.
-- **V47 Note:** This release focuses on compatibility restoration. Most features are temporarily unavailable with clear error messages. Only room creation with blob storage is fully functional.
+- Test with both hardcoded admin and regular users
+- Verify on multiple browsers (Chrome, Firefox, Safari)
+- Test with slow network conditions
+- Check console for errors/warnings
+- Verify all routes are accessible

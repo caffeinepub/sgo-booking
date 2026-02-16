@@ -1,124 +1,26 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T14:29:26.880Z",
-  "summary": "The diff focuses heavily on adding frontend-side compatibility guards and UI changes, plus a placeholder room image “blob” uploader that still uses base64 data URLs. It does not provide clear evidence that the backend restores the missing activation/admin-token methods or that room photos are stored as stable canister blob references. Regression checklist and release notes were updated.",
+  "generatedAt": "2026-02-16T20:19:17.331Z",
+  "summary": "Implements the requested admin-only deployment/build verification panel, updates BUILD_VERSION, and extends the deploy/publish guidance with English-only cache-busting instructions and a reload button. One minor spec gap: the admin panel does not appear to surface a distinct “canister host” identifier beyond hostname/network detection.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Restore previously stable hotel activation, admin invite-token visibility, and role-based access by ensuring the backend canister exports all methods called by the frontend flows, returning consistent results (no false inactive, tokens visible, no actor.<method> missing errors).",
-      "reason": "The diff shows the frontend now defensively checks for missing actor methods and shows notices that activation is “being restored”, which indicates backend methods may still be missing. The backend diff is truncated and does not demonstrate that the required auth/admin/hotel-profile/invite-token methods are actually exported and working; migration is a no-op.",
+      "requirement": "Display detected network/canister host information if available (in addition to basic runtime info).",
+      "reason": "The new admin panel shows Hostname and a coarse Network label (IC vs Local), but there is no clear canister host/id detection or display beyond window.location.hostname.",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/components/admin/InviteTokensPanel.tsx",
-        "frontend/src/components/auth/HotelActivationForm.tsx",
-        "backend/migration.mo",
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Limit changes strictly to restoring broken stable features and the room upload flow; do not change unrelated UI/UX or other functionality.",
-      "reason": "Diff summary indicates broad UI, routing, navigation, styling, i18n scaffolding, and multiple page/component changes beyond activation/token/role regression and room upload.",
-      "evidence": [
-        "frontend/src/App.tsx",
-        "frontend/src/index.css (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/components/layout/AppShell.tsx (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/components/nav/TopNav.tsx (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/i18n/LocaleContext.tsx (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/pages/BrowseHotelsPage.tsx (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/pages/HotelDetailPage.tsx (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/pages/GuestAccountPage.tsx (mentioned in frontend-file-summaries.txt)",
-        "frontend/index.html (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/buildInfo.ts"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Update room photo upload so it does not rely on large base64 data URLs for long-term storage; store uploaded images in the canister’s blob storage mechanism and save stable retrievable URLs/identifiers in RoomInput.pictures.",
-      "reason": "The newly added room blob storage utility explicitly reads files as a data URL (“temporary solution”) and returns that string. This is the opposite of the requirement to avoid base64 data URLs for long-term storage.",
-      "evidence": [
-        "frontend/src/utils/roomBlobStorage.ts",
-        "frontend/src/hooks/useRoomImageUpload.ts",
-        "frontend/REGRESSION_CHECKLIST.md (expects \"stable blob URLs (not data: URLs)\")",
-        "frontend/RELEASE_NOTES.md (claims migration away from data URLs)"
+        "frontend/src/components/admin/DeploymentPublishInfoPanel.tsx"
       ]
     }
   ],
-  "hallucinated_features": [
-    {
-      "description": "Frontend “compatibility layer” that treats missing backend methods as expected and degrades gracefully with method-availability checks instead of restoring backend method exports.",
-      "reason": "BuildRequest REQ-1 requires restoring backend exports/behavior; adding a frontend shim for missing methods is an unrequested approach and the release notes explicitly describe missing backend methods as ongoing/known issues.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/RELEASE_NOTES.md"
-      ]
-    },
-    {
-      "description": "User-facing notices stating hotel activation functionality is “currently being restored” and may be unusable.",
-      "reason": "BuildRequest goal is to restore stable activation/token behavior, not introduce new UX that declares the feature unavailable.",
-      "evidence": [
-        "frontend/src/components/admin/InviteTokensPanel.tsx",
-        "frontend/src/components/auth/HotelActivationForm.tsx",
-        "frontend/RELEASE_NOTES.md (Known Issues: activation/token consumption unavailable)"
-      ]
-    },
-    {
-      "description": "New/changed routing and navigation structure (TanStack Router route definitions and guarded routes changes, navigation link adjustments).",
-      "reason": "REQ-2 disallows unrelated UI/navigation redesign; only regression fixes and room upload flow were requested.",
-      "evidence": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/nav/TopNav.tsx (mentioned in frontend-file-summaries.txt)"
-      ]
-    },
-    {
-      "description": "Locale/i18n framework added (English-only language selector and locale context).",
-      "reason": "Not requested; REQ-2 constrains changes to activation/token/role regression and room upload only.",
-      "evidence": [
-        "frontend/src/i18n/LocaleContext.tsx (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/components/nav/LanguageSelector.tsx (mentioned in frontend-file-summaries.txt)"
-      ]
-    },
-    {
-      "description": "Global styling overhaul (OKLCH color system, accent changes, dark mode styling).",
-      "reason": "Not requested and conflicts with REQ-2’s “no UI/UX changes outside scope”.",
-      "evidence": [
-        "frontend/src/index.css (mentioned in frontend-file-summaries.txt)"
-      ]
-    },
-    {
-      "description": "Browse/Hotel detail/Guest account page behavior updates (defensive rendering, promo pricing display, sticky sidebar, placeholders).",
-      "reason": "These are outside the requested scope (activation/token/roles restoration + room upload) per REQ-2 non-goals.",
-      "evidence": [
-        "frontend/src/pages/BrowseHotelsPage.tsx (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/pages/HotelDetailPage.tsx (mentioned in frontend-file-summaries.txt)",
-        "frontend/src/pages/GuestAccountPage.tsx (mentioned in frontend-file-summaries.txt)"
-      ]
-    },
-    {
-      "description": "Room “blob storage” upload utility introduced but implemented as FileReader data URL placeholder.",
-      "reason": "REQ-4 requires canister blob storage and stable identifiers/URLs; this implementation is a new utility that contradicts the requirement and adds a placeholder storage mechanism not requested.",
-      "evidence": [
-        "frontend/src/utils/roomBlobStorage.ts"
-      ]
-    }
-  ],
+  "hallucinated_features": [],
   "confidence": 0.74,
   "changed_files": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/REGRESSION_CHECKLIST.md",
-    "frontend/RELEASE_NOTES.md",
-    "frontend/src/App.tsx",
     "frontend/src/buildInfo.ts",
-    "frontend/src/components/admin/InviteTokensPanel.tsx",
-    "frontend/src/components/auth/HotelActivationForm.tsx",
-    "frontend/src/components/auth/RequireRole.tsx",
-    "frontend/src/components/hotel/RoomsPanel.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/hooks/useRoomImageUpload.ts",
-    "frontend/src/utils/roomBlobStorage.ts",
+    "frontend/src/components/admin/CaffeineDeployUiNotice.tsx",
+    "frontend/src/components/admin/DeploymentPublishInfoPanel.tsx",
+    "frontend/src/pages/AdminPanelPage.tsx",
     "project_state.json"
   ]
 }

@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Separator } from '../components/ui/separator';
 import { User, Shield, Building2, RefreshCw, Copy, CheckCircle2, Key } from 'lucide-react';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetCallerUserRole, useIsCurrentUserAdmin, useMakeMeAdmin, useGetCallerHotelProfile } from '../hooks/useQueries';
+import { useGetCallerUserRole, useIsCurrentUserAdmin, useMakeMeAdmin, useIsCallerHotelActivated } from '../hooks/useQueries';
 import { UserRole } from '../backend';
 import { HotelActivationForm } from '../components/auth/HotelActivationForm';
 import { toast } from 'sonner';
@@ -16,14 +16,13 @@ export function AccountStatusPage() {
   const { identity } = useInternetIdentity();
   const { data: role, isLoading: roleLoading, refetch: refetchRole } = useGetCallerUserRole();
   const { data: isAdmin, isLoading: adminLoading, refetch: refetchAdmin } = useIsCurrentUserAdmin();
-  const { data: hotelProfile, isLoading: hotelProfileLoading, refetch: refetchHotelProfile } = useGetCallerHotelProfile();
+  const { data: isHotelActivated, isLoading: hotelActivationLoading, refetch: refetchHotelActivation } = useIsCallerHotelActivated();
   const makeMeAdmin = useMakeMeAdmin();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
 
   const principalId = identity?.getPrincipal().toString() || 'Not logged in';
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
-  const isHotelActivated = !!hotelProfile;
 
   const handleCopyPrincipal = () => {
     navigator.clipboard.writeText(principalId);
@@ -50,10 +49,11 @@ export function AccountStatusPage() {
       await Promise.all([
         refetchRole(),
         refetchAdmin(),
-        refetchHotelProfile(),
+        refetchHotelActivation(),
         queryClient.refetchQueries({ queryKey: ['callerHotelProfile'] }),
         queryClient.refetchQueries({ queryKey: ['hotels'] }),
         queryClient.refetchQueries({ queryKey: ['adminHotels'] }),
+        queryClient.refetchQueries({ queryKey: ['isCallerHotelActivated'] }),
       ]);
       toast.success('Account status refreshed');
     } catch (error: any) {
@@ -94,7 +94,7 @@ export function AccountStatusPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleRefresh}
-                disabled={roleLoading || adminLoading || hotelProfileLoading}
+                disabled={roleLoading || adminLoading || hotelActivationLoading}
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
@@ -161,7 +161,7 @@ export function AccountStatusPage() {
             <div className="space-y-2">
               <span className="text-sm font-medium">Hotel Activation Status</span>
               <div className="flex items-center gap-2">
-                {hotelProfileLoading ? (
+                {hotelActivationLoading ? (
                   <Badge variant="outline">Checking...</Badge>
                 ) : isHotelActivated ? (
                   <Badge variant="default" className="gap-1">

@@ -9,21 +9,18 @@ import Principal "mo:core/Principal";
 import Int "mo:core/Int";
 import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
-import Migration "migration";
+
 import MixinStorage "blob-storage/Mixin";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Storage "blob-storage/Storage";
 import AccessControl "authorization/access-control";
 import InviteLinksModule "invite-links/invite-links-module";
 
-(with migration = Migration.run)
+
 actor {
   include MixinStorage();
 
-  let HARDCODED_ADMIN : Principal = Principal.fromText("ayatf-afj3q-z5wvo-4ocoi-x7lve-uel5k-yhe6p-ahp57-ww5ch-bc72g-wae");
-  let DEPRECATED_GOAT_HOTEL_ID_TEXT = "opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae";
-
-  public type BookingStatus = {
+  type BookingStatus = {
     #pendingTransfer;
     #paymentFailed;
     #booked;
@@ -31,17 +28,17 @@ actor {
     #canceled;
   };
 
-  public type PaymentMethod = {
+  type PaymentMethod = {
     name : Text;
     details : Text;
   };
 
-  public type HotelContact = {
+  type HotelContact = {
     whatsapp : ?Text;
     email : ?Text;
   };
 
-  public type SubscriptionStatus = {
+  type SubscriptionStatus = {
     #paid;
     #unpaid;
     #test;
@@ -61,7 +58,7 @@ actor {
     subscriptionStatus : SubscriptionStatus;
   };
 
-  public type HotelData = {
+  type HotelData = {
     id : Principal;
     name : Text;
     location : Text;
@@ -75,7 +72,7 @@ actor {
     subscriptionStatus : SubscriptionStatus;
   };
 
-  public type RoomView = {
+  type RoomView = {
     id : Nat;
     hotelId : Principal;
     roomType : Text;
@@ -86,7 +83,7 @@ actor {
     pictures : [Text];
   };
 
-  public type Room = {
+  type Room = {
     id : Nat;
     hotelId : Principal;
     roomType : Text;
@@ -97,7 +94,7 @@ actor {
     pictures : [Text];
   };
 
-  public type RoomInput = {
+  type RoomInput = {
     roomType : Text;
     pricePerNight : Nat;
     promoPercent : Nat;
@@ -110,7 +107,7 @@ actor {
     #canceledByHotel;
   };
 
-  public type BookingRequest = {
+  type BookingRequest = {
     id : Nat;
     status : BookingStatus;
     hotelId : ?Principal;
@@ -126,12 +123,12 @@ actor {
     roomsCount : Nat;
   };
 
-  public type BookingQueryResult = {
+  type BookingQueryResult = {
     bookings : [BookingRequest];
     totalCount : Nat;
   };
 
-  public type InviteToken = {
+  type InviteToken = {
     token : Text;
     isActive : Bool;
     issuedBy : Principal;
@@ -141,7 +138,7 @@ actor {
     boundPrincipal : ?Principal;
   };
 
-  public type Payment = {
+  type Payment = {
     paymentId : Nat;
     bookingId : Nat;
     amount : Float;
@@ -152,7 +149,7 @@ actor {
     timestamp : Int;
   };
 
-  public type BookingQuery = {
+  type BookingQuery = {
     hotelId : ?Principal;
     status : ?BookingStatus;
     fromDate : ?Int;
@@ -161,13 +158,13 @@ actor {
     maxPrice : ?Nat;
   };
 
-  public type UserProfile = {
+  type UserProfile = {
     name : Text;
     email : ?Text;
     phone : ?Text;
   };
 
-  public type RoomQuery = {
+  type RoomQuery = {
     hotelId : ?Principal;
     minPrice : ?Nat;
     maxPrice : ?Nat;
@@ -175,16 +172,17 @@ actor {
     availableOnly : ?Bool;
   };
 
-  public type RoomUpdate = {
+  type RoomUpdate = {
     #priceUpdate : Nat;
     #addRoom : RoomInput;
     #removeRoom : Nat;
   };
 
   var nextBookingId = 0;
-  var hasRunUpgradeCleanup = false;
+  let HARDCODED_ADMIN : Principal = Principal.fromText("ayatf-afj3q-z5wvo-4ocoi-x7lve-uel5k-yhe6p-ahp57-ww5ch-bc72g-wae");
+  let DEPRECATED_GOAT_HOTEL_ID_TEXT = "opo7v-ka45k-pk32j-76qsi-o3ngz-e6tgc-755di-t2vx3-t2ugj-qnpbc-gae";
 
-  let hotelsList = List.empty<HotelData>();
+  var hotelsMap = Map.empty<Principal, HotelData>();
   let roomsMap = Map.empty<Nat, Room>();
   let bookingsMap = Map.empty<Nat, BookingRequest>();
   let userProfiles = Map.empty<Principal, UserProfile>();
@@ -232,19 +230,70 @@ actor {
   };
 
   private func getHotelData(hotelId : Principal) : ?HotelData {
-    hotelsList.toArray().find(func(h) { Principal.equal(h.id, hotelId) });
+    hotelsMap.get(hotelId);
   };
 
   private func updateHotelData(updatedHotel : HotelData) : () {
-    let filtered = hotelsList.toArray().filter(func(h) { not Principal.equal(h.id, updatedHotel.id) });
-    hotelsList.clear();
-    filtered.forEach(func(h) { hotelsList.add(h) });
-    hotelsList.add(updatedHotel);
+    hotelsMap.add(updatedHotel.id, updatedHotel);
+  };
+
+  public shared ({ caller }) func toggleHotelActiveStatus(hotelId : Principal) : async Bool {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can toggle hotel active status");
+    };
+
+    switch (hotelsMap.get(hotelId)) {
+      case (?hotel) {
+        let updatedHotel = {
+          id = hotel.id;
+          name = hotel.name;
+          location = hotel.location;
+          address = hotel.address;
+          mapLink = hotel.mapLink;
+          active = not hotel.active;
+          rooms = hotel.rooms;
+          bookings = hotel.bookings;
+          paymentMethods = hotel.paymentMethods;
+          contact = hotel.contact;
+          subscriptionStatus = hotel.subscriptionStatus;
+        };
+        hotelsMap.add(hotelId, updatedHotel);
+        let result = not hotel.active;
+        result;
+      };
+      case (null) { Runtime.trap("Hotel not found") };
+    };
+  };
+
+  public shared ({ caller }) func updateSubscriptionStatus(hotelId : Principal, status : SubscriptionStatus) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can update subscription status");
+    };
+
+    switch (hotelsMap.get(hotelId)) {
+      case (?hotel) {
+        let updatedHotel = {
+          id = hotel.id;
+          name = hotel.name;
+          location = hotel.location;
+          address = hotel.address;
+          mapLink = hotel.mapLink;
+          active = hotel.active;
+          rooms = hotel.rooms;
+          bookings = hotel.bookings;
+          paymentMethods = hotel.paymentMethods;
+          contact = hotel.contact;
+          subscriptionStatus = status;
+        };
+        hotelsMap.add(hotelId, updatedHotel);
+      };
+      case (null) { Runtime.trap("Hotel not found") };
+    };
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can save profiles");
+      Runtime.trap("Unauthorized: Only users can access profiles");
     };
     userProfiles.get(caller);
   };
@@ -272,8 +321,14 @@ actor {
   };
 
   public shared ({ caller }) func createRoom(input : RoomInput) : async RoomView {
+    // Verify caller has at least user-level permissions
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can create rooms");
+    };
+    
+    // Verify caller is an activated hotel
     if (not isHotelActivated(caller)) {
-      Runtime.trap("Unauthorized: Caller is not an active hotel");
+      Runtime.trap("Unauthorized: Only activated hotels can create rooms");
     };
 
     let roomId = nextRoomId;
@@ -313,7 +368,7 @@ actor {
           contact = { whatsapp = null; email = null };
           subscriptionStatus = #test;
         };
-        hotelsList.add(newHotel);
+        hotelsMap.add(caller, newHotel);
       };
     };
 
@@ -323,6 +378,7 @@ actor {
   public shared ({ caller }) func updateRoom(roomId : Nat, input : RoomInput) : async RoomView {
     switch (roomsMap.get(roomId)) {
       case (?existingRoom) {
+        // Only the owning hotel or admins can update rooms
         if (not Principal.equal(caller, existingRoom.hotelId) and not isAdminUser(caller)) {
           Runtime.trap("Unauthorized: Only the room owner hotel or admins can update rooms");
         };
@@ -356,6 +412,7 @@ actor {
   };
 
   public shared func submitRSVP(name : Text, attending : Bool, inviteCode : Text) : async () {
+    // No authorization check - public endpoint for RSVP submission
     if (inviteCode != "random-invite-code") { // Placeholder, validate code properly
       Runtime.trap("Invalid invite code");
     };
@@ -392,5 +449,80 @@ actor {
       currency = room.currency;
       pictures = room.pictures;
     };
+  };
+
+  public query ({ caller }) func getCallerHotelProfile() : async ?HotelDataView {
+    // Verify at least user permissions
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only registered users can access hotel profiles");
+    };
+
+    // Check if caller is an activated hotel - if not, they cannot access hotel management
+    if (not isHotelActivated(caller)) { 
+      return null; // Return null instead of trapping - allows frontend to handle gracefully
+    };
+
+    // Try to find persistent hotel record
+    switch (hotelsMap.get(caller)) {
+      case (?hotelData) {
+        let hotelProfile : HotelDataView = {
+          id = hotelData.id;
+          name = hotelData.name;
+          location = hotelData.location;
+          address = hotelData.address;
+          mapLink = hotelData.mapLink;
+          active = hotelData.active;
+          rooms = hotelData.rooms.toArray().map(
+            func(roomId) {
+              switch (roomsMap.get(roomId)) {
+                case (?room) { toRoomView(room) };
+                case (null) { Runtime.trap("Room not found") };
+              };
+            }
+          );
+          bookings = hotelData.bookings.toArray();
+          paymentMethods = hotelData.paymentMethods.toArray();
+          contact = hotelData.contact;
+          subscriptionStatus = hotelData.subscriptionStatus;
+        };
+        ?hotelProfile;
+      };
+      case (null) { null }; // Hotel is activated but has no profile yet
+    };
+  };
+
+  // Endpoint for getting all hotels with admin authorization
+  public query ({ caller }) func getAllHotels() : async [ { hotelId : Principal; data : HotelDataView } ] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can access hotels list");
+    };
+    hotelsMap.toArray().map(
+      func((hotelId, hotelData)) {
+        {
+          hotelId;
+          data = {
+            id = hotelData.id;
+            name = hotelData.name;
+            location = hotelData.location;
+            address = hotelData.address;
+            mapLink = hotelData.mapLink;
+            active = hotelData.active;
+            rooms = hotelData.rooms.toArray().map(
+              func(roomId) {
+                switch (roomsMap.get(roomId)) {
+                  case (?room) { toRoomView(room) };
+                  case (null) { Runtime.trap("Room not found") };
+                };
+              }
+            );
+            bookings = hotelData.bookings.toArray();
+            paymentMethods = hotelData.paymentMethods.toArray();
+            contact = hotelData.contact;
+            subscriptionStatus = hotelData.subscriptionStatus;
+          };
+        };
+
+      }
+    );
   };
 };

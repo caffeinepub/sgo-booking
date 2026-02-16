@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Key, CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Key, CheckCircle2, XCircle, Loader2, Info } from 'lucide-react';
 import { useValidateInviteToken, useConsumeInviteToken } from '../../hooks/useQueries';
 import { toast } from 'sonner';
 import { useNavigate } from '@tanstack/react-router';
@@ -56,6 +56,8 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
         queryClient.refetchQueries({ queryKey: ['callerHotelProfile'] }),
         queryClient.refetchQueries({ queryKey: ['hotels'] }),
         queryClient.refetchQueries({ queryKey: ['adminHotels'] }),
+        queryClient.refetchQueries({ queryKey: ['isCallerHotelActivated'] }),
+        queryClient.refetchQueries({ queryKey: ['callerUserRole'] }),
       ]);
 
       toast.success('Hotel account activated successfully!');
@@ -85,15 +87,9 @@ export function HotelActivationForm({ onSuccess }: HotelActivationFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Hotel activation is currently being restored. Please contact an administrator for assistance.
-          </AlertDescription>
-        </Alert>
-
         {validationStatus === 'idle' && (
           <Alert>
+            <Info className="h-4 w-4" />
             <AlertDescription>
               Your account has hotel role but is not yet activated. Enter an invite token from an administrator to activate your hotel account.
             </AlertDescription>

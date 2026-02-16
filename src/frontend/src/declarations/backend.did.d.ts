@@ -10,11 +10,29 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface HotelContact {
+  'whatsapp' : [] | [string],
+  'email' : [] | [string],
+}
+export interface HotelDataView {
+  'id' : Principal,
+  'active' : boolean,
+  'contact' : HotelContact,
+  'mapLink' : string,
+  'bookings' : Array<bigint>,
+  'name' : string,
+  'subscriptionStatus' : SubscriptionStatus,
+  'address' : string,
+  'location' : string,
+  'paymentMethods' : Array<PaymentMethod>,
+  'rooms' : Array<RoomView>,
+}
 export interface InviteCode {
   'created' : Time,
   'code' : string,
   'used' : boolean,
 }
+export interface PaymentMethod { 'name' : string, 'details' : string }
 export interface RSVP {
   'name' : string,
   'inviteCode' : string,
@@ -38,6 +56,9 @@ export interface RoomView {
   'roomType' : string,
   'discountedPrice' : bigint,
 }
+export type SubscriptionStatus = { 'paid' : null } |
+  { 'test' : null } |
+  { 'unpaid' : null };
 export type Time = bigint;
 export interface UserProfile {
   'name' : string,
@@ -78,7 +99,12 @@ export interface _SERVICE {
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createRoom' : ActorMethod<[RoomInput], RoomView>,
   'generateInviteCode' : ActorMethod<[], string>,
+  'getAllHotels' : ActorMethod<
+    [],
+    Array<{ 'data' : HotelDataView, 'hotelId' : Principal }>
+  >,
   'getAllRSVPs' : ActorMethod<[], Array<RSVP>>,
+  'getCallerHotelProfile' : ActorMethod<[], [] | [HotelDataView]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getInviteCodes' : ActorMethod<[], Array<InviteCode>>,
@@ -87,7 +113,12 @@ export interface _SERVICE {
   'makeMeAdmin' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'submitRSVP' : ActorMethod<[string, boolean, string], undefined>,
+  'toggleHotelActiveStatus' : ActorMethod<[Principal], boolean>,
   'updateRoom' : ActorMethod<[bigint, RoomInput], RoomView>,
+  'updateSubscriptionStatus' : ActorMethod<
+    [Principal, SubscriptionStatus],
+    undefined
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

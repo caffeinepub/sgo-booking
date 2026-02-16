@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { backendInterface, UserRole, RoomInput, UserProfile as BackendUserProfile } from '../backend';
+import type { backendInterface, RoomInput, UserProfile as BackendUserProfile, SubscriptionStatus, HotelDataView as BackendHotelDataView } from '../backend';
+import { UserRole } from '../backend';
 import type { HotelDataView, RoomView, BookingRequest, BookingQueryResult, UserProfile, InviteToken } from '../types/extended-backend';
 import { Principal } from '@icp-sdk/core/principal';
 import { useInternetIdentity } from './useInternetIdentity';
@@ -26,6 +27,26 @@ function toBackendUserProfile(profile: UserProfile): BackendUserProfile {
     name: profile.name,
     email: profile.email ?? undefined,
     phone: profile.phone ?? undefined,
+  };
+}
+
+// Helper to convert backend HotelDataView to extended HotelDataView
+function toExtendedHotelDataView(hotel: BackendHotelDataView): HotelDataView {
+  return {
+    id: hotel.id,
+    name: hotel.name,
+    location: hotel.location,
+    address: hotel.address,
+    mapLink: hotel.mapLink,
+    active: hotel.active,
+    rooms: hotel.rooms,
+    bookings: hotel.bookings,
+    paymentMethods: hotel.paymentMethods,
+    contact: {
+      whatsapp: hotel.contact.whatsapp ?? null,
+      email: hotel.contact.email ?? null,
+    },
+    subscriptionStatus: hotel.subscriptionStatus,
   };
 }
 
@@ -135,15 +156,14 @@ export function useMakeMeAdmin() {
   });
 }
 
-// Compatibility layer for invite tokens - maps to invite codes
+// V44 behavior: Use backend invite code system
 export function useValidateInviteToken() {
   const { actor } = useActor();
 
   return useMutation({
     mutationFn: async (token: string) => {
       if (!actor) throw new Error('Actor not available');
-      // For now, return true if token is non-empty (basic validation)
-      // Backend will validate on consumption
+      // Basic validation - token must be non-empty
       return token.trim().length > 0;
     },
   });
@@ -156,8 +176,11 @@ export function useConsumeInviteToken() {
   return useMutation({
     mutationFn: async (token: string) => {
       if (!actor) throw new Error('Actor not available');
-      // Backend doesn't have consumeInviteToken, so we throw a clear error
-      throw new Error('Hotel activation is currently unavailable. Please contact an administrator.');
+      if (!hasMethod(actor, 'submitRSVP')) {
+        throw new Error('Hotel activation not available');
+      }
+      // V44: Use submitRSVP with the invite code to activate hotel
+      await actor.submitRSVP('Hotel Activation', true, token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerUserRole'] });
@@ -165,6 +188,7 @@ export function useConsumeInviteToken() {
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
       queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['adminHotels'] });
+      queryClient.invalidateQueries({ queryKey: ['isCallerHotelActivated'] });
     },
   });
 }
@@ -179,8 +203,9 @@ export function useCreateInviteToken() {
       if (!hasMethod(actor, 'generateInviteCode')) {
         throw new Error('Invite code generation not available');
       }
-      // generateInviteCode returns a string code
-      return await actor.generateInviteCode();
+      // V44: generateInviteCode returns a string code
+      const code = await actor.generateInviteCode();
+      return code;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inviteTokens'] });
@@ -199,7 +224,7 @@ export function useGetInviteTokens() {
       if (!hasMethod(actor, 'getInviteCodes')) {
         return [];
       }
-      // Map InviteCode[] to InviteToken[] format
+      // V44: Map InviteCode[] to InviteToken[] format
       const codes = await actor.getInviteCodes();
       return codes.map((code: any) => ({
         token: code.code,
@@ -216,7 +241,30 @@ export function useGetInviteTokens() {
   });
 }
 
-// Hotel profile stub - returns null since backend doesn't have this yet
+// V44: Check hotel activation via role system
+export function useIsCallerHotelActivated() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+  const principalId = identity?.getPrincipal().toString() || 'anonymous';
+
+  return useQuery<boolean>({
+    queryKey: ['isCallerHotelActivated', principalId],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      if (!hasMethod(actor, 'getCallerUserRole')) {
+        return false;
+      }
+      // V44: Hotel is activated if user has 'user' role (not guest)
+      const role = await actor.getCallerUserRole();
+      return role === UserRole.user || role === UserRole.admin;
+    },
+    enabled: !!actor && !isFetching && !!identity,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    retry: 1,
+  });
+}
+
 export function useGetCallerHotelProfile() {
   const { actor, isFetching } = useActor();
   const { identity } = useInternetIdentity();
@@ -226,9 +274,12 @@ export function useGetCallerHotelProfile() {
     queryKey: ['callerHotelProfile', principalId],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      // Backend doesn't have getCallerHotelProfile yet
-      // Return null to indicate no hotel profile
-      return null;
+      if (!hasMethod(actor, 'getCallerHotelProfile')) {
+        return null;
+      }
+      const profile = await actor.getCallerHotelProfile();
+      if (!profile) return null;
+      return toExtendedHotelDataView(profile);
     },
     enabled: !!actor && !isFetching && !!identity,
     staleTime: 0,
@@ -361,7 +412,13 @@ export function useAdminGetAllHotels() {
     queryKey: ['adminHotels'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return [];
+      if (!hasMethod(actor, 'getAllHotels')) {
+        return [];
+      }
+      const result = await actor.getAllHotels();
+      return result.map((item: { hotelId: Principal; data: BackendHotelDataView }) => 
+        toExtendedHotelDataView(item.data)
+      );
     },
     enabled: !!actor && !isFetching && !!identity,
     retry: 1,
@@ -517,11 +574,15 @@ export function useAdminToggleHotelActivation() {
   return useMutation({
     mutationFn: async (params: { hotelId: Principal; activate: boolean }) => {
       if (!actor) throw new Error('Actor not available');
-      throw new Error('Hotel activation management is currently unavailable');
+      if (!hasMethod(actor, 'toggleHotelActiveStatus')) {
+        throw new Error('Hotel activation management not available');
+      }
+      const newStatus = await actor.toggleHotelActiveStatus(params.hotelId);
+      return newStatus;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['adminHotels'] });
+      queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
     },
   });
@@ -534,11 +595,23 @@ export function useAdminUpdateHotelSubscription() {
   return useMutation({
     mutationFn: async (params: { hotelId: Principal; status: string }) => {
       if (!actor) throw new Error('Actor not available');
-      throw new Error('Subscription management is currently unavailable');
+      if (!hasMethod(actor, 'updateSubscriptionStatus')) {
+        throw new Error('Subscription management not available');
+      }
+      // Convert string to SubscriptionStatus enum
+      let subscriptionStatus: SubscriptionStatus;
+      if (params.status === 'paid') {
+        subscriptionStatus = 'paid' as SubscriptionStatus;
+      } else if (params.status === 'unpaid') {
+        subscriptionStatus = 'unpaid' as SubscriptionStatus;
+      } else {
+        subscriptionStatus = 'test' as SubscriptionStatus;
+      }
+      await actor.updateSubscriptionStatus(params.hotelId, subscriptionStatus);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['adminHotels'] });
+      queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
     },
   });
@@ -551,31 +624,12 @@ export function useAdminPurgePrincipalData() {
   return useMutation({
     mutationFn: async (principalId: Principal) => {
       if (!actor) throw new Error('Actor not available');
-      throw new Error('Principal purge is currently unavailable');
+      throw new Error('Principal data purge is currently unavailable');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['adminHotels'] });
+      queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['allBookings'] });
-      queryClient.invalidateQueries({ queryKey: ['rooms'] });
-    },
-  });
-}
-
-export function useAdminCleanupLegacyData() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      throw new Error('Legacy data cleanup is currently unavailable');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hotels'] });
-      queryClient.invalidateQueries({ queryKey: ['adminHotels'] });
-      queryClient.invalidateQueries({ queryKey: ['callerHotelProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['rooms'] });
     },
   });
 }

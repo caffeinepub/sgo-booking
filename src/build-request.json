@@ -1,126 +1,79 @@
 {
   "kind": "build_request",
-  "title": "Restore stable hotel activation/admin token behavior and fix room photo upload only",
-  "priority": "high",
+  "title": "Add in-app deployment/publish link guidance and build version verification",
+  "projectName": "Hotel Admin Portal",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Restore the previously stable behavior for hotel activation, admin invite-token visibility, and role-based access by ensuring the backend canister exports all methods currently called by the frontend auth/admin/hotel-profile flows, and that these methods return consistent results so hotel accounts do not appear incorrectly inactive and existing admin-created tokens are visible again.",
-      "target": "both",
+      "text": "Add an Admin Panel section that helps admins verify whether the latest deployment is actually being served by the browser, by prominently showing the current BUILD_VERSION and basic runtime info (current URL/origin, detected network/canister host if available) with a one-click copy action.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-19"
         ],
         "quotes": [
-          "kembalikam ke versi stabil dan lakukan apa yang saya minta untuk fitur upload kamar,",
-          "ini kenapa sekarang malah akun hotekl jadi ga aktif dan admin yang sudah buat token untuk hotel malah hilang. Kacau.",
-          "saya minta kebnalikan lagi fitur-fitur nya normal lagi"
+          "kenapa belum berubah? Apakah deploy nya gagal? Coba deploy ulang dan saya minta link publish nya"
         ]
       },
       "acceptanceCriteria": [
-        "A hotel principal that was previously considered active is shown as active again in the UI (no false 'inactive' state caused by missing/failed API calls).",
-        "The Admin Panel invite token list loads successfully and shows previously created tokens (no empty list due to missing backend methods).",
-        "Role/guarded routes work without throwing runtime errors (e.g., no 'actor.<method> is not a function' errors) and the user can navigate to the same pages as in the last stable version.",
-        "Backend candid interface is aligned with the methods used in frontend query/mutation hooks for: caller role/admin checks, invite token CRUD/validation/consumption, hotel visibility/activation/subscription admin actions, and hotel profile fetch/update (as applicable to current UI)."
+        "Admin Panel includes a clearly labeled card/section (e.g., \"Deployment / Publish Info\")",
+        "The section displays the same build version string used in the footer (BUILD_VERSION)",
+        "The section displays the current window location (at least origin + pathname) and provides a copy-to-clipboard button",
+        "Copy action shows a success toast and copies the displayed value exactly",
+        "Section is visible only to admins (i.e., only on /admin behind existing RequireRole)"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Limit changes strictly to (a) restoring the broken stable features and (b) the requested 'upload kamar' (room upload) flow; do not refactor or change unrelated functionality (booking, payments, browsing, etc.) beyond what is necessary to remove the regression.",
-      "target": "both",
+      "text": "Extend the existing deploy/publish guidance UI so that it explicitly tells users how to obtain the platform Publish URL/Open App link, and includes cache-busting steps when changes are not visible (hard refresh instructions and an in-app reload button). All user-facing text must be in English.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-19"
         ],
         "quotes": [
-          "saya cuma minta di bagiam upload kamar saja, ini malah ke sana sini anda kerjakan",
-          "Anda kalau tidak saya minta kerjakan yang bukan di minta oleh saya, jangan anda kerjakan"
+          "kenapa belum berubah? Apakah deploy nya gagal? Coba deploy ulang dan saya minta link publish nya"
         ]
       },
       "acceptanceCriteria": [
-        "No UI/UX or behavior changes are introduced outside the activation/token/role regression fix and the room upload flow.",
-        "Regression checklist items unrelated to rooms/admin activation (e.g., guest browsing and booking flows) continue to work as before."
+        "The deploy guidance explains that the platform may not display the Publish URL/Open App link reliably and provides concrete steps (refresh page, switch Draft/Live tabs)",
+        "The deploy guidance includes cache-busting steps (hard refresh instructions)",
+        "The UI includes a \"Reload app\" button that triggers a full page reload (location.reload)",
+        "No non-English text is introduced in the new/updated UI"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Fix and harden the 'upload kamar' flow in the Rooms panel so adding/editing a room with photos is reliable: validate selected image files, provide clear errors, preserve existing photos when editing unless explicitly replaced/deleted, and ensure the saved room's picture URLs remain usable after page reload.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "lakukan apa yang saya minta untuk fitur upload kamar"
-        ]
-      },
-      "acceptanceCriteria": [
-        "In the Hotel Area > Rooms panel, creating a room with one or more photos completes successfully and the photos render immediately in the room card.",
-        "Editing an existing room without selecting new files keeps the existing photo list unchanged.",
-        "Replacing a photo uploads the new image and updates only the replaced image URL in the room.",
-        "Deleting a photo removes it from the room and it stays removed after refresh.",
-        "If an image file cannot be processed (unsupported type/too large/read failure), the UI shows an English error message and does not create/update the room."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Update the room photo upload implementation so it does not rely on large base64 data URLs for long-term storage; store uploaded images in the canister’s blob storage mechanism and save stable retrievable URLs/identifiers in `RoomInput.pictures` instead.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "lakukan apa yang saya minta untuk fitur upload kamar"
-        ]
-      },
-      "acceptanceCriteria": [
-        "After uploading room photos and saving a room, `RoomView.pictures` contains stable references (not raw `data:` URLs).",
-        "Room photos still load correctly after a full page refresh and re-login.",
-        "Upload progress UI continues to function and the user receives an English success/failure toast for the upload step."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Add a focused regression verification pass using the existing regression checklist to confirm the restored stable behaviors (auth/roles, hotel activation, admin tokens) and the updated room upload behavior before deployment; record the verification steps in the release notes.",
+      "text": "Ensure the application visibly changes its build identifier whenever a new release is produced by updating the frontend build version constant so users can confirm they are on the latest version.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-19"
         ],
         "quotes": [
-          "kembalikam ke versi stabil dan lakukan apa yang saya minta untuk fitur upload kamar,"
+          "kenapa belum berubah? Apakah deploy nya gagal? Coba deploy ulang dan saya minta link publish nya"
         ]
       },
       "acceptanceCriteria": [
-        "`frontend/REGRESSION_CHECKLIST.md` relevant sections for auth/roles, activation, and admin panel are executed and pass.",
-        "`frontend/RELEASE_NOTES.md` is updated with: what changed, what was verified, and a rollback note if the regression reappears."
+        "BUILD_VERSION is changed from its current value to a new value for this release",
+        "The updated build version is visible in the AppShell footer",
+        "The updated build version is also visible in the new Admin \"Deployment / Publish Info\" section"
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in `backend/main.mo`; add `backend/migration.mo` only if an upgrade requires state migration.",
-    "Do not modify any files under `frontend/src/components/ui` or other immutable paths listed in SYSTEM_CONTEXT.",
-    "All user-facing text introduced/changed by this build must be in English.",
-    "Do not introduce new features beyond restoring stable behavior and fixing the room upload flow."
+    "Do not modify files under frontend/src/components/ui (shadcn UI components are read-only).",
+    "Do not attempt to implement platform-level deployment or generate an actual Caffeine Publish URL inside the app; only provide in-app guidance and verification UI.",
+    "Keep the existing role-based route protection (RequireAuth/RequireRole) unchanged except for adding new admin-only UI within existing admin pages."
   ],
   "nonGoals": [
-    "Redesigning the application UI or navigation.",
-    "Adding new admin capabilities beyond what the current frontend already expects.",
-    "Changing booking, payment, or browsing logic except where required to resolve the activation/token regression side effects."
+    "Implementing an automated redeploy/release pipeline from within the app.",
+    "Providing a guaranteed published link generated by the backend.",
+    "Changing or refactoring unrelated admin/hotel/guest features that are currently working."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

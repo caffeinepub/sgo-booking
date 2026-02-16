@@ -5,7 +5,7 @@ import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { User, Building2, Search, Lock, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
-import { useGetCallerUserRole, useGetCallerHotelProfile, useIsCurrentUserAdmin } from '../hooks/useQueries';
+import { useGetCallerUserRole, useIsCallerHotelActivated, useIsCurrentUserAdmin } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { UserRole } from '../backend';
 
@@ -14,10 +14,9 @@ export function MainMenuPage() {
   const { identity } = useInternetIdentity();
   const { data: role, isLoading: roleLoading } = useGetCallerUserRole();
   const { data: isAdmin, isLoading: adminLoading } = useIsCurrentUserAdmin();
-  const { data: hotelProfile, isLoading: hotelProfileLoading } = useGetCallerHotelProfile();
+  const { data: isHotelActivated, isLoading: hotelActivationLoading } = useIsCallerHotelActivated();
 
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
-  const isHotelActivated = !!hotelProfile;
 
   const getHotelStatusText = () => {
     if (isAdmin) return 'Admin Access';
@@ -117,7 +116,7 @@ export function MainMenuPage() {
 
               <div className="flex items-center justify-center py-2">
                 <Badge variant={getHotelStatusVariant()} className="text-sm px-4 py-1">
-                  Status: {roleLoading || adminLoading || hotelProfileLoading ? 'Checking...' : getHotelStatusText()}
+                  Status: {roleLoading || adminLoading || hotelActivationLoading ? 'Checking...' : getHotelStatusText()}
                 </Badge>
               </div>
 

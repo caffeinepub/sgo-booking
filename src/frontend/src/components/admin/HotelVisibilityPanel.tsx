@@ -43,15 +43,6 @@ export function HotelVisibilityPanel() {
     }
   };
 
-  const getSubscriptionStatusString = (status: any): string => {
-    if (typeof status === 'object') {
-      if ('paid' in status) return 'paid';
-      if ('unpaid' in status) return 'unpaid';
-      if ('test' in status) return 'test';
-    }
-    return 'test';
-  };
-
   const getSubscriptionBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' => {
     if (status === 'paid') return 'default';
     if (status === 'unpaid') return 'destructive';
@@ -61,11 +52,11 @@ export function HotelVisibilityPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
+        <CardTitle className="flex items-center gap-2 text-2xl">
+          <Building2 className="h-6 w-6 text-primary" />
           Hotel Visibility Control
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-base">
           Manage which hotels are visible to guests. Only active hotels with paid or test subscriptions appear in
           browse results.
         </CardDescription>
@@ -84,16 +75,16 @@ export function HotelVisibilityPanel() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Hotel Name</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead>Subscription</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="font-semibold">Hotel Name</TableHead>
+                  <TableHead className="font-semibold">Location</TableHead>
+                  <TableHead className="font-semibold">Active</TableHead>
+                  <TableHead className="font-semibold">Subscription</TableHead>
+                  <TableHead className="font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {hotels.map((hotel) => {
-                  const subscriptionStatus = getSubscriptionStatusString(hotel.subscriptionStatus);
+                  const subscriptionStatus = hotel.subscriptionStatus;
                   return (
                     <TableRow key={hotel.id.toString()}>
                       <TableCell className="font-medium">{hotel.name}</TableCell>

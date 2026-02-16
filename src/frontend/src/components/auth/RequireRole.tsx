@@ -1,5 +1,5 @@
 import React from 'react';
-import { useGetCallerUserRole, useIsCurrentUserAdmin, useGetCallerHotelProfile } from '../../hooks/useQueries';
+import { useGetCallerUserRole, useIsCurrentUserAdmin, useIsCallerHotelActivated } from '../../hooks/useQueries';
 import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { Loader2 } from 'lucide-react';
 import { AccessDeniedScreen } from './AccessDeniedScreen';
@@ -16,10 +16,10 @@ export function RequireRole({ children, requiredRoles, requireHotelActivation = 
   const { identity } = useInternetIdentity();
   const { data: userRole, isLoading: roleLoading, error: roleError, isFetched: roleFetched } = useGetCallerUserRole();
   const { data: isAdmin, isLoading: adminLoading, isFetched: adminFetched } = useIsCurrentUserAdmin();
-  const { data: hotelProfile, isLoading: hotelLoading, error: hotelError, isFetched: hotelFetched } = useGetCallerHotelProfile();
+  const { data: isHotelActivated, isLoading: hotelActivationLoading, isFetched: hotelActivationFetched } = useIsCallerHotelActivated();
 
   // Wait for identity and queries to complete
-  if (!identity || roleLoading || adminLoading || (requireHotelActivation && hotelLoading)) {
+  if (!identity || roleLoading || adminLoading || (requireHotelActivation && hotelActivationLoading)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -50,11 +50,8 @@ export function RequireRole({ children, requiredRoles, requireHotelActivation = 
     );
   }
 
-  // Check hotel activation if required
-  if (requireHotelActivation && hotelFetched) {
-    // If hotel profile doesn't exist or is not active, show access denied
-    const isHotelActivated = hotelProfile?.active === true;
-    
+  // Check hotel activation if required (V44: use role-based activation check)
+  if (requireHotelActivation && hotelActivationFetched) {
     if (!isHotelActivated) {
       return (
         <AccessDeniedScreen
@@ -64,12 +61,6 @@ export function RequireRole({ children, requiredRoles, requireHotelActivation = 
         />
       );
     }
-  }
-
-  // Handle hotel profile check errors (non-blocking)
-  if (requireHotelActivation && hotelError && hotelFetched) {
-    // Don't block access on hotel profile errors, just log
-    console.warn('Hotel profile check failed:', hotelError);
   }
 
   return <>{children}</>;

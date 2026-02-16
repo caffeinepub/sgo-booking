@@ -6,38 +6,38 @@
     :root {
         --radius: 0.5rem;
         
-        /* White background with subtle grays */
-        --background: 1 0 0;
-        --foreground: 0.145 0 0;
+        /* Warm neutral palette with charcoal foreground */
+        --background: 0.98 0.005 45;
+        --foreground: 0.25 0.01 30;
         
         --card: 1 0 0;
-        --card-foreground: 0.145 0 0;
+        --card-foreground: 0.25 0.01 30;
         
         --popover: 1 0 0;
-        --popover-foreground: 0.145 0 0;
+        --popover-foreground: 0.25 0.01 30;
         
-        /* Amber/Orange accent (non-blue, non-purple) */
-        --primary: 0.65 0.18 45;
+        /* Amber accent for primary actions */
+        --primary: 0.62 0.19 50;
         --primary-foreground: 1 0 0;
         
-        --secondary: 0.96 0.01 45;
-        --secondary-foreground: 0.145 0 0;
+        --secondary: 0.94 0.015 45;
+        --secondary-foreground: 0.25 0.01 30;
         
-        --muted: 0.96 0 0;
-        --muted-foreground: 0.5 0 0;
+        --muted: 0.95 0.01 45;
+        --muted-foreground: 0.52 0.01 30;
         
-        --accent: 0.96 0.01 45;
-        --accent-foreground: 0.145 0 0;
+        --accent: 0.94 0.02 50;
+        --accent-foreground: 0.25 0.01 30;
         
         --destructive: 0.577 0.245 27.325;
         --destructive-foreground: 1 0 0;
         
-        /* Subtle borders */
-        --border: 0.92 0 0;
-        --input: 0.92 0 0;
-        --ring: 0.65 0.18 45;
+        /* Subtle warm borders */
+        --border: 0.90 0.01 45;
+        --input: 0.90 0.01 45;
+        --ring: 0.62 0.19 50;
         
-        --chart-1: 0.65 0.18 45;
+        --chart-1: 0.62 0.19 50;
         --chart-2: 0.6 0.15 120;
         --chart-3: 0.55 0.12 200;
         --chart-4: 0.7 0.2 30;
@@ -45,39 +45,39 @@
     }
 
     .dark {
-        --background: 0.145 0 0;
-        --foreground: 0.985 0 0;
+        --background: 0.18 0.01 30;
+        --foreground: 0.96 0.005 45;
         
-        --card: 0.205 0 0;
-        --card-foreground: 0.985 0 0;
+        --card: 0.22 0.01 30;
+        --card-foreground: 0.96 0.005 45;
         
-        --popover: 0.205 0 0;
-        --popover-foreground: 0.985 0 0;
+        --popover: 0.22 0.01 30;
+        --popover-foreground: 0.96 0.005 45;
         
-        --primary: 0.75 0.2 45;
-        --primary-foreground: 0.145 0 0;
+        --primary: 0.70 0.21 50;
+        --primary-foreground: 0.18 0.01 30;
         
-        --secondary: 0.269 0 0;
-        --secondary-foreground: 0.985 0 0;
+        --secondary: 0.28 0.015 30;
+        --secondary-foreground: 0.96 0.005 45;
         
-        --muted: 0.269 0 0;
-        --muted-foreground: 0.708 0 0;
+        --muted: 0.28 0.015 30;
+        --muted-foreground: 0.65 0.01 45;
         
-        --accent: 0.371 0.05 45;
-        --accent-foreground: 0.985 0 0;
+        --accent: 0.35 0.05 50;
+        --accent-foreground: 0.96 0.005 45;
         
         --destructive: 0.704 0.191 22.216;
-        --destructive-foreground: 0.985 0 0;
+        --destructive-foreground: 0.96 0.005 45;
         
-        --border: 0.269 0 0;
-        --input: 0.269 0 0;
-        --ring: 0.75 0.2 45;
+        --border: 0.28 0.015 30;
+        --input: 0.28 0.015 30;
+        --ring: 0.70 0.21 50;
         
-        --chart-1: 0.75 0.2 45;
+        --chart-1: 0.70 0.21 50;
         --chart-2: 0.65 0.18 120;
         --chart-3: 0.6 0.15 200;
-        --chart-4: 0.8 0.22 30;
-        --chart-5: 0.7 0.18 60;
+        --chart-4: 0.75 0.22 30;
+        --chart-5: 0.68 0.18 60;
     }
 
     * {
